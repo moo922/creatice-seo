@@ -30,7 +30,7 @@ export class HealthServer implements OnApplicationShutdown {
       }
       this.json(res, 404, { status: 'not_found' });
     });
-    const port = this.config.env.PORT;
+    const port = this.config.env.WORKER_PORT;
     this.server.listen(port, '0.0.0.0', () => {
       this.logger.log(`Worker health server listening on :${port}`);
     });

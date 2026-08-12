@@ -4,12 +4,14 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AiCoreModule } from '@creative-seo/ai';
 import { createDataSourceOptions } from '@creative-seo/database';
 import { WorkerConfig } from './config/worker-config';
+import { WorkerConfigModule } from './config/worker-config.module';
 import { HealthServer } from './health/health-server';
 import { QueueManager } from './queue/queue-manager';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, envFilePath: ['.env'], ignoreEnvVars: false }),
+    WorkerConfigModule,
     TypeOrmModule.forRootAsync({
       inject: [WorkerConfig],
       useFactory: (config: WorkerConfig) =>
@@ -21,6 +23,6 @@ import { QueueManager } from './queue/queue-manager';
     }),
     AiCoreModule,
   ],
-  providers: [WorkerConfig, QueueManager, HealthServer],
+  providers: [QueueManager, HealthServer],
 })
 export class AppModule {}

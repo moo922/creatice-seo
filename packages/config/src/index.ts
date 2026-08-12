@@ -8,6 +8,8 @@ const boolFromString = z
 export const appEnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().min(0).default(3000),
+  /** Dedicated health-server port for the worker (must not collide with PORT). */
+  WORKER_PORT: z.coerce.number().int().min(0).default(3100),
   HOST: z.string().default('0.0.0.0'),
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error', 'fatal']).default('info'),
   DATABASE_URL: z
