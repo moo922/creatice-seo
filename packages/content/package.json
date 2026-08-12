@@ -1,0 +1,31 @@
+{
+  "name": "@creative-seo/content",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Content intelligence pipeline: research, brief gating, drafting, and internal SEO/AEO/GEO validation producing a full content package",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint \"src/**/*.ts\"",
+    "test": "jest --runInBand --config jest.unit.json"
+  },
+  "dependencies": {
+    "@creative-seo/ai": "^0.1.0",
+    "@creative-seo/database": "^0.1.0",
+    "@creative-seo/types": "^0.1.0",
+    "@nestjs/common": "^11.0.0",
+    "@nestjs/core": "^11.0.0",
+    "@nestjs/typeorm": "^11.0.0",
+    "typeorm": "^0.3.20"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "jest": "^29.7.0",
+    "reflect-metadata": "^0.2.2",
+    "ts-jest": "^29.2.5",
+    "typescript": "^5.6.3"
+  }
+}

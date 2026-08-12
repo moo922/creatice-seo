@@ -1,0 +1,430 @@
+export const USER_TYPES = ['AGENCY', 'CLIENT'] as const;
+export type UserType = (typeof USER_TYPES)[number];
+
+export const USER_STATUSES = ['ACTIVE', 'SUSPENDED'] as const;
+export type UserStatus = (typeof USER_STATUSES)[number];
+
+export const ORGANIZATION_STATUSES = ['ACTIVE', 'SUSPENDED', 'ARCHIVED'] as const;
+export type OrganizationStatus = (typeof ORGANIZATION_STATUSES)[number];
+
+export const SITE_STATUSES = ['ACTIVE', 'PAUSED', 'ARCHIVED'] as const;
+export type SiteStatus = (typeof SITE_STATUSES)[number];
+
+export const SITE_ROLES = ['OWNER', 'MANAGER', 'VIEWER'] as const;
+export type SiteRole = (typeof SITE_ROLES)[number];
+
+export const SITE_SECRET_KINDS = [
+  'WORDPRESS',
+  'GSC',
+  'GOOGLE_ADS',
+  'GA4',
+  'API_KEY',
+  'OTHER',
+] as const;
+export type SiteSecretKind = (typeof SITE_SECRET_KINDS)[number];
+
+export const WORDPRESS_CONNECTION_STATUSES = ['PENDING', 'CONNECTED', 'FAILED'] as const;
+export type WordPressConnectionStatus = (typeof WORDPRESS_CONNECTION_STATUSES)[number];
+
+export const GSC_CONNECTION_STATUSES = ['DISCONNECTED', 'CONNECTED', 'EXPIRED'] as const;
+export type GscConnectionStatus = (typeof GSC_CONNECTION_STATUSES)[number];
+
+export const GSC_DIMENSIONS = ['query', 'page', 'country', 'device'] as const;
+export type GscDimension = (typeof GSC_DIMENSIONS)[number];
+
+/**
+ * Opportunity rules. `position` values are Search Console *average* positions
+ * across users/impressions and must not be treated as an exact universal
+ * ranking position for a query.
+ */
+export const GSC_OPPORTUNITY_KINDS = [
+  'HIGH_IMPRESSIONS_LOW_CTR',
+  'POSITION_4_10',
+  'POSITION_11_20',
+  'DECLINING_PAGE',
+  'RISING_PAGE',
+  'NEW_QUERY',
+  'LOST_QUERY',
+  'CONTENT_DECAY',
+  'QUERY_URL_CONFLICT',
+] as const;
+export type GscOpportunityKind = (typeof GSC_OPPORTUNITY_KINDS)[number];
+
+export const GSC_OPPORTUNITY_STATUSES = ['OPEN', 'DISMISSED', 'ACTIONED'] as const;
+export type GscOpportunityStatus = (typeof GSC_OPPORTUNITY_STATUSES)[number];
+
+export const KEYWORD_SOURCES = ['seed', 'gsc', 'ads', 'topic', 'manual'] as const;
+export type KeywordSource = (typeof KEYWORD_SOURCES)[number];
+
+export const KEYWORD_INTENTS = ['TRANSACTIONAL', 'COMMERCIAL', 'INFORMATIONAL', 'NAVIGATIONAL'] as const;
+export type KeywordIntent = (typeof KEYWORD_INTENTS)[number];
+
+export const KEYWORD_STATUSES = ['CANDIDATE', 'ACTIVE', 'DISMISSED'] as const;
+export type KeywordStatus = (typeof KEYWORD_STATUSES)[number];
+
+export const KEYWORD_PAGE_TYPES = ['SERVICE', 'PRODUCT', 'BLOG', 'LANDING', 'CATEGORY', 'SUPPORT', 'OTHER'] as const;
+export type KeywordPageType = (typeof KEYWORD_PAGE_TYPES)[number];
+
+export const CLUSTER_ACTIONS = ['KEEP', 'UPDATE', 'EXPAND', 'CREATE', 'MERGE', 'REDIRECT', 'REVIEW'] as const;
+export type ClusterAction = (typeof CLUSTER_ACTIONS)[number];
+
+export const CLUSTER_STATUSES = ['DRAFT', 'APPROVED', 'REVIEW'] as const;
+export type ClusterStatus = (typeof CLUSTER_STATUSES)[number];
+
+export const AI_PROVIDER_KINDS = ['OPENAI', 'ANTHROPIC', 'PERPLEXITY'] as const;
+export type AiProviderKind = (typeof AI_PROVIDER_KINDS)[number];
+
+export const AI_JOB_STATUSES = ['RUNNING', 'SUCCEEDED', 'FAILED', 'NO_PROVIDER'] as const;
+export type AiJobStatus = (typeof AI_JOB_STATUSES)[number];
+
+export const AI_JOB_KINDS = ['TEXT', 'STRUCTURED', 'RESEARCH'] as const;
+export type AiJobKind = (typeof AI_JOB_KINDS)[number];
+
+export const AI_PROMPT_STATUSES = ['ACTIVE', 'DRAFT', 'DEPRECATED'] as const;
+export type AiPromptStatus = (typeof AI_PROMPT_STATUSES)[number];
+
+/** Workflow keys used for provider routing (global -> site -> workflow). */
+export const AI_WORKFLOWS = [
+  'research',
+  'clustering',
+  'brief',
+  'writer',
+  'arabic-qa',
+  'content-evidence',
+  'content-intent',
+  'content-aeo',
+  'content-geo',
+  'content-gap',
+  'content-brief',
+  'content-brief-gate',
+  'content-outline',
+  'content-draft',
+  'content-language',
+  'content-seo-validator',
+  'content-aeo-validator',
+  'content-geo-validator',
+  'content-rankmath-validator',
+  'content-factual',
+  'content-links',
+  'content-qa',
+  'operations-recommendation',
+  'visibility-observation',
+] as const;
+export type AiWorkflow = (typeof AI_WORKFLOWS)[number];
+
+// ---------------------------------------------------------------------------
+// Content intelligence pipeline
+// ---------------------------------------------------------------------------
+
+/**
+ * Ordered pipeline stages. Stages 1-7 build the brief; the brief gate (control
+ * stage) must pass before the outline/draft stages run. Stages 11-16 validate
+ * and refine; 17-18 plan links and run final QA.
+ */
+export const PIPELINE_STAGES = [
+  'research',
+  'evidence-extraction',
+  'intent-analysis',
+  'aeo-question-map',
+  'geo-entity-analysis',
+  'content-gap-analysis',
+  'content-brief',
+  'brief-gate',
+  'outline',
+  'draft',
+  'language-editor',
+  'seo-validator',
+  'aeo-validator',
+  'geo-validator',
+  'rankmath-validator',
+  'factual-validator',
+  'internal-link-planning',
+  'final-qa',
+] as const;
+export type PipelineStageId = (typeof PIPELINE_STAGES)[number];
+
+/** Coarse lifecycle of a pipeline run / content package. */
+export const PIPELINE_STATUSES = [
+  'QUEUED',
+  'RUNNING',
+  'AWAITING_APPROVAL',
+  'REJECTED',
+  'COMPLETE',
+  'FAILED',
+] as const;
+export type PipelineStatus = (typeof PIPELINE_STATUSES)[number];
+
+export const STAGE_STATUSES = ['PENDING', 'RUNNING', 'SUCCEEDED', 'FAILED', 'SKIPPED'] as const;
+export type StageStatus = (typeof STAGE_STATUSES)[number];
+
+export const VALIDATOR_IDS = ['SEO', 'AEO', 'GEO', 'RANKMATH', 'FACTUAL', 'FINAL_QA'] as const;
+export type ValidatorId = (typeof VALIDATOR_IDS)[number];
+
+export const CONTENT_LANGUAGES = ['en', 'ar'] as const;
+export type ContentLanguage = (typeof CONTENT_LANGUAGES)[number];
+
+// ---------------------------------------------------------------------------
+// Operations management
+// ---------------------------------------------------------------------------
+
+/** Issue lifecycle. The pipeline never mutates a live site; it creates issues. */
+export const ISSUE_STATUSES = [
+  'DETECTED',
+  'REVIEWED',
+  'APPROVED',
+  'IN_PROGRESS',
+  'FIXED',
+  'VERIFYING',
+  'RESOLVED',
+  'IGNORED',
+] as const;
+export type IssueStatus = (typeof ISSUE_STATUSES)[number];
+
+export const ISSUE_SEVERITIES = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] as const;
+export type IssueSeverity = (typeof ISSUE_SEVERITIES)[number];
+
+export const ISSUE_KINDS = [
+  'TRAFFIC_DROP',
+  'CTR_DROP',
+  'POSITION_DECLINE',
+  'CRITICAL_TECHNICAL',
+  'GSC_FAILURE',
+  'WORDPRESS_FAILURE',
+  'CONTENT_DECAY',
+  'CANNIBALIZATION',
+  'ON_PAGE',
+  'ORCHESTRATION',
+  'MANUAL',
+] as const;
+export type IssueKind = (typeof ISSUE_KINDS)[number];
+
+export const ISSUE_SOURCES = ['ALERT', 'GSC', 'WORDPRESS', 'CRAWLER', 'MANUAL', 'N8N'] as const;
+export type IssueSource = (typeof ISSUE_SOURCES)[number];
+
+export const RECOMMENDATION_PRIORITIES = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] as const;
+export type RecommendationPriority = (typeof RECOMMENDATION_PRIORITIES)[number];
+
+export const TASK_STATUSES = ['TODO', 'IN_PROGRESS', 'DONE', 'BLOCKED'] as const;
+export type TaskStatus = (typeof TASK_STATUSES)[number];
+
+/** Change log change types (title, meta, content, headings, canonical, robots, schema, internal links, redirect, page created/removed, Rank Math). */
+export const CHANGE_TYPES = [
+  'title',
+  'meta',
+  'content',
+  'headings',
+  'canonical',
+  'robots',
+  'schema',
+  'internal_links',
+  'redirect',
+  'page_created',
+  'page_removed',
+  'rank_math',
+] as const;
+export type ChangeType = (typeof CHANGE_TYPES)[number];
+
+/** Immutable baseline snapshot types. */
+export const BASELINE_TYPES = ['BASELINE', 'PERIODIC', 'MONTHLY', 'QUARTERLY'] as const;
+export type BaselineType = (typeof BASELINE_TYPES)[number];
+
+/** The nine baseline metric areas. */
+export const BASELINE_METRIC_KEYS = [
+  'crawlHealth',
+  'technicalIssues',
+  'onPageHealth',
+  'contentHealth',
+  'aeoReadiness',
+  'geoReadiness',
+  'gscMetrics',
+  'keywordVisibility',
+  'internalLinkHealth',
+] as const;
+export type BaselineMetricKey = (typeof BASELINE_METRIC_KEYS)[number];
+
+export const ALERT_KINDS = [
+  'TRAFFIC_DROP',
+  'CTR_DROP',
+  'POSITION_DECLINE',
+  'CRITICAL_TECHNICAL_ISSUE',
+  'GSC_FAILURE',
+  'WORDPRESS_FAILURE',
+  'CONTENT_DECAY',
+  'NEW_CANNIBALIZATION',
+] as const;
+export type AlertKind = (typeof ALERT_KINDS)[number];
+
+export const ALERT_STATUSES = ['OPEN', 'ACKNOWLEDGED', 'ACTIONED', 'DISMISSED'] as const;
+export type AlertStatus = (typeof ALERT_STATUSES)[number];
+
+// ---------------------------------------------------------------------------
+// AI visibility observation
+// ---------------------------------------------------------------------------
+
+/** Standardized prompt categories per site. */
+export const VISIBILITY_CATEGORIES = [
+  'BRAND',
+  'COMMERCIAL',
+  'INFORMATIONAL',
+  'COMPARISON',
+  'LOCAL',
+  'DECISION',
+  'PROBLEM_SOLUTION',
+] as const;
+export type VisibilityCategory = (typeof VISIBILITY_CATEGORIES)[number];
+
+export const VISIBILITY_RUN_STATUSES = ['RUNNING', 'COMPLETED', 'FAILED'] as const;
+export type VisibilityRunStatus = (typeof VISIBILITY_RUN_STATUSES)[number];
+
+/** Computed observation metrics (always labelled as controlled observations). */
+export const VISIBILITY_METRIC_KEYS = [
+  'brandMentionRate',
+  'citationRate',
+  'sourceCoverage',
+  'competitorInclusion',
+  'shareOfVoice',
+] as const;
+export type VisibilityMetricKey = (typeof VISIBILITY_METRIC_KEYS)[number];
+
+// ---------------------------------------------------------------------------
+// Internal-link intelligence
+// ---------------------------------------------------------------------------
+
+/** Workflow for a link suggestion: Suggest -> Approve -> Apply -> Verify. */
+export const LINK_SUGGESTION_STATUSES = ['SUGGESTED', 'APPROVED', 'APPLIED', 'VERIFIED', 'REJECTED'] as const;
+export type LinkSuggestionStatus = (typeof LINK_SUGGESTION_STATUSES)[number];
+
+export const LINK_SUGGESTION_ACTIONS = ['ADD_LINK', 'REMOVE_LINK', 'CHANGE_ANCHOR'] as const;
+export type LinkSuggestionAction = (typeof LINK_SUGGESTION_ACTIONS)[number];
+
+export const LINK_DETECTIONS = [
+  'OPPORTUNITY',
+  'ORPHAN',
+  'WEAK_TARGET',
+  'BROKEN',
+  'OVERUSED_ANCHOR',
+  'CONFLICT',
+] as const;
+export type LinkDetection = (typeof LINK_DETECTIONS)[number];
+
+export const LINK_ANALYSIS_STATUSES = ['RUNNING', 'COMPLETED', 'FAILED'] as const;
+export type LinkAnalysisStatus = (typeof LINK_ANALYSIS_STATUSES)[number];
+
+// ---------------------------------------------------------------------------
+// Self-hosted reporting
+// ---------------------------------------------------------------------------
+
+/** Report types. INITIAL and MONTHLY are composite; the rest are focused. */
+export const REPORT_TYPES = [
+  'INITIAL',
+  'MONTHLY',
+  'EXECUTIVE',
+  'SEO',
+  'AEO',
+  'GEO',
+  'TECHNICAL',
+  'CONTENT',
+  'ISSUES',
+  'WORK_COMPLETED',
+] as const;
+export type ReportType = (typeof REPORT_TYPES)[number];
+
+export const REPORT_STATUSES = ['GENERATED', 'PDF_PENDING', 'PDF_FAILED'] as const;
+export type ReportStatus = (typeof REPORT_STATUSES)[number];
+
+// ---------------------------------------------------------------------------
+// n8n orchestration
+// ---------------------------------------------------------------------------
+
+/** Backend-owned orchestration job lifecycle (PostgreSQL is the source of truth). */
+export const WORKFLOW_JOB_STATUSES = ['PENDING', 'RUNNING', 'SUCCEEDED', 'FAILED', 'TIMEOUT'] as const;
+export type WorkflowJobStatus = (typeof WORKFLOW_JOB_STATUSES)[number];
+
+/** The 15 n8n workflows the backend orchestrates. */
+export const ORCHESTRATION_WORKFLOWS = [
+  'site-sync',
+  'crawl-audit',
+  'gsc-sync',
+  'keyword-discovery',
+  'keyword-clustering',
+  'content-brief',
+  'content-generation',
+  'content-qa',
+  'internal-linking',
+  'wp-draft-publisher',
+  'post-publish-verification',
+  'monitoring-opportunities',
+  'ai-visibility-observation',
+  'monthly-snapshot',
+  'report-generation',
+] as const;
+export type OrchestrationWorkflow = (typeof ORCHESTRATION_WORKFLOWS)[number];
+
+export const ROLE_KEYS = [
+  'SUPER_ADMIN',
+  'ADMIN',
+  'SEO_MANAGER',
+  'CONTENT_MANAGER',
+  'EDITOR',
+  'VIEWER',
+  'CLIENT',
+] as const;
+export type RoleKey = (typeof ROLE_KEYS)[number];
+
+export const ACTIVITY_ACTIONS = [
+  'auth.login',
+  'auth.logout',
+  'auth.refresh',
+  'user.create',
+  'user.update',
+  'user.deactivate',
+  'user.assign_roles',
+  'organization.create',
+  'organization.update',
+  'site.create',
+  'site.update',
+  'site.delete',
+  'site.membership.create',
+  'site.membership.delete',
+  'site.secret.create',
+  'site.secret.delete',
+  'wordpress.check',
+  'wordpress.sync',
+  'wordpress.disconnect',
+  'gsc.connect',
+  'gsc.disconnect',
+  'gsc.sync',
+  'gsc.property.select',
+  'keywords.pipeline',
+  'keywords.override',
+  'content.pipeline',
+  'content.brief.approve',
+  'content.brief.reject',
+  'operations.issue.create',
+  'operations.issue.update',
+  'operations.recommendation.create',
+  'operations.task.create',
+  'operations.task.update',
+  'operations.changelog.create',
+  'operations.baseline.create',
+  'operations.alert.create',
+  'operations.alert.update',
+  'visibility.run',
+  'visibility.run.create',
+  'visibility.promptset.update',
+  'links.analysis',
+  'links.suggestion.create',
+  'links.suggestion.approve',
+  'links.suggestion.apply',
+  'links.suggestion.verify',
+  'links.suggestion.reject',
+  'reports.generate',
+  'reports.view',
+  'client.access',
+  'client.view',
+  'orchestration.job.create',
+  'orchestration.job.dispatch',
+  'orchestration.job.callback',
+  'orchestration.job.fail',
+] as const;
+export type ActivityAction = (typeof ACTIVITY_ACTIONS)[number];

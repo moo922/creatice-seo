@@ -1,0 +1,33 @@
+{
+  "name": "@creative-seo/database",
+  "version": "0.1.0",
+  "private": true,
+  "description": "PostgreSQL entities and migrations for the Search & AI Visibility platform",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint \"src/**/*.ts\"",
+    "migration:run": "tsx src/scripts/run-migrations.ts",
+    "migration:revert": "tsx src/scripts/revert-migration.ts",
+    "migration:generate": "tsx src/scripts/generate-migration.ts",
+    "seed": "tsx src/scripts/seed-admin.ts"
+  },
+  "dependencies": {
+    "@creative-seo/config": "^0.1.0",
+    "@creative-seo/types": "^0.1.0",
+    "bcryptjs": "^2.4.3",
+    "dotenv": "^16.4.5",
+    "pg": "^8.13.1",
+    "reflect-metadata": "^0.2.2",
+    "typeorm": "^0.3.20"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "@types/pg": "^8.11.10",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}

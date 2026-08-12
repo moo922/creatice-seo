@@ -1,0 +1,43 @@
+{
+  "name": "@creative-seo/web",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Web dashboard for the Search & AI Visibility platform",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -p tsconfig.json --noEmit && vite build",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint \"src/**/*.{ts,tsx}\"",
+    "preview": "vite preview",
+    "test": "echo \"@creative-seo/web has no runtime tests in Phase 1\""
+  },
+  "dependencies": {
+    "@creative-seo/types": "^0.1.0",
+    "@radix-ui/react-dropdown-menu": "^2.1.4",
+    "@radix-ui/react-label": "^2.1.0",
+    "@radix-ui/react-slot": "^1.1.0",
+    "@radix-ui/react-tabs": "^1.1.1",
+    "@tanstack/react-query": "^5.59.16",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.1.1",
+    "i18next": "^23.16.4",
+    "i18next-browser-languagedetector": "^8.0.0",
+    "lucide-react": "^0.454.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-i18next": "^15.1.1",
+    "react-router-dom": "^7.0.1",
+    "tailwind-merge": "^2.5.4"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.0.0",
+    "@types/node": "^22.9.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.3.3",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5.6.3",
+    "vite": "^6.0.0"
+  }
+}

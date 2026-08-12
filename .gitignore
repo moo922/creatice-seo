@@ -1,0 +1,17 @@
+node_modules/
+dist/
+coverage/
+*.log
+.env
+.env.local
+.env.*.local
+.DS_Store
+*.tsbuildinfo
+.turbo/
+uploads/
+.reports/
+.vite/
+playwright-report/
+test-results/
+# Runtime data (database backups, generated reports)
+data/

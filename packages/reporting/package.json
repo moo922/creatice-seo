@@ -1,0 +1,36 @@
+{
+  "name": "@creative-seo/reporting",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Fully self-hosted reporting: responsive HTML reports and PDF via local Chromium/Playwright, with white-label agency branding and permanent version storage",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint \"src/**/*.ts\"",
+    "test": "jest --runInBand --config jest.unit.json"
+  },
+  "dependencies": {
+    "@creative-seo/content": "^0.1.0",
+    "@creative-seo/database": "^0.1.0",
+    "@creative-seo/links": "^0.1.0",
+    "@creative-seo/operations": "^0.1.0",
+    "@creative-seo/types": "^0.1.0",
+    "@creative-seo/visibility": "^0.1.0",
+    "@nestjs/common": "^11.0.0",
+    "@nestjs/core": "^11.0.0",
+    "@nestjs/typeorm": "^11.0.0",
+    "playwright": "^1.48.0",
+    "typeorm": "^0.3.20"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "@types/node": "^22.9.0",
+    "jest": "^29.7.0",
+    "reflect-metadata": "^0.2.2",
+    "ts-jest": "^29.2.5",
+    "typescript": "^5.6.3"
+  }
+}

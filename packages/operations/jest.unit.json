@@ -1,0 +1,14 @@
+{
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "rootDir": ".",
+  "testRegex": "src/.*\\.spec\\.ts$",
+  "transform": {
+    "^.+\\.(t|j)s$": "ts-jest"
+  },
+  "testEnvironment": "node",
+  "collectCoverageFrom": ["src/**/*.ts"],
+  "moduleNameMapper": {
+    "^@creative-seo/types$": "<rootDir>/../../packages/types/src/index.ts",
+    "^@creative-seo/database$": "<rootDir>/../../packages/database/src/index.ts"
+  }
+}

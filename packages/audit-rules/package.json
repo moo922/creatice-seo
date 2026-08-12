@@ -1,0 +1,21 @@
+{
+  "name": "@creative-seo/audit-rules",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Deterministic SEO/AEO/GEO audit rule registry (rules implemented in Phase 2)",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint \"src/**/*.ts\"",
+    "test": "echo \"@creative-seo/audit-rules has no runtime tests in Phase 1\""
+  },
+  "dependencies": {
+    "@creative-seo/types": "^0.1.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  }
+}
