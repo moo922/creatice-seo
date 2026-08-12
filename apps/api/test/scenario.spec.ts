@@ -12,12 +12,15 @@ import {
   Organization,
   Role,
   Site,
+  SiteSecret,
   User,
   WordPressIntegration,
   WordPressPost,
 } from '@creative-seo/database';
 import { AppModule } from '../src/app.module';
 import { GscClientService } from '../src/modules/gsc/gsc-client.service';
+import { WordPressClientService } from '../src/modules/wordpress/wordpress-client.service';
+import { EncryptionService } from '../src/security/encryption.service';
 
 /**
  * PRODUCTION READINESS — E2E SCENARIO
@@ -213,6 +216,17 @@ const fakeGsc = {
   refreshAccessToken: async () => ({ access_token: 'fake-access', expires_in: 3600 }),
 };
 
+const fakeWordPressClient = {
+  createDraft: async (_creds: unknown, input: { title: string; content: string }) => ({
+    id: 9001,
+    link: 'https://scenario.example.com/draft',
+    status: 'draft',
+    title: input.title,
+  }),
+  updatePostStatus: async () => ({ id: 9001, link: 'https://scenario.example.com/published', status: 'publish' }),
+  getPost: async () => ({ id: 9001, link: 'https://scenario.example.com/published', status: 'publish', title: 'Published' }),
+};
+
 // ---------------------------------------------------------------------------
 // Test
 // ---------------------------------------------------------------------------
@@ -231,6 +245,8 @@ describe('Production readiness E2E scenario', () => {
       .useValue(new FakeAiService() as unknown as AiService)
       .overrideProvider(GscClientService)
       .useValue(fakeGsc)
+      .overrideProvider(WordPressClientService)
+      .useValue(fakeWordPressClient as never)
       .compile();
 
     app = moduleFixture.createNestApplication();
@@ -276,6 +292,12 @@ describe('Production readiness E2E scenario', () => {
     if (!siteId) throw new Error(`Site create failed: ${JSON.stringify(siteRes.body)}`);
 
     // The site-create flow already grants the creator an OWNER membership.
+    // Add a WORDPRESS secret so the publish flow can resolve credentials.
+    const secrets = dataSource.getRepository(SiteSecret);
+    const encryption = app.get(EncryptionService);
+    const encrypted = encryption.encrypt(JSON.stringify({ url: `https://${domain}`, username: 'admin', password: 'publish-secret' }));
+    await secrets.save(secrets.create({ siteId, kind: 'WORDPRESS', label: 'scenario', encryptedPayload: encrypted, meta: {} }));
+
     (globalThis as { __scenario?: { email: string; password: string } }).__scenario = { email, password };
   }
 
@@ -365,11 +387,18 @@ describe('Production readiness E2E scenario', () => {
     const qa = pipeline?.scores;
     record('13 QA', pipelineOk && qa?.seo && qa?.aeo && qa?.geo && qa?.factual ? 'PASS' : 'FAIL', 'internal SEO/AEO/GEO/factual scores present');
 
-    // 14-17. WP draft / approve / publish / verify — no API (n8n workflows pending)
-    record('14 Create WP Draft', 'BLOCKED', 'no WP publish API (n8n wp-draft-publisher workflow pending)');
-    record('15 Approve', 'BLOCKED', 'no publish-approval API');
-    record('16 Publish', 'BLOCKED', 'no publish API (n8n workflow pending)');
-    record('17 Verify', 'BLOCKED', 'no post-publish verification API');
+    // 14-17. WP draft / approve / publish / verify
+    const packageId = pipeline?.id;
+    const draftRes = await post(`${s(`/content/packages/${packageId}/publish`)}`, {});
+    const publication = draftRes.body?.data;
+    record('14 Create WP Draft', draftRes.status < 400 && publication?.status === 'DRAFT' && publication?.wpPostId ? 'PASS' : 'FAIL', `status=${publication?.status ?? draftRes.status} ${JSON.stringify(draftRes.body)}`);
+    const pubId = publication?.id;
+    const approvePubRes = await post(`${s(`/content/publications/${pubId}/approve`)}`, {});
+    record('15 Approve', approvePubRes.body?.data?.status === 'APPROVED' ? 'PASS' : 'FAIL', `status=${approvePubRes.body?.data?.status ?? 'n/a'}`);
+    const publishPubRes = await post(`${s(`/content/publications/${pubId}/publish`)}`, {});
+    record('16 Publish', publishPubRes.body?.data?.status === 'PUBLISHED' ? 'PASS' : 'FAIL', `status=${publishPubRes.body?.data?.status ?? 'n/a'}`);
+    const verifyPubRes = await post(`${s(`/content/publications/${pubId}/verify`)}`, {});
+    record('17 Verify', verifyPubRes.body?.data?.status === 'VERIFIED' ? 'PASS' : 'FAIL', `status=${verifyPubRes.body?.data?.status ?? 'n/a'}`);
 
     // 18. Track Performance — dashboard + GSC performance
     const perfRes = await get(`${s('/monitoring/dashboard')}`);

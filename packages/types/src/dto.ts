@@ -43,6 +43,7 @@ import type {
   ReportStatus,
   WorkflowJobStatus,
   OrchestrationWorkflow,
+  ContentPublicationStatus,
   SiteStatus,
 } from './enums';
 import type { PermissionKey } from './permissions';
@@ -1525,4 +1526,33 @@ export interface N8nCallbackRequest {
   status: 'SUCCEEDED' | 'FAILED';
   result?: Record<string, unknown>;
   error?: string;
+}
+
+// ---------------------------------------------------------------------------
+// Content publishing (WordPress)
+// ---------------------------------------------------------------------------
+
+export interface ContentPublicationDto {
+  id: string;
+  siteId: string;
+  organizationId: string | null;
+  contentPackageId: string | null;
+  wpPostId: number | null;
+  status: ContentPublicationStatus;
+  title: string;
+  url: string | null;
+  meta: Record<string, unknown>;
+  createdBy: string | null;
+  approvedBy: string | null;
+  approvedAt: string | null;
+  publishedAt: string | null;
+  verifiedAt: string | null;
+  error: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreatePublicationRequest {
+  packageId: string;
+  slug?: string | null;
 }

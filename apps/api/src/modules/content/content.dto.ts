@@ -113,3 +113,10 @@ export class ContentPackagesQueryDto {
   @Min(0)
   offset?: number;
 }
+
+export class CreatePublicationDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  slug?: string | null;
+}

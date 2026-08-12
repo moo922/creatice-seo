@@ -38,6 +38,7 @@ import { LinkSuggestion } from './link-suggestion';
 import { ReportBranding } from './report-branding';
 import { Report } from './report';
 import { WorkflowJob } from './workflow-job';
+import { ContentPublication } from './content-publication';
 
 export const entities = [
   User,
@@ -80,6 +81,7 @@ export const entities = [
   ReportBranding,
   Report,
   WorkflowJob,
+  ContentPublication,
 ];
 
 export {
@@ -123,4 +125,5 @@ export {
   ReportBranding,
   Report,
   WorkflowJob,
+  ContentPublication,
 };

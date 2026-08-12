@@ -456,6 +456,16 @@ export class WordPressService {
     return this.integrations.save(this.integrations.create({ siteId, wpUrl, status: 'PENDING' }));
   }
 
+  /**
+   * Resolves a connected WordPress connection for publishing (credentials from
+   * the WORDPRESS site secret + the integration row).
+   */
+  async publishConnection(siteId: string): Promise<{ creds: WordPressCredentials; integration: WordPressIntegration }> {
+    const { creds } = await this.loadConnection(siteId);
+    const integration = await this.getOrCreateIntegration(siteId, creds.url);
+    return { creds, integration };
+  }
+
   private toIntegrationDto(row: WordPressIntegration): WordPressIntegrationDto {
     return {
       id: row.id,

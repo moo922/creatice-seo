@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Check, Play, X } from 'lucide-react';
-import type { ContentPackageDto } from '@creative-seo/types';
+import { Check, CheckCircle2, Play, X } from 'lucide-react';
+import type { ContentPackageDto, ContentPublicationDto } from '@creative-seo/types';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -113,7 +113,93 @@ export function ContentTab({ siteId }: { siteId: string }) {
       </Card>
 
       {selected ? <PackageDetail pkg={selected} onBrief={(approve) => briefMutation.mutate({ id: selected.id, approve })} canManage={Boolean(canManage)} /> : null}
+
+      <PublicationsSection siteId={siteId} packageId={selected?.id} canManage={Boolean(canManage)} />
     </div>
+  );
+}
+
+function PublicationsSection({ siteId, packageId, canManage }: { siteId: string; packageId: string | undefined; canManage: boolean }) {
+  const queryClient = useQueryClient();
+  const publicationsQuery = useQuery({
+    queryKey: ['content-publications', siteId],
+    queryFn: () => api.get<ContentPublicationDto[]>(`/sites/${siteId}/content/publications`),
+  });
+  const createMutation = useMutation({
+    mutationFn: (pkgId: string) => api.post<ContentPublicationDto>(`/sites/${siteId}/content/packages/${pkgId}/publish`, {}),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['content-publications'] }),
+  });
+  const transitionMutation = useMutation({
+    mutationFn: ({ id, step }: { id: string; step: 'approve' | 'publish' | 'verify' }) =>
+      api.post<ContentPublicationDto>(`/sites/${siteId}/content/publications/${id}/${step}`, {}),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['content-publications'] }),
+  });
+
+  const publications = publicationsQuery.data ?? [];
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Publications</CardTitle>
+        <CardDescription>WordPress draft → approve → publish → verify</CardDescription>
+      </CardHeader>
+      <CardContent className="p-0">
+        {publications.length === 0 ? (
+          <EmptyState message="No publications yet." />
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Title</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>WP ID</TableHead>
+                <TableHead className="text-end">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {publications.map((publication) => (
+                <TableRow key={publication.id}>
+                  <TableCell className="font-medium">{publication.title}</TableCell>
+                  <TableCell>
+                    <StatusBadge status={publication.status} />
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{publication.wpPostId ?? '—'}</TableCell>
+                  <TableCell className="text-end">
+                    {canManage ? (
+                      <div className="flex justify-end gap-1">
+                        {publication.status === 'DRAFT' ? (
+                          <Button size="sm" variant="outline" onClick={() => transitionMutation.mutate({ id: publication.id, step: 'approve' })}>
+                            <Check className="size-3.5" />
+                            Approve
+                          </Button>
+                        ) : null}
+                        {publication.status === 'APPROVED' ? (
+                          <Button size="sm" variant="outline" onClick={() => transitionMutation.mutate({ id: publication.id, step: 'publish' })}>
+                            <Play className="size-3.5" />
+                            Publish
+                          </Button>
+                        ) : null}
+                        {publication.status === 'PUBLISHED' ? (
+                          <Button size="sm" variant="outline" onClick={() => transitionMutation.mutate({ id: publication.id, step: 'verify' })}>
+                            <CheckCircle2 className="size-3.5" />
+                            Verify
+                          </Button>
+                        ) : null}
+                        {publication.status === 'FAILED' && packageId ? (
+                          <Button size="sm" variant="outline" onClick={() => createMutation.mutate(packageId)}>
+                            Retry
+                          </Button>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

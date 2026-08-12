@@ -9,6 +9,6 @@ import { WordPressService } from './wordpress.service';
   imports: [TypeOrmModule.forFeature([WordPressIntegration, WordPressPost, Site, SiteSecret])],
   controllers: [WordPressController, SiteWordPressController],
   providers: [WordPressService, WordPressClientService],
-  exports: [WordPressService],
+  exports: [WordPressService, WordPressClientService],
 })
 export class WordPressModule {}

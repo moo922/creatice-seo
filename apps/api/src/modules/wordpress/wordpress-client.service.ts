@@ -143,6 +143,31 @@ export class WordPressClientService {
     return this.get(creds, `/posts?${params.toString()}`) as Promise<ConnectorPostPage>;
   }
 
+  /** Creates a WordPress post as a draft via the connector. */
+  async createDraft(
+    creds: WordPressCredentials,
+    input: { title: string; content: string; slug?: string; excerpt?: string; postType?: string },
+  ): Promise<{ id: number; link: string; status: string }> {
+    return this.post(creds, '/posts', {
+      title: input.title,
+      content: input.content,
+      post_type: input.postType ?? 'post',
+      status: 'draft',
+      slug: input.slug ?? '',
+      excerpt: input.excerpt ?? '',
+    }) as Promise<{ id: number; link: string; status: string }>;
+  }
+
+  /** Sets a WordPress post's status (e.g. 'publish'). */
+  async updatePostStatus(creds: WordPressCredentials, postId: number, status: string): Promise<{ id: number; link: string; status: string }> {
+    return this.post(creds, `/posts/${postId}/status`, { status }) as Promise<{ id: number; link: string; status: string }>;
+  }
+
+  /** Fetches a post (with content) to verify a publication. */
+  async getPost(creds: WordPressCredentials, postId: number): Promise<{ id: number; link: string; status: string; title: string; content?: string }> {
+    return this.get(creds, `/posts/${postId}?include_content=1`) as Promise<{ id: number; link: string; status: string; title: string; content?: string }>;
+  }
+
   /**
    * Fetches a page of the connector's response and reads the auth/status via
    * the health endpoint against the site root. Used by the onboarding check.
@@ -167,6 +192,18 @@ export class WordPressClientService {
     const res = await this.request(url, {
       method: 'GET',
       headers: { Authorization: auth, Accept: 'application/json' },
+    });
+    return this.parseJson(res);
+  }
+
+  private async post(creds: WordPressCredentials, path: string, body: Record<string, unknown>): Promise<unknown> {
+    const base = this.normalizeBaseUrl(creds.url);
+    const url = `${base}/${CONNECTOR_PATH}${path}`;
+    const auth = `Basic ${Buffer.from(`${creds.username}:${creds.password}`).toString('base64')}`;
+    const res = await this.request(url, {
+      method: 'POST',
+      headers: { Authorization: auth, Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
     });
     return this.parseJson(res);
   }

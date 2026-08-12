@@ -1,12 +1,13 @@
 import { Body, Controller, Get, NotFoundException, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common';
 import { ContentPackagesService, ContentPipelineService } from '@creative-seo/content';
-import type { ContentPackageDto } from '@creative-seo/types';
+import type { ContentPackageDto, ContentPublicationDto } from '@creative-seo/types';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
 import { SiteAccessGuard } from '../../common/guards/site-access.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import type { AuthPrincipal } from '../../common/auth.types';
 import { ContentInputResolver } from './content.resolver';
-import { ContentPackagesQueryDto, RunPipelineRequestDto } from './content.dto';
+import { ContentPackagesQueryDto, CreatePublicationDto, RunPipelineRequestDto } from './content.dto';
+import { ContentPublishService } from './content-publish.service';
 
 /**
  * Content intelligence pipeline endpoints. Runs the 17-stage pipeline for a
@@ -22,6 +23,7 @@ export class SiteContentController {
     private readonly pipeline: ContentPipelineService,
     private readonly packages: ContentPackagesService,
     private readonly resolver: ContentInputResolver,
+    private readonly publish: ContentPublishService,
   ) {}
 
   @Post('pipeline')
@@ -68,5 +70,41 @@ export class SiteContentController {
     @Body() body: { note?: string },
   ): Promise<ContentPackageDto> {
     return this.pipeline.rejectBrief(id, body?.note);
+  }
+
+  // ---- Publishing (WordPress) ----
+
+  @Post('packages/:id/publish')
+  @RequirePermissions('content:manage')
+  createDraft(
+    @Param('siteId', ParseUUIDPipe) siteId: string,
+    @Param('id', ParseUUIDPipe) packageId: string,
+    @Body() body: CreatePublicationDto,
+    @CurrentUser() user: AuthPrincipal,
+  ): Promise<ContentPublicationDto> {
+    return this.publish.createDraft(siteId, user?.organizationId ?? null, { packageId, slug: body?.slug ?? null }, user?.id ?? null);
+  }
+
+  @Get('publications')
+  publications(@Param('siteId', ParseUUIDPipe) siteId: string): Promise<ContentPublicationDto[]> {
+    return this.publish.list(siteId);
+  }
+
+  @Post('publications/:id/approve')
+  @RequirePermissions('content:manage')
+  approvePublication(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthPrincipal): Promise<ContentPublicationDto> {
+    return this.publish.approve(id, user?.id ?? null);
+  }
+
+  @Post('publications/:id/publish')
+  @RequirePermissions('content:manage')
+  publishPublication(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthPrincipal): Promise<ContentPublicationDto> {
+    return this.publish.publish(id, user?.id ?? null);
+  }
+
+  @Post('publications/:id/verify')
+  @RequirePermissions('content:manage')
+  verifyPublication(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthPrincipal): Promise<ContentPublicationDto> {
+    return this.publish.verify(id, user?.id ?? null);
   }
 }

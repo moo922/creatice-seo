@@ -360,6 +360,14 @@ export const ORCHESTRATION_WORKFLOWS = [
 ] as const;
 export type OrchestrationWorkflow = (typeof ORCHESTRATION_WORKFLOWS)[number];
 
+// ---------------------------------------------------------------------------
+// Content publishing (WordPress)
+// ---------------------------------------------------------------------------
+
+/** Lifecycle of a content package publication to WordPress. */
+export const CONTENT_PUBLICATION_STATUSES = ['DRAFT', 'APPROVED', 'PUBLISHED', 'VERIFIED', 'FAILED'] as const;
+export type ContentPublicationStatus = (typeof CONTENT_PUBLICATION_STATUSES)[number];
+
 export const ROLE_KEYS = [
   'SUPER_ADMIN',
   'ADMIN',
@@ -400,6 +408,7 @@ export const ACTIVITY_ACTIONS = [
   'content.pipeline',
   'content.brief.approve',
   'content.brief.reject',
+  'content.publish',
   'operations.issue.create',
   'operations.issue.update',
   'operations.recommendation.create',

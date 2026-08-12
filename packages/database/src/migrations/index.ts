@@ -26,6 +26,7 @@ import { CreateReporting00251720000000025 } from './0025-create-reporting';
 import { SeedReportingPermissions00261720000000026 } from './0026-seed-reporting-permissions';
 import { CreateOrchestration00271720000000027 } from './0027-create-orchestration';
 import { SeedClientOrchestrationPermissions00281720000000028 } from './0028-seed-client-orchestration-permissions';
+import { CreateContentPublications00291720000000029 } from './0029-create-content-publications';
 
 export const migrations = [
   CreateIdentity00011720000000001,
@@ -56,6 +57,7 @@ export const migrations = [
   SeedReportingPermissions00261720000000026,
   CreateOrchestration00271720000000027,
   SeedClientOrchestrationPermissions00281720000000028,
+  CreateContentPublications00291720000000029,
 ];
 
 export {
@@ -87,4 +89,5 @@ export {
   SeedReportingPermissions00261720000000026,
   CreateOrchestration00271720000000027,
   SeedClientOrchestrationPermissions00281720000000028,
+  CreateContentPublications00291720000000029,
 };
