@@ -15,3 +15,5 @@ playwright-report/
 test-results/
 # Runtime data (database backups, generated reports)
 data/
+# Repo exports / archives
+*.tar.gz
