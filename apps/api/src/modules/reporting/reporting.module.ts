@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
-import { SiteReportingController } from './reporting.controller';
+import { AdminReportingController, SiteReportingController } from './reporting.controller';
 
 @Module({
-  controllers: [SiteReportingController],
+  controllers: [SiteReportingController, AdminReportingController],
 })
 export class ReportingModule {}

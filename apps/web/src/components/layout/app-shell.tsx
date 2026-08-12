@@ -2,12 +2,14 @@ import { Link, NavLink, Outlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   BarChart3,
+  Bot,
   FolderKanban,
   Globe,
   Languages,
   LogOut,
   Menu,
   Settings,
+  Sparkles,
   Users,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -23,13 +25,16 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 const NAV_ITEMS = [
-  { to: '/', label: 'nav.portfolio', icon: FolderKanban, end: true },
-  { to: '/sites', label: 'nav.sites', icon: Globe, end: false },
+  { to: '/', label: 'nav.portfolio', icon: FolderKanban, end: true, permission: 'sites:read' },
+  { to: '/sites', label: 'nav.sites', icon: Globe, end: false, permission: 'sites:read' },
   { to: '/wordpress', label: 'nav.wordpress', icon: Globe, end: false, permission: 'wordpress:read' },
-  { to: '/issues', label: 'nav.issues', icon: BarChart3, end: false },
-  { to: '/tasks', label: 'nav.tasks', icon: Users, end: false },
-  { to: '/reports', label: 'nav.reports', icon: BarChart3, end: false },
-  { to: '/automation', label: 'nav.automation', icon: Settings, end: false },
+  { to: '/issues', label: 'nav.issues', icon: BarChart3, end: false, permission: 'operations:read' },
+  { to: '/tasks', label: 'nav.tasks', icon: Users, end: false, permission: 'operations:read' },
+  { to: '/monitoring', label: 'nav.monitoring', icon: BarChart3, end: false, permission: 'operations:read' },
+  { to: '/visibility', label: 'nav.visibility', icon: Sparkles, end: false, permission: 'visibility:read' },
+  { to: '/reports', label: 'nav.reports', icon: BarChart3, end: false, permission: 'reports:read' },
+  { to: '/automation', label: 'nav.automation', icon: Bot, end: false, permission: 'orchestration:read' },
+  { to: '/client', label: 'nav.client', icon: Users, end: false, clientOnly: true },
 ] as const;
 
 export function AppShell() {
@@ -37,9 +42,11 @@ export function AppShell() {
   const { user, logout, hasPermission } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const visibleNavItems = NAV_ITEMS.filter(
-    (item) => !('permission' in item) || hasPermission(item.permission),
-  );
+  const isClient = user?.roles.includes('CLIENT') ?? false;
+  const visibleNavItems = NAV_ITEMS.filter((item) => {
+    if ('clientOnly' in item && item.clientOnly) return isClient;
+    return !('permission' in item) || hasPermission(item.permission);
+  });
 
   const sidebar = (
     <nav className="flex h-full flex-col gap-1 p-3">

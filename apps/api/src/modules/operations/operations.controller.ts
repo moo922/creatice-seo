@@ -133,3 +133,20 @@ export class SiteOperationsController {
     return this.operations.listChangeLogs(siteId, query);
   }
 }
+
+/** Cross-site operations endpoints (agency/admin dashboard). */
+@Controller('operations')
+@RequirePermissions('operations:read')
+export class AdminOperationsController {
+  constructor(private readonly operations: OperationsService) {}
+
+  @Get('issues')
+  issues(@Query() query: OperationsQueryDto): Promise<IssueDto[]> {
+    return this.operations.listIssuesGlobal(query);
+  }
+
+  @Get('tasks')
+  tasks(@Query() query: OperationsQueryDto): Promise<TaskDto[]> {
+    return this.operations.listTasksGlobal(query);
+  }
+}

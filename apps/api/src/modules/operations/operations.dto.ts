@@ -9,6 +9,7 @@ import {
   IsObject,
   IsOptional,
   IsString,
+  IsUUID,
   Max,
   MaxLength,
   Min,
@@ -333,6 +334,10 @@ export class OperationsQueryDto {
   @IsOptional()
   @IsString()
   url?: string;
+
+  @IsOptional()
+  @IsUUID()
+  siteId?: string;
 
   @IsOptional()
   @Transform(({ value }) => (value === undefined ? undefined : Number(value)))

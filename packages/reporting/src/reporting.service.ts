@@ -151,12 +151,21 @@ export class ReportingService {
   }
 
   async listReports(siteId: string, query: ReportQuery = {}): Promise<ReportDto[]> {
+    return this.queryReports({ siteId, ...query });
+  }
+
+  /** Cross-site report listing (admin/agency view); optional siteId filter. */
+  async listReportsGlobal(query: ReportQuery = {}): Promise<ReportDto[]> {
+    return this.queryReports(query);
+  }
+
+  private async queryReports(query: ReportQuery): Promise<ReportDto[]> {
     const builder = this.reports
       .createQueryBuilder('report')
-      .where('report.site_id = :siteId', { siteId })
       .orderBy('report.created_at', 'DESC')
       .limit(Math.min(query.limit ?? 50, 100))
       .offset(query.offset ?? 0);
+    if (query.siteId) builder.andWhere('report.site_id = :siteId', { siteId: query.siteId });
     if (query.type) builder.andWhere('report.type = :type', { type: query.type });
     const rows = await builder.getMany();
     return rows.map((row) => this.toDto(row));

@@ -85,12 +85,21 @@ export class OperationsService {
   }
 
   async listIssues(siteId: string, query: OperationsQuery = {}): Promise<IssueDto[]> {
+    return this.queryIssues({ siteId, ...query });
+  }
+
+  /** Cross-site issue listing (admin/agency view); optional siteId filter. */
+  async listIssuesGlobal(query: OperationsQuery = {}): Promise<IssueDto[]> {
+    return this.queryIssues(query);
+  }
+
+  private async queryIssues(query: OperationsQuery): Promise<IssueDto[]> {
     const builder = this.issues
       .createQueryBuilder('issue')
-      .where('issue.site_id = :siteId', { siteId })
       .orderBy('issue.detected_at', 'DESC')
       .limit(Math.min(query.limit ?? 50, 200))
       .offset(query.offset ?? 0);
+    if (query.siteId) builder.andWhere('issue.site_id = :siteId', { siteId: query.siteId });
     if (query.status) builder.andWhere('issue.status = :status', { status: query.status });
     if (query.kind) builder.andWhere('issue.kind = :kind', { kind: query.kind });
     if (query.url) builder.andWhere('issue.url = :url', { url: query.url });
@@ -222,12 +231,21 @@ export class OperationsService {
   }
 
   async listTasks(siteId: string, query: OperationsQuery = {}): Promise<TaskDto[]> {
+    return this.queryTasks({ siteId, ...query });
+  }
+
+  /** Cross-site task listing (admin/agency view); optional siteId filter. */
+  async listTasksGlobal(query: OperationsQuery = {}): Promise<TaskDto[]> {
+    return this.queryTasks(query);
+  }
+
+  private async queryTasks(query: OperationsQuery): Promise<TaskDto[]> {
     const builder = this.tasks
       .createQueryBuilder('task')
-      .where('task.site_id = :siteId', { siteId })
       .orderBy('task.created_at', 'DESC')
       .limit(Math.min(query.limit ?? 50, 200))
       .offset(query.offset ?? 0);
+    if (query.siteId) builder.andWhere('task.site_id = :siteId', { siteId: query.siteId });
     if (query.status) builder.andWhere('task.status = :status', { status: query.status });
     if (query.url) builder.andWhere('task.url = :url', { url: query.url });
     const rows = await builder.getMany();

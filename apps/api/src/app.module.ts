@@ -36,6 +36,7 @@ import { LinksModule } from './modules/links/links.module';
 import { ReportingModule } from './modules/reporting/reporting.module';
 import { ClientModule } from './modules/client/client.module';
 import { OrchestrationModule } from './modules/orchestration/orchestration.module';
+import { KeywordsModule } from './modules/keywords/keywords.module';
 
 @Module({
   imports: [
@@ -78,6 +79,7 @@ import { OrchestrationModule } from './modules/orchestration/orchestration.modul
     ReportingModule,
     ClientModule,
     OrchestrationModule,
+    KeywordsModule,
     HealthModule,
   ],
   providers: [

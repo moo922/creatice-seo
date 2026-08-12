@@ -71,6 +71,19 @@ function structuredFor(promptName: string, vars: Record<string, string>): unknow
   switch (promptName) {
     case 'research':
       return { topic: vars.topic ?? kw, summary: 'Standardized research summary.', sources: [] };
+    case 'clustering': {
+      let keywords: string[] = [];
+      if (vars.keywords) {
+        try {
+          const parsed = JSON.parse(vars.keywords);
+          if (Array.isArray(parsed)) keywords = parsed.map(String);
+        } catch {
+          keywords = [];
+        }
+      }
+      if (keywords.length === 0) keywords = ['seo services'];
+      return { clusters: [{ name: 'SEO Services', description: 'Topical cluster', keywords }] };
+    }
     case 'content-evidence-extraction':
       return { claims: [] };
     case 'content-intent-analysis':
@@ -330,10 +343,14 @@ describe('Production readiness E2E scenario', () => {
     const baselineRes = await post(`${s('/monitoring/snapshots')}`, { type: 'BASELINE', metrics });
     record('07 Build Baseline', baselineRes.status < 400 && baselineRes.body?.data?.isBaseline === true ? 'PASS' : 'FAIL', 'baseline snapshot saved');
 
-    // 8-10. Keyword discovery / clustering / URL mapping — no backend API yet
-    record('08 Discover Keywords', 'BLOCKED', 'no keyword-discovery API/service exists');
-    record('09 Cluster', 'BLOCKED', 'no keyword-clustering API/service exists');
-    record('10 Map URLs', 'BLOCKED', 'no URL-mapping approval API exists');
+    // 8-10. Keyword discovery / clustering / URL mapping
+    const kwPipelineRes = await post(`${s('/keywords/pipeline')}`, { keywords: ['seo services', 'keyword research'] });
+    const pipelineResult = kwPipelineRes.body?.data;
+    record('08 Discover Keywords', kwPipelineRes.status < 400 && pipelineResult?.clusters?.length ? 'PASS' : 'FAIL', `status=${kwPipelineRes.status} keywords=${pipelineResult?.createdKeywords ?? 0}`);
+    record('09 Cluster', pipelineResult?.clusters?.length ? 'PASS' : 'FAIL', `clusters=${pipelineResult?.clusters?.length ?? 0}`);
+    const clusterId = pipelineResult?.clusters?.[0]?.id;
+    const approveRes = await post(`${s(`/keywords/clusters/${clusterId}/approve`)}`, {});
+    record('10 Map URLs', approveRes.status < 400 && approveRes.body?.data?.status === 'APPROVED' ? 'PASS' : 'FAIL', `approved=${approveRes.body?.data?.status ?? 'n/a'}`);
 
     // 11-13. Brief / Content / QA — content intelligence pipeline (AI stubbed)
     const pipelineRes = await post(`${s('/content/pipeline')}`, { primaryKeyword: 'seo services', language: 'en' });

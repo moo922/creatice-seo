@@ -1,5 +1,5 @@
 import { Transform } from 'class-transformer';
-import { IsDateString, IsIn, IsInt, IsObject, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
+import { IsDateString, IsIn, IsInt, IsObject, IsOptional, IsString, IsUUID, Max, MaxLength, Min } from 'class-validator';
 import { REPORT_TYPES, type ReportType } from '@creative-seo/types';
 
 export class SaveReportBrandingDto {
@@ -50,6 +50,10 @@ export class ReportQueryDto {
   @IsOptional()
   @IsIn(REPORT_TYPES)
   type?: ReportType;
+
+  @IsOptional()
+  @IsUUID()
+  siteId?: string;
 
   @IsOptional()
   @Transform(({ value }) => (value === undefined ? undefined : Number(value)))

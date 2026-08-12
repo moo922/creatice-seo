@@ -7,9 +7,15 @@ import { api } from '@/lib/api';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ModulePlaceholder } from '@/components/layout/module-placeholder';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { CrawlerTab } from './tabs/crawler-tab';
+import { AuditTab } from './tabs/audit-tab';
+import { KeywordsTab } from './tabs/keywords-tab';
+import { ContentTab } from './tabs/content-tab';
+import { LinksTab } from './tabs/links-tab';
+import { ReportsTab } from './tabs/reports-tab';
+import { SettingsTab } from './tabs/settings-tab';
 
 const STATUS_VARIANT: Record<SiteDto['status'], 'default' | 'secondary' | 'outline'> = {
   ACTIVE: 'default',
@@ -67,7 +73,7 @@ export function SiteDetailPage() {
         </Card>
       ) : (
         <Tabs defaultValue="overview">
-          <TabsList className="flex flex-wrap h-auto justify-start gap-1">
+          <TabsList className="flex h-auto flex-wrap justify-start gap-1">
             <TabsTrigger value="overview">{t('sites.overview')}</TabsTrigger>
             <TabsTrigger value="crawler">{t('siteDetail.crawler')}</TabsTrigger>
             <TabsTrigger value="audit">{t('siteDetail.audit')}</TabsTrigger>
@@ -122,25 +128,25 @@ export function SiteDetailPage() {
           </TabsContent>
 
           <TabsContent value="crawler">
-            <ModulePlaceholder name={t('siteDetail.crawler')} />
+            <CrawlerTab siteId={siteId} />
           </TabsContent>
           <TabsContent value="audit">
-            <ModulePlaceholder name={t('siteDetail.audit')} />
+            <AuditTab siteId={siteId} />
           </TabsContent>
           <TabsContent value="keywords">
-            <ModulePlaceholder name={t('siteDetail.keywords')} />
+            <KeywordsTab siteId={siteId} />
           </TabsContent>
           <TabsContent value="content">
-            <ModulePlaceholder name={t('siteDetail.content')} />
+            <ContentTab siteId={siteId} />
           </TabsContent>
           <TabsContent value="links">
-            <ModulePlaceholder name={t('siteDetail.links')} />
+            <LinksTab siteId={siteId} />
           </TabsContent>
           <TabsContent value="reports">
-            <ModulePlaceholder name={t('siteDetail.reports')} />
+            <ReportsTab siteId={siteId} />
           </TabsContent>
           <TabsContent value="settings">
-            <ModulePlaceholder name={t('nav.settings')} />
+            <SettingsTab siteId={siteId} />
           </TabsContent>
         </Tabs>
       )}

@@ -444,7 +444,7 @@ export interface KeywordDto {
     clicks: number;
     impressions: number;
     ctr: number;
-    avgPosition: number;
+    avgPosition: number | null;
   };
   createdAt: string;
   updatedAt: string;
@@ -464,7 +464,7 @@ export interface ClusterKeywordDto {
     clicks: number;
     impressions: number;
     ctr: number;
-    avgPosition: number;
+    avgPosition: number | null;
   };
 }
 
@@ -1105,6 +1105,7 @@ export interface OperationsQuery {
   status?: string;
   kind?: string;
   url?: string;
+  siteId?: string;
   limit?: number;
   offset?: number;
 }
@@ -1391,6 +1392,7 @@ export interface GenerateReportRequest {
 
 export interface ReportQuery {
   type?: ReportType;
+  siteId?: string;
   limit?: number;
   offset?: number;
 }

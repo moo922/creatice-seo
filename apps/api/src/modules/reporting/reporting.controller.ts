@@ -92,3 +92,15 @@ export class SiteReportingController {
     });
   }
 }
+
+/** Cross-site report listing (agency/admin dashboard). */
+@Controller('reports')
+@RequirePermissions('reports:read')
+export class AdminReportingController {
+  constructor(private readonly reporting: ReportingService) {}
+
+  @Get()
+  list(@Query() query: ReportQueryDto): Promise<ReportDto[]> {
+    return this.reporting.listReportsGlobal(query);
+  }
+}

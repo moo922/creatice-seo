@@ -1,13 +1,19 @@
 import { Route, Routes } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 import { AppShell } from '@/components/layout/app-shell';
-import { ModulePlaceholder } from '@/components/layout/module-placeholder';
 import { RedirectIfAuthed, RequireAuth } from '@/components/routing/guards';
 import { LoginPage } from '@/features/auth/login-page';
 import { PortfolioPage } from '@/features/portfolio/portfolio-page';
 import { SiteDetailPage } from '@/features/sites/site-detail-page';
 import { SitesPage } from '@/features/sites/sites-page';
 import { WordPressPage } from '@/features/wordpress/wordpress-page';
+import { IssuesPage } from '@/features/issues/issues-page';
+import { TasksPage } from '@/features/tasks/tasks-page';
+import { ReportsPage } from '@/features/reports/reports-page';
+import { AutomationPage } from '@/features/automation/automation-page';
+import { MonitoringPage } from '@/features/monitoring/monitoring-page';
+import { VisibilityPage } from '@/features/visibility/visibility-page';
+import { ClientPortalPage } from '@/features/client/client-portal-page';
+import { ClientSitePage } from '@/features/client/client-site-page';
 
 export function App() {
   return (
@@ -22,17 +28,16 @@ export function App() {
           <Route path="/sites" element={<SitesPage />} />
           <Route path="/sites/:siteId" element={<SiteDetailPage />} />
           <Route path="/wordpress" element={<WordPressPage />} />
-          <Route path="/issues" element={<NavPlaceholder name="nav.issues" />} />
-          <Route path="/tasks" element={<NavPlaceholder name="nav.tasks" />} />
-          <Route path="/reports" element={<NavPlaceholder name="nav.reports" />} />
-          <Route path="/automation" element={<NavPlaceholder name="nav.automation" />} />
+          <Route path="/issues" element={<IssuesPage />} />
+          <Route path="/tasks" element={<TasksPage />} />
+          <Route path="/reports" element={<ReportsPage />} />
+          <Route path="/automation" element={<AutomationPage />} />
+          <Route path="/monitoring" element={<MonitoringPage />} />
+          <Route path="/visibility" element={<VisibilityPage />} />
+          <Route path="/client" element={<ClientPortalPage />} />
+          <Route path="/client/sites/:siteId" element={<ClientSitePage />} />
         </Route>
       </Route>
     </Routes>
   );
-}
-
-function NavPlaceholder({ name }: { name: string }) {
-  const { t } = useTranslation();
-  return <ModulePlaceholder name={t(name)} />;
 }
