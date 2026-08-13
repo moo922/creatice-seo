@@ -39,6 +39,7 @@ import { ReportBranding } from './report-branding';
 import { Report } from './report';
 import { WorkflowJob } from './workflow-job';
 import { ContentPublication } from './content-publication';
+import { SiteActivationStep } from './site-activation-step';
 
 export const entities = [
   User,
@@ -82,6 +83,7 @@ export const entities = [
   Report,
   WorkflowJob,
   ContentPublication,
+  SiteActivationStep,
 ];
 
 export {
@@ -126,4 +128,5 @@ export {
   Report,
   WorkflowJob,
   ContentPublication,
+  SiteActivationStep,
 };

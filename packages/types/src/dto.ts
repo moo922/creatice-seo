@@ -45,6 +45,8 @@ import type {
   OrchestrationWorkflow,
   ContentPublicationStatus,
   SiteStatus,
+  ActivationStepKey,
+  ActivationStepStatus,
 } from './enums';
 import type { PermissionKey } from './permissions';
 
@@ -1744,4 +1746,57 @@ export interface SiteDashboardDto {
     noContent: boolean;
     needsAi: boolean;
   };
+}
+
+// ---------------------------------------------------------------------------
+// Site activation (guided first-site wizard)
+// ---------------------------------------------------------------------------
+
+export interface ActivationStepDto {
+  key: ActivationStepKey;
+  /** Machine label; the UI localizes it. */
+  label: string;
+  status: ActivationStepStatus;
+  /** Human-readable diagnostics for FAILED / WARNING steps. */
+  message: string | null;
+  detail: Record<string, unknown> | null;
+  /** Whether the step can be executed now from the wizard. */
+  runnable: boolean;
+  /** Whether the step needs the operator to do something outside the wizard. */
+  requiresManualAction: boolean;
+  /** True for expensive/destructive operations that must not be auto-repeated. */
+  expensive: boolean;
+  attemptCount: number;
+  startedAt: string | null;
+  completedAt: string | null;
+  updatedAt: string | null;
+}
+
+export interface ActivationSummaryDto {
+  pagesImported: number;
+  pagesCrawled: number;
+  issuesFound: number;
+  criticalIssues: number;
+  seoHealth: number | null;
+  aeoReadiness: number | null;
+  geoReadiness: number | null;
+  searchQueriesImported: number;
+  keywordOpportunities: number;
+  cannibalizationCases: number;
+  recommendations: number;
+  baselineDate: string | null;
+  baselineExists: boolean;
+  initialReportExists: boolean;
+}
+
+export interface SiteActivationDto {
+  siteId: string;
+  siteName: string;
+  siteDomain: string;
+  ready: boolean;
+  completedSteps: number;
+  totalSteps: number;
+  progress: number;
+  steps: ActivationStepDto[];
+  summary: ActivationSummaryDto;
 }

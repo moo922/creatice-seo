@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SiteDashboard } from './site-dashboard';
 import { CrawlerTab } from './tabs/crawler-tab';
 import { AuditTab } from './tabs/audit-tab';
+import { ActivationTab } from './tabs/activation-tab';
 import { KeywordsTab } from './tabs/keywords-tab';
 import { ContentTab } from './tabs/content-tab';
 import { LinksTab } from './tabs/links-tab';
@@ -74,6 +75,7 @@ export function SiteDetailPage() {
             <TabsTrigger value="overview">{t('sites.overview')}</TabsTrigger>
             <TabsTrigger value="crawler">{t('siteDetail.crawler')}</TabsTrigger>
             <TabsTrigger value="audit">{t('siteDetail.audit')}</TabsTrigger>
+            <TabsTrigger value="activation">{t('siteDetail.activation')}</TabsTrigger>
             <TabsTrigger value="keywords">{t('siteDetail.keywords')}</TabsTrigger>
             <TabsTrigger value="content">{t('siteDetail.content')}</TabsTrigger>
             <TabsTrigger value="links">{t('siteDetail.links')}</TabsTrigger>
@@ -90,6 +92,9 @@ export function SiteDetailPage() {
           </TabsContent>
           <TabsContent value="audit">
             <AuditTab siteId={siteId} />
+          </TabsContent>
+          <TabsContent value="activation">
+            <ActivationTab siteId={siteId} />
           </TabsContent>
           <TabsContent value="keywords">
             <KeywordsTab siteId={siteId} />

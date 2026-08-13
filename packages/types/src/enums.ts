@@ -435,5 +435,40 @@ export const ACTIVITY_ACTIONS = [
   'orchestration.job.dispatch',
   'orchestration.job.callback',
   'orchestration.job.fail',
+  'activation.step.run',
 ] as const;
 export type ActivityAction = (typeof ACTIVITY_ACTIONS)[number];
+
+// ---------------------------------------------------------------------------
+// Site activation (guided first-site wizard)
+// ---------------------------------------------------------------------------
+
+export const ACTIVATION_STEP_STATUSES = ['NOT_STARTED', 'READY', 'RUNNING', 'COMPLETED', 'WARNING', 'FAILED'] as const;
+export type ActivationStepStatus = (typeof ACTIVATION_STEP_STATUSES)[number];
+
+/** Ordered guided activation sequence for a new client site. */
+export const ACTIVATION_STEPS = [
+  'add-site',
+  'verify-domain',
+  'connect-wordpress',
+  'verify-connector',
+  'verify-rank-math',
+  'import-wordpress-pages',
+  'crawl-website',
+  'run-technical-audit',
+  'run-seo-audit',
+  'run-aeo-audit',
+  'run-geo-readiness',
+  'create-baseline',
+  'connect-gsc',
+  'import-historical-performance',
+  'import-existing-queries',
+  'build-url-inventory',
+  'build-keyword-url-mapping',
+  'detect-cannibalization',
+  'detect-issues',
+  'generate-recommendations',
+  'populate-dashboard',
+  'generate-initial-report',
+] as const;
+export type ActivationStepKey = (typeof ACTIVATION_STEPS)[number];

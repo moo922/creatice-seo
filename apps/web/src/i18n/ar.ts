@@ -90,6 +90,7 @@ export const ar: TranslationSchema = {
   siteDetail: {
     crawler: 'الزاحف',
     audit: 'التدقيق',
+    activation: 'التفعيل',
     keywords: 'الكلمات المفتاحية',
     content: 'المحتوى',
     links: 'الروابط الداخلية',

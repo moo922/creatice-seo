@@ -88,6 +88,7 @@ export const en = {
   siteDetail: {
     crawler: 'Crawler',
     audit: 'Audit',
+    activation: 'Activation',
     keywords: 'Keywords',
     content: 'Content',
     links: 'Internal Links',

@@ -38,6 +38,7 @@ import { ClientModule } from './modules/client/client.module';
 import { OrchestrationModule } from './modules/orchestration/orchestration.module';
 import { KeywordsModule } from './modules/keywords/keywords.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { ActivationModule } from './modules/activation/activation.module';
 
 @Module({
   imports: [
@@ -82,6 +83,7 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
     OrchestrationModule,
     KeywordsModule,
     DashboardModule,
+    ActivationModule,
     HealthModule,
   ],
   providers: [
