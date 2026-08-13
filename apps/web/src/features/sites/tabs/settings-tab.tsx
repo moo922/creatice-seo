@@ -78,6 +78,7 @@ export function SettingsTab({ siteId }: { siteId: string }) {
 function AIConfigForm({ config, canManage, onSave }: { config: AiProviderConfigDto; canManage: boolean; onSave: (body: Record<string, unknown>) => void }) {
   const { t } = useTranslation();
   const [enabled, setEnabled] = useState(config.enabled);
+  const [keys, setKeys] = useState<Record<string, string>>({ OPENAI: '', ANTHROPIC: '', PERPLEXITY: '' });
   const [overrides, setOverrides] = useState<Record<string, string>>(() => {
     const result: Record<string, string> = {};
     const overridesMap = config.workflowOverrides as Partial<Record<string, { provider?: string }>>;
@@ -93,6 +94,24 @@ function AIConfigForm({ config, canManage, onSave }: { config: AiProviderConfigD
         <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} disabled={!canManage} />
         AI generation enabled for this site
       </label>
+
+      <div className="grid gap-3 sm:grid-cols-3">
+        {(['OPENAI', 'ANTHROPIC', 'PERPLEXITY'] as const).map((provider) => (
+          <div key={provider} className="space-y-1.5">
+            <Label htmlFor={`ai-key-${provider}`}>
+              {provider} API key{config.keyOverrides.includes(provider) ? ' (site key set)' : ' (global/env)'}
+            </Label>
+            <Input
+              id={`ai-key-${provider}`}
+              type="password"
+              placeholder={config.keyOverrides.includes(provider) ? '••••••••' : 'sk-…'}
+              value={keys[provider] ?? ''}
+              disabled={!canManage}
+              onChange={(e) => setKeys((prev) => ({ ...prev, [provider]: e.target.value }))}
+            />
+          </div>
+        ))}
+      </div>
 
       <Table>
         <TableHeader>
@@ -120,10 +139,6 @@ function AIConfigForm({ config, canManage, onSave }: { config: AiProviderConfigD
         </TableBody>
       </Table>
 
-      <p className="text-xs text-muted-foreground">
-        Key overrides configured for: {config.keyOverrides.length > 0 ? config.keyOverrides.join(', ') : 'none (global keys from environment)'}
-      </p>
-
       {canManage ? (
         <Button
           onClick={() => {
@@ -131,7 +146,11 @@ function AIConfigForm({ config, canManage, onSave }: { config: AiProviderConfigD
             for (const workflow of WORKFLOWS) {
               if (overrides[workflow]) workflowOverrides[workflow] = { provider: overrides[workflow] };
             }
-            onSave({ enabled, workflowOverrides });
+            const apiKeys: Record<string, string> = {};
+            for (const [provider, key] of Object.entries(keys)) {
+              if (key.trim()) apiKeys[provider] = key.trim();
+            }
+            onSave({ enabled, workflowOverrides, apiKeys });
           }}
         >
           {t('common.save')}
