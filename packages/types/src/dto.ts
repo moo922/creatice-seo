@@ -1556,3 +1556,192 @@ export interface CreatePublicationRequest {
   packageId: string;
   slug?: string | null;
 }
+
+// ---------------------------------------------------------------------------
+// Dashboards (portfolio + site) — aggregated by the backend, not the frontend
+// ---------------------------------------------------------------------------
+
+export interface DashboardSummaryDto {
+  totalSites: number;
+  activeSites: number;
+  sitesWithIntegrationProblems: number;
+  sitesRequiringAttention: number;
+  openIssues: number;
+  criticalIssues: number;
+  highPriorityIssues: number;
+  openRecommendations: number;
+  highPriorityRecommendations: number;
+  openTasks: number;
+  overdueTasks: number;
+  contentAwaitingReview: number;
+  draftContent: number;
+  publishedContentThisMonth: number;
+  reportsDue: number;
+  reportsGeneratedThisMonth: number;
+  sitesGrowing: number;
+  sitesDeclining: number;
+  seoHealthAverage: number | null;
+  aeoReadinessAverage: number | null;
+  geoReadinessAverage: number | null;
+  aiJobsThisMonth: number;
+  aiEstimatedCostThisMonth: number;
+  crawlerJobsRunning: number;
+  failedAutomationJobs: number;
+}
+
+export interface NeedsAttentionItemDto {
+  siteId: string;
+  siteName: string;
+  problem: string;
+  severity: IssueSeverity;
+  detectedAt: string;
+  nextAction: string;
+  deepLink: string;
+}
+
+export interface SitePortfolioRowDto {
+  siteId: string;
+  siteName: string;
+  domain: string;
+  status: SiteStatus;
+  seoHealth: number | null;
+  aeoReadiness: number | null;
+  geoReadiness: number | null;
+  clicks: number;
+  clicksChange: number | null;
+  impressions: number;
+  openCriticalIssues: number;
+  openIssues: number;
+  openTasks: number;
+  contentPending: number;
+  lastCrawl: string | null;
+  lastGscSync: string | null;
+  lastAudit: string | null;
+  nextReport: string | null;
+  integrationHealth: string;
+}
+
+export interface PortfolioDashboardDto {
+  summary: DashboardSummaryDto;
+  needsAttention: NeedsAttentionItemDto[];
+  sites: SitePortfolioRowDto[];
+}
+
+export interface SiteIntegrationHealthDto {
+  component: string;
+  status: 'healthy' | 'warning' | 'disconnected' | 'error' | 'not_configured';
+  detail: string | null;
+  deepLink: string | null;
+}
+
+export interface SiteMetricTotalsDto {
+  clicks: number;
+  impressions: number;
+  ctr: number;
+  avgPosition: number | null;
+}
+
+export interface SiteKeywordRowDto {
+  keyword: string;
+  clicks: number;
+  impressions: number;
+  position: number | null;
+}
+
+export interface SiteIssueSummaryBucketDto {
+  open: number;
+  inProgress: number;
+  resolvedThisMonth: number;
+}
+
+export interface SiteIssueSummaryDto {
+  critical: SiteIssueSummaryBucketDto;
+  high: SiteIssueSummaryBucketDto;
+  medium: SiteIssueSummaryBucketDto;
+  low: SiteIssueSummaryBucketDto;
+}
+
+export interface SiteRecommendationDto {
+  id: string;
+  issueId: string;
+  title: string;
+  priority: RecommendationPriority;
+  impact: number;
+  confidence: number;
+  effort: number;
+}
+
+export interface ContentStageDto {
+  stage: string;
+  count: number;
+  latestAt: string | null;
+}
+
+export interface BaselineProgressMetricDto {
+  key: string;
+  label: string;
+  initial: number | null;
+  current: number | null;
+  change: number | null;
+}
+
+export interface SiteRecentActivityDto {
+  action: string;
+  entityType: string | null;
+  entityId: string | null;
+  createdAt: string;
+}
+
+export interface SiteDashboardDto {
+  site: {
+    id: string;
+    name: string;
+    domain: string;
+    locale: string;
+    language: string;
+    country: string | null;
+    status: SiteStatus;
+  };
+  header: {
+    market: string | null;
+    language: string;
+    integrationHealth: string;
+    lastSync: string | null;
+    lastCrawl: string | null;
+  };
+  main: {
+    seoHealth: number | null;
+    aeoReadiness: number | null;
+    geoReadiness: number | null;
+    clicks: number;
+    impressions: number;
+    ctr: number;
+    avgPosition: number | null;
+    topKeywords: SiteKeywordRowDto[];
+    nextKeywords: SiteKeywordRowDto[];
+  };
+  issues: { open: number; critical: number; recommendations: number; openTasks: number };
+  content: { published: number; pending: number; stages: ContentStageDto[] };
+  performance: {
+    current: SiteMetricTotalsDto;
+    previous: SiteMetricTotalsDto;
+    baseline: SiteMetricTotalsDto | null;
+    currentVsPrevious: { clicksPct: number | null; impressionsPct: number | null; ctrDelta: number | null; positionDelta: number | null };
+    currentVsBaseline: { clicksPct: number | null; impressionsPct: number | null; ctrDelta: number | null; positionDelta: number | null };
+    hasGsc: boolean;
+  };
+  baselineProgress: { exists: boolean; metrics: BaselineProgressMetricDto[] } | { exists: false };
+  issueSummary: SiteIssueSummaryDto;
+  recommendations: SiteRecommendationDto[];
+  contentPipeline: ContentStageDto[];
+  integrationHealth: SiteIntegrationHealthDto[];
+  recentActivity: SiteRecentActivityDto[];
+  emptyStates: {
+    needsCrawl: boolean;
+    needsBaseline: boolean;
+    needsGsc: boolean;
+    needsKeywords: boolean;
+    noContent: boolean;
+    needsAi: boolean;
+  };
+}

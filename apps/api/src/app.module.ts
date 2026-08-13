@@ -37,6 +37,7 @@ import { ReportingModule } from './modules/reporting/reporting.module';
 import { ClientModule } from './modules/client/client.module';
 import { OrchestrationModule } from './modules/orchestration/orchestration.module';
 import { KeywordsModule } from './modules/keywords/keywords.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -80,6 +81,7 @@ import { KeywordsModule } from './modules/keywords/keywords.module';
     ClientModule,
     OrchestrationModule,
     KeywordsModule,
+    DashboardModule,
     HealthModule,
   ],
   providers: [

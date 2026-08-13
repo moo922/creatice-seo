@@ -1,14 +1,15 @@
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Globe } from 'lucide-react';
-import type { SiteDto, SiteMembershipDto } from '@creative-seo/types';
+import type { SiteDto } from '@creative-seo/types';
 import { api } from '@/lib/api';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { SiteDashboard } from './site-dashboard';
 import { CrawlerTab } from './tabs/crawler-tab';
 import { AuditTab } from './tabs/audit-tab';
 import { KeywordsTab } from './tabs/keywords-tab';
@@ -26,17 +27,13 @@ const STATUS_VARIANT: Record<SiteDto['status'], 'default' | 'secondary' | 'outli
 export function SiteDetailPage() {
   const { siteId = '' } = useParams();
   const { t } = useTranslation();
+  const [searchParams] = useSearchParams();
+  const initialTab = searchParams.get('tab') ?? 'overview';
 
   const siteQuery = useQuery({
     queryKey: ['site', siteId],
     enabled: Boolean(siteId),
     queryFn: () => api.get<SiteDto>(`/sites/${siteId}`),
-  });
-
-  const membersQuery = useQuery({
-    queryKey: ['site', siteId, 'members'],
-    enabled: Boolean(siteId),
-    queryFn: () => api.get<SiteMembershipDto[]>(`/sites/${siteId}/members`),
   });
 
   const site = siteQuery.data;
@@ -72,7 +69,7 @@ export function SiteDetailPage() {
           </CardContent>
         </Card>
       ) : (
-        <Tabs defaultValue="overview">
+        <Tabs defaultValue={initialTab}>
           <TabsList className="flex h-auto flex-wrap justify-start gap-1">
             <TabsTrigger value="overview">{t('sites.overview')}</TabsTrigger>
             <TabsTrigger value="crawler">{t('siteDetail.crawler')}</TabsTrigger>
@@ -85,46 +82,7 @@ export function SiteDetailPage() {
           </TabsList>
 
           <TabsContent value="overview">
-            <div className="grid gap-4 lg:grid-cols-3">
-              <Card className="lg:col-span-2">
-                <CardHeader>
-                  <CardTitle>{t('sites.overview')}</CardTitle>
-                </CardHeader>
-                <CardContent className="grid gap-x-8 gap-y-3 text-sm sm:grid-cols-2">
-                  <MetaRow label={t('sites.organization')} value={site?.organizationId ?? '…'} />
-                  <MetaRow label={t('sites.locale')} value={site?.locale ?? '—'} />
-                  <MetaRow label={t('sites.language')} value={site?.language ?? '—'} />
-                  <MetaRow label={t('sites.country')} value={site?.country ?? '—'} />
-                  <MetaRow label={t('sites.createdAt')} value={site ? new Date(site.createdAt).toLocaleDateString() : '—'} />
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>{t('sites.members')}</CardTitle>
-                  <CardDescription>
-                    {(membersQuery.data ?? []).length}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {membersQuery.isLoading ? (
-                    <Skeleton className="h-20 w-full" />
-                  ) : (membersQuery.data ?? []).length === 0 ? (
-                    <p className="text-sm text-muted-foreground">—</p>
-                  ) : (
-                    (membersQuery.data ?? []).map((member) => (
-                      <div
-                        key={member.id}
-                        className="flex items-center justify-between rounded-md border px-3 py-2 text-sm"
-                      >
-                        <span className="text-muted-foreground">{member.userId}</span>
-                        <Badge variant="secondary">{member.siteRole}</Badge>
-                      </div>
-                    ))
-                  )}
-                </CardContent>
-              </Card>
-            </div>
+            <SiteDashboard siteId={siteId} />
           </TabsContent>
 
           <TabsContent value="crawler">
@@ -150,15 +108,6 @@ export function SiteDetailPage() {
           </TabsContent>
         </Tabs>
       )}
-    </div>
-  );
-}
-
-function MetaRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <div className="text-xs text-muted-foreground">{label}</div>
-      <div className="font-medium">{value}</div>
     </div>
   );
 }

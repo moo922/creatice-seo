@@ -2,7 +2,7 @@ import { Route, Routes } from 'react-router-dom';
 import { AppShell } from '@/components/layout/app-shell';
 import { RedirectIfAuthed, RequireAuth } from '@/components/routing/guards';
 import { LoginPage } from '@/features/auth/login-page';
-import { PortfolioPage } from '@/features/portfolio/portfolio-page';
+import { PortfolioDashboard } from '@/features/portfolio/portfolio-dashboard';
 import { SiteDetailPage } from '@/features/sites/site-detail-page';
 import { SitesPage } from '@/features/sites/sites-page';
 import { WordPressPage } from '@/features/wordpress/wordpress-page';
@@ -24,7 +24,7 @@ export function App() {
 
       <Route element={<RequireAuth />}>
         <Route element={<AppShell />}>
-          <Route index element={<PortfolioPage />} />
+          <Route index element={<PortfolioDashboard />} />
           <Route path="/sites" element={<SitesPage />} />
           <Route path="/sites/:siteId" element={<SiteDetailPage />} />
           <Route path="/wordpress" element={<WordPressPage />} />
