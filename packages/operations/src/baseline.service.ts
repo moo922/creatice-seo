@@ -51,6 +51,39 @@ export class BaselineService {
     return this.toDto(saved);
   }
 
+  /**
+   * Recurring snapshot: captures the site's latest known metrics (or a zeroed
+   * set when no snapshot exists yet) as a new immutable snapshot. Used by the
+   * worker scheduler for MONTHLY / QUARTERLY snapshots.
+   */
+  async capture(
+    siteId: string,
+    organizationId: string | null,
+    type: BaselineType,
+    createdBy: string | null,
+  ): Promise<BaselineSnapshotDto> {
+    const latest = await this.snapshots.findOne({ where: { siteId }, order: { createdAt: 'DESC' } });
+    const metrics: BaselineMetricsDto = latest
+      ? (latest.metrics as unknown as BaselineMetricsDto)
+      : {
+          crawlHealth: 0,
+          technicalIssues: 0,
+          onPageHealth: 0,
+          contentHealth: 0,
+          aeoReadiness: 0,
+          geoReadiness: 0,
+          gscMetrics: { clicks: 0, impressions: 0, ctr: 0, avgPosition: null },
+          keywordVisibility: 0,
+          internalLinkHealth: 0,
+        };
+    return this.createSnapshot(
+      siteId,
+      organizationId,
+      { type, metrics, note: `Recurring ${type.toLowerCase()} snapshot` },
+      createdBy,
+    );
+  }
+
   async listSnapshots(siteId: string, type?: BaselineType): Promise<BaselineSnapshotDto[]> {
     const where = { siteId } as Record<string, unknown>;
     if (type) where.type = type;

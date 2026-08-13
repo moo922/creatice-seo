@@ -13,14 +13,14 @@
 #   ./deploy.sh status          Show running processes and health
 #   ./deploy.sh backup [label]  pg_dump backup (data/backups/<label>-<ts>.sql.gz)
 #   ./deploy.sh chromium        Install local Chromium for PDF reports (Playwright)
+#   ./deploy.sh docker          Build + start the Docker stack (postgres/redis/api/worker/web)
 #   ./deploy.sh full            doctor -> install -> build -> migrate -> start
 #
 # Environment: a root `.env` file is sourced if present (see DEPLOYMENT.md for
 # the full variable reference). Defaults match the @creative-seo/config schema.
 #
-# NOTE: this script runs the applications natively with npm. Docker deployment
-# is not wired yet (the Dockerfiles referenced by infra/docker-compose.yml have
-# not been created).
+# NOTE: `start` runs the applications natively with npm; `docker` uses
+# infra/docker-compose.yml (Dockerfiles are provided in each app).
 
 set -euo pipefail
 
@@ -254,6 +254,12 @@ cmd_chromium() {
   npx playwright install chromium
 }
 
+cmd_docker() {
+  log "Building and starting the Docker stack (postgres, redis, api, worker, web)"
+  (cd "$ROOT/infra" && docker compose up -d --build)
+  log "Docker stack started. Check with: docker compose -f infra/docker-compose.yml ps"
+}
+
 cmd_full() {
   cmd_doctor
   cmd_install
@@ -280,6 +286,7 @@ main() {
     status) cmd_status ;;
     backup) cmd_backup "${1:-manual}" ;;
     chromium) cmd_chromium ;;
+    docker) cmd_docker ;;
     full) cmd_full ;;
     help|-h|--help) usage 0 ;;
     *) usage 1 ;;

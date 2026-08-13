@@ -2,11 +2,19 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AiCoreModule } from '@creative-seo/ai';
+import { ContentCoreModule } from '@creative-seo/content';
+import { OperationsCoreModule } from '@creative-seo/operations';
+import { VisibilityCoreModule } from '@creative-seo/visibility';
+import { ReportingCoreModule } from '@creative-seo/reporting';
+import { LinksCoreModule } from '@creative-seo/links';
+import { Site } from '@creative-seo/database';
 import { createDataSourceOptions } from '@creative-seo/database';
 import { WorkerConfig } from './config/worker-config';
 import { WorkerConfigModule } from './config/worker-config.module';
 import { HealthServer } from './health/health-server';
 import { QueueManager } from './queue/queue-manager';
+import { QueueProcessor } from './queue/queue-processor';
+import { ScheduledJobsService } from './queue/scheduler';
 
 @Module({
   imports: [
@@ -21,8 +29,14 @@ import { QueueManager } from './queue/queue-manager';
           logging: config.env.NODE_ENV !== 'production' && config.env.NODE_ENV !== 'test',
         }),
     }),
+    TypeOrmModule.forFeature([Site]),
     AiCoreModule,
+    ContentCoreModule,
+    OperationsCoreModule,
+    VisibilityCoreModule,
+    ReportingCoreModule,
+    LinksCoreModule,
   ],
-  providers: [QueueManager, HealthServer],
+  providers: [QueueManager, HealthServer, QueueProcessor, ScheduledJobsService],
 })
 export class AppModule {}

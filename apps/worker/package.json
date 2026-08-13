@@ -14,7 +14,12 @@
   "dependencies": {
     "@creative-seo/ai": "^0.1.0",
     "@creative-seo/config": "^0.1.0",
+    "@creative-seo/content": "^0.1.0",
     "@creative-seo/database": "^0.1.0",
+    "@creative-seo/links": "^0.1.0",
+    "@creative-seo/operations": "^0.1.0",
+    "@creative-seo/reporting": "^0.1.0",
+    "@creative-seo/visibility": "^0.1.0",
     "@nestjs/common": "^11.0.0",
     "@nestjs/config": "^4.0.0",
     "@nestjs/core": "^11.0.0",
