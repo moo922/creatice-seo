@@ -1,4 +1,4 @@
-import { Column, CreateDateColumn, Entity, Index, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import { Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 import type { SiteStatus } from '@creative-seo/types';
 import { Organization } from './organization';
 
@@ -12,6 +12,7 @@ export class Site {
   organizationId: string;
 
   @ManyToOne(() => Organization, (organization) => organization.sites)
+  @JoinColumn({ name: 'organization_id' })
   organization: Organization;
 
   @Column({ type: 'varchar', length: 255 })
