@@ -1,7 +1,8 @@
-import { Body, Controller, Get, Header, NotFoundException, Param, ParseUUIDPipe, Post, Put, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Header, NotFoundException, Param, ParseUUIDPipe, Post, Put, Query, Res, UseGuards } from '@nestjs/common';
 import { ReportingService } from '@creative-seo/reporting';
 import type { ReportBrandingDto, ReportContentDto, ReportDto } from '@creative-seo/types';
 import { readFileSync } from 'fs';
+import type { Response } from 'express';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
 import { SiteAccessGuard } from '../../common/guards/site-access.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -47,6 +48,23 @@ export class SiteReportingController {
     return this.reporting.generate(siteId, user?.organizationId ?? null, dto, user?.id ?? null);
   }
 
+  /**
+   * Renders a report as HTML without persisting it. The response body is the
+   * rendered, self-contained HTML document ready for inline preview — no
+   * report row, baseline snapshot or PDF file is created.
+   */
+  @Post('reports/preview')
+  @RequirePermissions('reports:read')
+  @Header('Content-Type', 'text/html; charset=utf-8')
+  async preview(
+    @Param('siteId', ParseUUIDPipe) siteId: string,
+    @Body() dto: GenerateReportDto,
+    @CurrentUser() user: AuthPrincipal,
+  ): Promise<string> {
+    const content = await this.reporting.preview(siteId, user?.organizationId ?? null, dto);
+    return content.html;
+  }
+
   @Get('reports')
   list(
     @Param('siteId', ParseUUIDPipe) siteId: string,
@@ -69,13 +87,19 @@ export class SiteReportingController {
   }
 
   @Get('reports/:id/pdf')
-  @Header('Content-Type', 'application/pdf')
-  @Header('Content-Disposition', 'inline; filename="report.pdf"')
-  async pdf(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthPrincipal): Promise<Buffer> {
+  async pdf(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthPrincipal,
+    @Res() res: Response,
+  ): Promise<void> {
     await this.recordView(id, user, 'pdf');
     const path = await this.reporting.getReportPdfPath(id);
     try {
-      return readFileSync(path);
+      // Raw byte stream via @Res(): bypasses the global { data } envelope so
+      // browsers/PDF viewers receive a real application/pdf document.
+      res.type('application/pdf');
+      res.setHeader('Content-Disposition', 'inline; filename="report.pdf"');
+      res.send(readFileSync(path));
     } catch {
       throw new NotFoundException('PDF file is missing on disk');
     }

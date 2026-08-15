@@ -1,13 +1,23 @@
 import { Global, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import {
+  AiVisibilityRun,
+  AutomationRun,
   Cluster,
   ClusterKeyword,
+  ContentPublication,
+  GscDailyMetric,
+  GscOpportunity,
+  GscProperty,
   Keyword,
   KeywordMetric,
+  LinkAnalysis,
+  LinkSuggestion,
   Report,
   ReportBranding,
   Site,
+  WordPressIntegration,
+  WordPressPost,
 } from '@creative-seo/database';
 import { ReportingService } from './reporting.service';
 
@@ -19,7 +29,27 @@ import { ReportingService } from './reporting.service';
  */
 @Global()
 @Module({
-  imports: [TypeOrmModule.forFeature([ReportBranding, Report, Site, Cluster, ClusterKeyword, Keyword, KeywordMetric])],
+  imports: [
+    TypeOrmModule.forFeature([
+      ReportBranding,
+      Report,
+      Site,
+      Cluster,
+      ClusterKeyword,
+      Keyword,
+      KeywordMetric,
+      GscDailyMetric,
+      GscProperty,
+      GscOpportunity,
+      WordPressIntegration,
+      WordPressPost,
+      ContentPublication,
+      LinkSuggestion,
+      LinkAnalysis,
+      AutomationRun,
+      AiVisibilityRun,
+    ]),
+  ],
   providers: [ReportingService],
   exports: [ReportingService],
 })

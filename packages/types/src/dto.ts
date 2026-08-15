@@ -1399,6 +1399,8 @@ export interface GenerateReportRequest {
   type: ReportType;
   periodStart?: string | null;
   periodEnd?: string | null;
+  /** Report language; Arabic renders right-to-left. Defaults to 'en'. */
+  lang?: 'en' | 'ar';
 }
 
 export interface ReportQuery {

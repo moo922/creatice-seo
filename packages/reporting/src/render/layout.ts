@@ -1,8 +1,17 @@
 import type { ReportData } from '../data';
 
-/** Responsive, self-contained HTML shell with print-friendly CSS (no external assets). */
+/**
+ * Responsive, self-contained HTML shell with print-friendly CSS (no external
+ * assets). Supports English (LTR) and Arabic (RTL). Arabic rendering rules:
+ *   - dir/lang set on <html> so the whole document flows right-to-left.
+ *   - an Arabic-capable font stack (system fonts, no network).
+ *   - letter-spacing is disabled in RTL to avoid broken glyph joining.
+ *   - numbers and URLs stay LTR-isolated so digits are never mirrored.
+ *   - long URLs wrap (overflow-wrap) so nothing is clipped in the PDF.
+ */
 export function layout(title: string, data: ReportData, body: string): string {
   const branding = data.branding;
+  const rtl = data.lang === 'ar';
   const contact = Object.entries(branding.contactDetails)
     .map(([key, value]) => `${escapeHtml(key)}: ${escapeHtml(value)}`)
     .join(' &middot; ');
@@ -11,7 +20,7 @@ export function layout(title: string, data: ReportData, body: string): string {
     url ? `<img class="brand-logo" src="${escapeAttr(url)}" alt="${escapeAttr(alt)}" />` : '';
 
   return `<!doctype html>
-<html lang="en">
+<html lang="${rtl ? 'ar' : 'en'}" dir="${rtl ? 'rtl' : 'ltr'}">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -20,6 +29,7 @@ export function layout(title: string, data: ReportData, body: string): string {
 :root{--ink:#1a2433;--muted:#5b6b7f;--line:#e3e9f0;--bg:#f6f8fb;--card:#ffffff;--brand:#0f6fff;--ok:#16a34a;--warn:#d97706;--bad:#dc2626;}
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+html[dir="rtl"],html[dir="rtl"] body{font-family:"Segoe UI",Tahoma,"Noto Naskh Arabic","Noto Sans Arabic","Traditional Arabic",Arial,sans-serif}
 .wrap{max-width:960px;margin:0 auto;padding:24px 20px 60px}
 header.report-head{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;padding:20px 24px;background:var(--card);border:1px solid var(--line);border-radius:12px;margin-bottom:18px}
 .brand-logo{max-height:44px;max-width:180px;object-fit:contain}
@@ -35,7 +45,7 @@ h2.sec{font-size:1.15rem;margin:0 0 12px;padding-bottom:8px;border-bottom:2px so
 .kpi .d{font-size:.8rem;margin-top:2px}
 .improved{color:var(--ok)}.declined{color:var(--bad)}.flat{color:var(--muted)}
 table{width:100%;border-collapse:collapse;margin-top:6px}
-th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top;overflow-wrap:anywhere}
 th{font-size:.74rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
 td{font-size:.88rem}
 ul{margin:6px 0 0;padding-left:18px}
@@ -49,6 +59,14 @@ li{margin:4px 0}
 .empty{color:var(--muted);font-style:italic;padding:8px 0}
 footer.report-foot{color:var(--muted);font-size:.78rem;text-align:center;padding-top:24px;border-top:1px solid var(--line);margin-top:12px}
 .columns{columns:2;column-gap:24px}@media(max-width:640px){.columns{columns:1}}
+/* --- Right-to-left overrides (Arabic) --- */
+:root[dir="rtl"] th,:root[dir="rtl"] td{text-align:right}
+:root[dir="rtl"] ul{padding-left:0;padding-right:18px}
+:root[dir="rtl"] .notice{border-left:none;border-right:3px solid var(--brand)}
+:root[dir="rtl"] .kpi .k,:root[dir="rtl"] th{letter-spacing:0;text-transform:none}
+/* Numbers and URLs stay LTR-isolated so digits are never mirrored or clipped. */
+.num{direction:ltr;unicode-bidi:isolate;font-variant-numeric:tabular-nums}
+:root[dir="rtl"] .num{text-align:left}
 @media print{body{background:#fff}.card,header.report-head{break-inside:avoid;border-color:#d7dee6}.disc{background:#fff7e6}}
 </style>
 </head>

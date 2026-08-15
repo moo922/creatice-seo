@@ -21,6 +21,7 @@ export function ReportsTab({ siteId }: { siteId: string }) {
   const { hasPermission } = useAuth();
   const queryClient = useQueryClient();
   const [type, setType] = useState('MONTHLY');
+  const [lang, setLang] = useState('en');
   const [periodStart, setPeriodStart] = useState('');
   const [periodEnd, setPeriodEnd] = useState('');
   const [html, setHtml] = useState<string | null>(null);
@@ -31,8 +32,13 @@ export function ReportsTab({ siteId }: { siteId: string }) {
   });
 
   const generateMutation = useMutation({
-    mutationFn: () => api.post<ReportDto>(`/sites/${siteId}/reporting/reports`, { type, periodStart: periodStart || null, periodEnd: periodEnd || null }),
+    mutationFn: () => api.post<ReportDto>(`/sites/${siteId}/reporting/reports`, { type, lang, periodStart: periodStart || null, periodEnd: periodEnd || null }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['site-reports'] }),
+  });
+
+  const previewMutation = useMutation({
+    mutationFn: () => api.post<string>(`/sites/${siteId}/reporting/reports/preview`, { type, lang, periodStart: periodStart || null, periodEnd: periodEnd || null }),
+    onSuccess: (result) => setHtml(result),
   });
 
   const canManage = hasPermission('reports:manage');
@@ -46,7 +52,7 @@ export function ReportsTab({ siteId }: { siteId: string }) {
             <CardTitle>{t('reports.newReport')}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-3 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-end">
+            <div className="grid gap-3 sm:grid-cols-[1fr_1fr_1fr_1fr_auto] sm:items-end">
               <div className="space-y-1.5">
                 <Label htmlFor="r-type">{t('reports.type')}</Label>
                 <Select id="r-type" value={type} onChange={(e) => setType(e.target.value)}>
@@ -58,6 +64,13 @@ export function ReportsTab({ siteId }: { siteId: string }) {
                 </Select>
               </div>
               <div className="space-y-1.5">
+                <Label htmlFor="r-lang">{t('reports.lang')}</Label>
+                <Select id="r-lang" value={lang} onChange={(e) => setLang(e.target.value)}>
+                  <option value="en">{t('reports.english')}</option>
+                  <option value="ar">{t('reports.arabic')}</option>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
                 <Label htmlFor="r-start">{t('reports.periodStart')}</Label>
                 <Input id="r-start" type="date" value={periodStart} onChange={(e) => setPeriodStart(e.target.value)} />
               </div>
@@ -65,10 +78,15 @@ export function ReportsTab({ siteId }: { siteId: string }) {
                 <Label htmlFor="r-end">{t('reports.periodEnd')}</Label>
                 <Input id="r-end" type="date" value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} />
               </div>
-              <Button onClick={() => generateMutation.mutate()} disabled={generateMutation.isPending}>
-                <Plus className="size-4" />
-                {t('reports.generate')}
-              </Button>
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" onClick={() => previewMutation.mutate()} disabled={previewMutation.isPending}>
+                  {t('reports.preview')}
+                </Button>
+                <Button onClick={() => generateMutation.mutate()} disabled={generateMutation.isPending}>
+                  <Plus className="size-4" />
+                  {t('reports.generate')}
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>

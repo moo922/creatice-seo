@@ -35,12 +35,17 @@ export function ReportsPage() {
   });
 
   const generateMutation = useMutation({
-    mutationFn: (body: { siteId: string; type: string; periodStart?: string; periodEnd?: string }) =>
+    mutationFn: (body: { siteId: string; type: string; lang: string; periodStart?: string; periodEnd?: string }) =>
       api.post<ReportDto>(`/sites/${body.siteId}/reporting/reports`, body),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reports'] });
       setShowGenerate(false);
     },
+  });
+
+  const previewMutation = useMutation({
+    mutationFn: (body: { siteId: string; type: string; lang: string; periodStart?: string; periodEnd?: string }) =>
+      api.post<string>(`/sites/${body.siteId}/reporting/reports/preview`, body),
   });
 
   const reports = reportsQuery.data ?? [];
@@ -66,7 +71,13 @@ export function ReportsPage() {
       </div>
 
       {showGenerate && canManage && (
-        <GenerateForm submitting={generateMutation.isPending} error={generateMutation.isError ? t('common.error') : null} onSubmit={(body) => generateMutation.mutate(body)} />
+        <GenerateForm
+          submitting={generateMutation.isPending}
+          previewing={previewMutation.isPending}
+          error={generateMutation.isError || previewMutation.isError ? t('common.error') : null}
+          onSubmit={(body) => generateMutation.mutate(body)}
+          onPreview={(body) => previewMutation.mutate(body, { onSuccess: (html) => setViewing({ id: 'preview', siteId: body.siteId, html }) })}
+        />
       )}
 
       <Card>
@@ -142,12 +153,29 @@ export function ReportsPage() {
   }
 }
 
-function GenerateForm({ submitting, error, onSubmit }: { submitting: boolean; error: string | null; onSubmit: (body: { siteId: string; type: string; periodStart?: string; periodEnd?: string }) => void }) {
+type ReportFormBody = { siteId: string; type: string; lang: string; periodStart?: string; periodEnd?: string };
+
+function GenerateForm({
+  submitting,
+  previewing,
+  error,
+  onSubmit,
+  onPreview,
+}: {
+  submitting: boolean;
+  previewing: boolean;
+  error: string | null;
+  onSubmit: (body: ReportFormBody) => void;
+  onPreview: (body: ReportFormBody) => void;
+}) {
   const { t } = useTranslation();
   const [siteId, setSiteId] = useState('');
   const [type, setType] = useState('MONTHLY');
+  const [lang, setLang] = useState('en');
   const [periodStart, setPeriodStart] = useState('');
   const [periodEnd, setPeriodEnd] = useState('');
+
+  const body: ReportFormBody = { siteId, type, lang, periodStart: periodStart || undefined, periodEnd: periodEnd || undefined };
 
   return (
     <Card>
@@ -161,7 +189,7 @@ function GenerateForm({ submitting, error, onSubmit }: { submitting: boolean; er
           onSubmit={(e) => {
             e.preventDefault();
             if (!siteId) return;
-            onSubmit({ siteId, type, periodStart: periodStart || undefined, periodEnd: periodEnd || undefined });
+            onSubmit(body);
           }}
         >
           <div className="space-y-1.5">
@@ -179,6 +207,13 @@ function GenerateForm({ submitting, error, onSubmit }: { submitting: boolean; er
             </Select>
           </div>
           <div className="space-y-1.5">
+            <Label htmlFor="report-lang">{t('reports.lang')}</Label>
+            <Select id="report-lang" value={lang} onChange={(e) => setLang(e.target.value)}>
+              <option value="en">{t('reports.english')}</option>
+              <option value="ar">{t('reports.arabic')}</option>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
             <Label htmlFor="report-start">{t('reports.periodStart')}</Label>
             <Input id="report-start" type="date" value={periodStart} onChange={(e) => setPeriodStart(e.target.value)} />
           </div>
@@ -187,9 +222,14 @@ function GenerateForm({ submitting, error, onSubmit }: { submitting: boolean; er
             <Input id="report-end" type="date" value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} />
           </div>
           {error ? <p className="text-sm text-destructive sm:col-span-2">{error}</p> : null}
-          <Button type="submit" disabled={submitting || !siteId} className="sm:col-span-2">
-            {t('reports.generate')}
-          </Button>
+          <div className="flex gap-2 sm:col-span-2">
+            <Button type="button" variant="outline" onClick={() => siteId && onPreview(body)} disabled={previewing || !siteId}>
+              {t('reports.preview')}
+            </Button>
+            <Button type="submit" disabled={submitting || !siteId}>
+              {t('reports.generate')}
+            </Button>
+          </div>
         </form>
       </CardContent>
     </Card>

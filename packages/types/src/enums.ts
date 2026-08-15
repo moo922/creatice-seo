@@ -332,6 +332,10 @@ export type ReportType = (typeof REPORT_TYPES)[number];
 export const REPORT_STATUSES = ['GENERATED', 'PDF_PENDING', 'PDF_FAILED'] as const;
 export type ReportStatus = (typeof REPORT_STATUSES)[number];
 
+/** Supported report languages. Arabic reports render RTL, English LTR. */
+export const REPORT_LANGUAGES = ['en', 'ar'] as const;
+export type ReportLanguage = (typeof REPORT_LANGUAGES)[number];
+
 // ---------------------------------------------------------------------------
 // n8n orchestration
 // ---------------------------------------------------------------------------

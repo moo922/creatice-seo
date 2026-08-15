@@ -1,6 +1,6 @@
 import { Transform } from 'class-transformer';
 import { IsDateString, IsIn, IsInt, IsObject, IsOptional, IsString, IsUUID, Max, MaxLength, Min } from 'class-validator';
-import { REPORT_TYPES, type ReportType } from '@creative-seo/types';
+import { REPORT_LANGUAGES, REPORT_TYPES, type ReportLanguage, type ReportType } from '@creative-seo/types';
 
 export class SaveReportBrandingDto {
   @IsOptional()
@@ -44,6 +44,11 @@ export class GenerateReportDto {
   @IsOptional()
   @IsDateString()
   periodEnd?: string | null;
+
+  /** Report language; Arabic renders right-to-left. Defaults to 'en'. */
+  @IsOptional()
+  @IsIn(REPORT_LANGUAGES)
+  lang?: ReportLanguage;
 }
 
 export class ReportQueryDto {

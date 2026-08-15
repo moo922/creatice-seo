@@ -3,6 +3,7 @@ import { renderReport } from './report';
 
 function sampleData(overrides: Partial<ReportData> = {}): ReportData {
   return {
+    lang: 'en',
     branding: {
       agencyName: 'Agency Co',
       agencyLogoUrl: 'https://agency.co/logo.png',
@@ -34,7 +35,7 @@ function sampleData(overrides: Partial<ReportData> = {}): ReportData {
     issueCounts: { DETECTED: 2, IN_PROGRESS: 5, RESOLVED: 3 },
     workCompleted: [
       { kind: 'content', pageUrl: '/guide', label: 'Updated meta on /guide', changedAt: '2026-08-05' },
-      { kind: 'internal_link', pageUrl: '/home', label: 'Internal link "seo tools" -> /seo-tools', changedAt: '2026-08-12' },
+      { kind: 'internal_links', pageUrl: '/home', label: 'Internal link "seo tools" -> /seo-tools', changedAt: '2026-08-12' },
     ],
     contentStats: { packages: 3, completed: 2 },
     visibility: {
@@ -53,6 +54,36 @@ function sampleData(overrides: Partial<ReportData> = {}): ReportData {
     wins: ['GSC clicks improved +20.0% (correlation only).'],
     risks: ['Keyword visibility declined −6.7% (correlation only).'],
     nextActions: ['Review pending link suggestions.', 'Continue visibility observations.'],
+    site: null,
+    health: { seo: [], aeo: [], geo: [] },
+    visibilityBaseline: [],
+    technicalFindings: [],
+    onPageFindings: [],
+    contentQuality: { packages: 0, published: 0, drafts: 0, avg: { seo: null, aeo: null, geo: null, rankMath: null } },
+    rankMath: null,
+    keywordVisibility: [],
+    cannibalization: [],
+    internalLinks: { stats: null, pending: 0, applied: 0, verified: 0 },
+    aeoGaps: [],
+    geoGaps: [],
+    criticalProblems: [],
+    highPriorityProblems: [],
+    quickWins: [],
+    contentOpportunities: [],
+    matrix: [],
+    plans: [
+      { key: 'plan30', intro: 'plan30.intro', items: ['Fix critical issues'] },
+      { key: 'plan60', intro: 'plan60.intro', items: ['Implement recommendations'] },
+      { key: 'plan90', intro: 'plan90.intro', items: ['Grow visibility'] },
+    ],
+    organic: { hasGsc: false, clicks: 0, impressions: 0, ctr: 0, avgPosition: null, previous: { clicks: 0, impressions: 0, ctr: 0, avgPosition: null } },
+    keywordMoves: [],
+    pageMoves: [],
+    issuesResolvedList: [],
+    outstandingList: [],
+    contentPublishedList: [],
+    recommendationsList: [],
+    nextPriorities: [],
     ...overrides,
   };
 }
@@ -62,17 +93,27 @@ describe('renderReport', () => {
     const html = renderReport('INITIAL', sampleData());
     const expected = [
       'Executive Summary',
-      'Baseline',
-      'SEO',
-      'AEO',
-      'GEO',
-      'Technical Audit',
-      'Content',
-      'Search Performance',
-      'Issues',
+      'SEO Health',
+      'AEO Readiness',
+      'GEO Readiness',
+      'Search Visibility Baseline',
+      'Technical Findings',
+      'On-Page Findings',
+      'Content Quality',
+      'Rank Math Analysis',
+      'Keyword Visibility',
+      'Cannibalization',
+      'Internal Linking',
+      'AEO Gaps',
+      'GEO Gaps',
+      'Critical Problems',
+      'High Priority Problems',
       'Quick Wins',
-      'Opportunities',
-      '30/60/90 Day Plan',
+      'Content Opportunities',
+      'Priority Matrix',
+      '30-Day Plan',
+      '60-Day Plan',
+      '90-Day Plan',
     ];
     for (const section of expected) {
       expect(html).toContain(section);
@@ -83,17 +124,29 @@ describe('renderReport', () => {
     const html = renderReport('MONTHLY', sampleData());
     const expected = [
       'Executive Summary',
-      'Performance Outcome',
-      'Since Baseline',
-      'Work Completed',
+      'Current vs Previous Month',
+      'Current vs Project Baseline',
+      'SEO Progress',
+      'AEO Progress',
+      'GEO Progress',
+      'Organic Performance',
+      'Keyword Improvements',
+      'Page Improvements',
+      'Completed Work',
       'Issues Resolved',
-      'New Issues',
-      'Content Work',
-      'Keyword Opportunities',
-      'Wins',
-      'Risks',
-      'Next Actions',
+      'Outstanding Issues',
+      'Content Published',
+      'Recommendations',
+      'Priorities for Next Period',
     ];
+    for (const section of expected) {
+      expect(html).toContain(section);
+    }
+  });
+
+  it('renders all required EXECUTIVE report sections', () => {
+    const html = renderReport('EXECUTIVE', sampleData());
+    const expected = ['Executive Summary', 'Current vs Previous Month', 'Organic Performance', 'Completed Work', 'Outstanding Issues', 'Priorities for Next Period'];
     for (const section of expected) {
       expect(html).toContain(section);
     }
@@ -101,8 +154,8 @@ describe('renderReport', () => {
 
   it('keeps WORK COMPLETED separate from PERFORMANCE OUTCOME', () => {
     const html = renderReport('MONTHLY', sampleData());
-    const workIndex = html.indexOf('<h2 class="sec">Work Completed</h2>');
-    const perfIndex = html.indexOf('<h2 class="sec">Performance Outcome</h2>');
+    const workIndex = html.indexOf('<h2 class="sec">Completed Work</h2>');
+    const perfIndex = html.indexOf('<h2 class="sec">Organic Performance</h2>');
     expect(workIndex).toBeGreaterThan(-1);
     expect(perfIndex).toBeGreaterThan(-1);
     expect(workIndex).not.toBe(perfIndex);
@@ -112,7 +165,7 @@ describe('renderReport', () => {
 
   it('never claims causation — always includes the correlation disclaimer', () => {
     const html = renderReport('INITIAL', sampleData());
-    expect(html).toContain('correlation only');
+    expect(html).toContain('correlations only');
     expect(html).toContain('does not claim causation');
   });
 
@@ -122,6 +175,13 @@ describe('renderReport', () => {
     expect(html).toContain('Client Ltd');
     expect(html).toContain('hello@agency.co');
     expect(html).toContain('Confidential');
+  });
+
+  it('renders Arabic reports right-to-left with bilingual section titles', () => {
+    const html = renderReport('INITIAL', sampleData({ lang: 'ar' }));
+    expect(html).toContain('dir="rtl"');
+    expect(html).toContain('الملخص التنفيذي');
+    expect(html).toContain('صحة تحسين محركات البحث');
   });
 
   it('renders empty states gracefully when there is no data', () => {
