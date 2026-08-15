@@ -45,7 +45,7 @@ import { PromptRegistryService } from './prompt-registry.service';
     PromptRegistryService,
     AiService,
   ],
-  exports: [AiService, AiJobsService, PromptRegistryService, AiRouter, AiProviderRegistry],
+  exports: [AiService, AiJobsService, PromptRegistryService, AiRouter, AiProviderRegistry, AesEncryptor],
 })
 export class AiCoreModule {}
 
