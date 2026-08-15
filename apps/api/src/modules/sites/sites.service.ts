@@ -29,12 +29,10 @@ export class SitesService {
   ) {}
 
   async create(dto: CreateSiteDto, actor: AuthPrincipal, meta: RequestMeta): Promise<SiteDto> {
-    if (!(await this.organizations.exists({ where: { id: dto.organizationId } }))) {
-      throw new NotFoundException('Organization not found');
-    }
+    const organizationId = await this.resolveOrganizationId(dto.organizationId, actor);
 
     const site = this.sites.create({
-      organizationId: dto.organizationId,
+      organizationId,
       name: dto.name,
       domain: dto.domain.toLowerCase(),
       locale: dto.locale,
@@ -58,7 +56,7 @@ export class SitesService {
     await this.activities.record({
       action: 'site.create',
       userId: actor.id,
-      organizationId: dto.organizationId,
+      organizationId,
       siteId: saved.id,
       entityType: 'site',
       entityId: saved.id,
@@ -68,6 +66,25 @@ export class SitesService {
     });
 
     return toDto(saved);
+  }
+
+  /**
+   * Resolves which client organization a new site belongs to. Explicit org wins;
+   * a non-global actor falls back to their own organization; otherwise the
+   * default client organization ("default-client", seeded at bootstrap) is used.
+   */
+  private async resolveOrganizationId(requested: string | undefined, actor: AuthPrincipal): Promise<string> {
+    if (requested && (await this.organizations.exists({ where: { id: requested } }))) {
+      return requested;
+    }
+    if (!this.siteAccess.isGlobal(actor) && actor.organizationId) {
+      return actor.organizationId;
+    }
+    const defaultOrg = await this.organizations.findOne({ where: { slug: 'default-client' } });
+    if (defaultOrg) {
+      return defaultOrg.id;
+    }
+    throw new NotFoundException('No client organization found. Create an organization first.');
   }
 
   async list(query: SiteQueryDto, principal: AuthPrincipal): Promise<Paginated<SiteDto>> {

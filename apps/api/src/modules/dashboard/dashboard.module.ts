@@ -15,6 +15,7 @@ import {
   KeywordMetric,
   LinkAnalysis,
   OperationsTask,
+  Organization,
   Recommendation,
   Report,
   Site,
@@ -26,7 +27,7 @@ import { PortfolioDashboardController, SiteDashboardController } from './dashboa
 import { DashboardService } from './dashboard.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Site, SiteMembership, Issue, Recommendation, OperationsTask, AiJob, WorkflowJob, ContentPackage, ContentPublication, BaselineSnapshot, CrawledPage, LinkAnalysis, GscProperty, GscDailyMetric, Keyword, KeywordMetric, WordPressIntegration, Report, ActivityLog, AiProviderConfig])],
+  imports: [TypeOrmModule.forFeature([Site, SiteMembership, Issue, Recommendation, OperationsTask, AiJob, WorkflowJob, ContentPackage, ContentPublication, BaselineSnapshot, CrawledPage, LinkAnalysis, GscProperty, GscDailyMetric, Keyword, KeywordMetric, WordPressIntegration, Report, ActivityLog, AiProviderConfig, Organization])],
   controllers: [PortfolioDashboardController, SiteDashboardController],
   providers: [DashboardService],
 })

@@ -32,6 +32,8 @@ import { CreateAutomation00311720000000031 } from './0031-create-automation';
 import { SeedAutomationPermissions00321720000000032 } from './0032-seed-automation-permissions';
 import { CreateWorkQueue00331720000000033 } from './0033-create-work-queue';
 import { SeedWorkqueuePermissions00341720000000034 } from './0034-seed-workqueue-permissions';
+import { CreateKnowledgeBase00351720000000035 } from './0035-create-knowledge-base';
+import { SeedKnowledgePermissions00361720000000036 } from './0036-seed-knowledge-permissions';
 
 export const migrations = [
   CreateIdentity00011720000000001,
@@ -68,6 +70,8 @@ export const migrations = [
   SeedAutomationPermissions00321720000000032,
   CreateWorkQueue00331720000000033,
   SeedWorkqueuePermissions00341720000000034,
+  CreateKnowledgeBase00351720000000035,
+  SeedKnowledgePermissions00361720000000036,
 ];
 
 export {
@@ -105,4 +109,6 @@ export {
   SeedAutomationPermissions00321720000000032,
   CreateWorkQueue00331720000000033,
   SeedWorkqueuePermissions00341720000000034,
+  CreateKnowledgeBase00351720000000035,
+  SeedKnowledgePermissions00361720000000036,
 };

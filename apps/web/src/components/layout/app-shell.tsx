@@ -2,7 +2,9 @@ import { Link, NavLink, Outlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   BarChart3,
+  BookOpen,
   Bot,
+  Building2,
   FolderKanban,
   Globe,
   Languages,
@@ -28,6 +30,8 @@ import {
 const NAV_ITEMS = [
   { to: '/', label: 'nav.portfolio', icon: FolderKanban, end: true, permission: 'sites:read' },
   { to: '/sites', label: 'nav.sites', icon: Globe, end: false, permission: 'sites:read' },
+  { to: '/clients', label: 'nav.clients', icon: Building2, end: false, permission: 'organizations:read' },
+  { to: '/knowledge', label: 'nav.knowledge', icon: BookOpen, end: false, permission: 'knowledge:read' },
   { to: '/wordpress', label: 'nav.wordpress', icon: Globe, end: false, permission: 'wordpress:read' },
   { to: '/issues', label: 'nav.issues', icon: BarChart3, end: false, permission: 'operations:read' },
   { to: '/tasks', label: 'nav.tasks', icon: Users, end: false, permission: 'operations:read' },

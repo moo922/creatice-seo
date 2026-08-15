@@ -1,5 +1,6 @@
-import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import { Column, CreateDateColumn, Entity, Index, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 import type { SiteStatus } from '@creative-seo/types';
+import { Organization } from './organization';
 
 @Entity('sites')
 @Index('idx_sites_organization_id', ['organizationId'])
@@ -9,6 +10,9 @@ export class Site {
 
   @Column({ type: 'uuid', name: 'organization_id' })
   organizationId: string;
+
+  @ManyToOne(() => Organization, (organization) => organization.sites)
+  organization: Organization;
 
   @Column({ type: 'varchar', length: 255 })
   name: string;

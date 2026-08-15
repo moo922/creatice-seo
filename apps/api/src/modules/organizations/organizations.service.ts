@@ -1,30 +1,91 @@
 import {
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
+  OnModuleInit,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { randomBytes } from 'crypto';
 import { Repository } from 'typeorm';
-import { Organization } from '@creative-seo/database';
-import type { OrganizationDto } from '@creative-seo/types';
+import { Organization, Site } from '@creative-seo/database';
+import type { OrganizationDto, SiteDto } from '@creative-seo/types';
 import type { AuthPrincipal } from '../../common/auth.types';
 import { ActivityLogService } from '../activity-log/activity-log.service';
 import { CreateOrganizationDto, UpdateOrganizationDto } from './organizations.dto';
 
 @Injectable()
-export class OrganizationsService {
+export class OrganizationsService implements OnModuleInit {
   constructor(
     @InjectRepository(Organization) private readonly organizations: Repository<Organization>,
+    @InjectRepository(Site) private readonly sites: Repository<Site>,
     private readonly activities: ActivityLogService,
   ) {}
 
-  async list(principal: AuthPrincipal): Promise<OrganizationDto[]> {
-    const rows = await this.organizations.find({
-      where: this.isGlobal(principal) ? undefined : { id: principal.organizationId ?? '' },
-      order: { name: 'ASC' },
+  async onModuleInit(): Promise<void> {
+    await this.ensureDefaultOrganization();
+  }
+
+  /** Ensures the default client organization exists (idempotent bootstrap). */
+  private async ensureDefaultOrganization(): Promise<void> {
+    if (await this.organizations.exists({ where: { slug: 'default-client' } })) {
+      return;
+    }
+    const org = this.organizations.create({
+      name: 'Default Client',
+      slug: 'default-client',
+      status: 'ACTIVE',
+      createdBy: null,
+      meta: { default: true },
     });
+    await this.organizations.save(org);
+    Logger.log(`Bootstrapped default client organization (${org.id})`, 'OrganizationsService');
+  }
+
+  async list(principal: AuthPrincipal): Promise<OrganizationDto[]> {
+    const qb = this.organizations
+      .createQueryBuilder('org')
+      .orderBy('org.name', 'ASC')
+      .loadRelationCountAndMap('org.siteCount', 'org.sites', 'sites', (q) =>
+        q.andWhere('sites.status != :archived', { archived: 'ARCHIVED' }),
+      );
+
+    if (!this.isGlobal(principal)) {
+      qb.andWhere('org.id = :ownOrg', { ownOrg: principal.organizationId ?? '' });
+    }
+
+    const rows = await qb.getMany();
     return rows.map(toDto);
+  }
+
+  async findByIdOrThrow(id: string, principal: AuthPrincipal): Promise<OrganizationDto> {
+    const organization = await this.organizations.findOne({ where: { id } });
+    if (!organization) {
+      throw new NotFoundException('Organization not found');
+    }
+    if (!this.isGlobal(principal) && organization.id !== principal.organizationId) {
+      throw new NotFoundException('Organization not found');
+    }
+    const siteCount = await this.sites.count({
+      where: { organizationId: id, status: 'ACTIVE' },
+    });
+    return toDto({ ...organization, siteCount });
+  }
+
+  /** List the websites belonging to a client organization. */
+  async listSites(id: string, principal: AuthPrincipal): Promise<SiteDto[]> {
+    const organization = await this.organizations.findOne({ where: { id } });
+    if (!organization) {
+      throw new NotFoundException('Organization not found');
+    }
+    if (!this.isGlobal(principal) && organization.id !== principal.organizationId) {
+      throw new NotFoundException('Organization not found');
+    }
+    const rows = await this.sites.find({
+      where: { organizationId: id, status: 'ACTIVE' },
+      order: { createdAt: 'ASC' },
+    });
+    return rows.map(toSiteDto);
   }
 
   async create(dto: CreateOrganizationDto, actor: AuthPrincipal): Promise<OrganizationDto> {
@@ -50,17 +111,6 @@ export class OrganizationsService {
     });
 
     return toDto(saved);
-  }
-
-  async findByIdOrThrow(id: string, principal: AuthPrincipal): Promise<OrganizationDto> {
-    const organization = await this.organizations.findOne({ where: { id } });
-    if (!organization) {
-      throw new NotFoundException('Organization not found');
-    }
-    if (!this.isGlobal(principal) && organization.id !== principal.organizationId) {
-      throw new NotFoundException('Organization not found');
-    }
-    return toDto(organization);
   }
 
   async update(
@@ -120,6 +170,24 @@ function toDto(organization: Organization): OrganizationDto {
     slug: organization.slug,
     status: organization.status,
     createdAt: organization.createdAt.toISOString(),
+    siteCount: organization.siteCount ?? 0,
+  };
+}
+
+function toSiteDto(site: Site): SiteDto {
+  return {
+    id: site.id,
+    organizationId: site.organizationId,
+    name: site.name,
+    domain: site.domain,
+    locale: site.locale,
+    language: site.language,
+    country: site.country,
+    targetCities: site.targetCities,
+    status: site.status,
+    settings: site.settings,
+    createdAt: site.createdAt.toISOString(),
+    updatedAt: site.updatedAt.toISOString(),
   };
 }
 

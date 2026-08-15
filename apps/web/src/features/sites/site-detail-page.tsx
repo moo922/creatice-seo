@@ -1,8 +1,8 @@
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Globe } from 'lucide-react';
-import type { SiteDto } from '@creative-seo/types';
+import { ArrowLeft, Building2, Globe } from 'lucide-react';
+import type { OrganizationDto, SiteDto } from '@creative-seo/types';
 import { api } from '@/lib/api';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -39,6 +39,16 @@ export function SiteDetailPage() {
 
   const site = siteQuery.data;
 
+  const organizationsQuery = useQuery({
+    queryKey: ['organizations'],
+    enabled: Boolean(site?.organizationId),
+    queryFn: () => api.get<OrganizationDto[]>('/organizations'),
+  });
+
+  const client = site?.organizationId
+    ? organizationsQuery.data?.find((org) => org.id === site.organizationId)
+    : undefined;
+
   return (
     <div className="space-y-6">
       <div className="flex items-start gap-3">
@@ -56,9 +66,20 @@ export function SiteDetailPage() {
           ) : (
             <Skeleton className="h-8 w-56" />
           )}
-          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-            <Globe className="size-3.5" />
-            <span>{site?.domain ?? '…'}</span>
+          <div className="flex items-center gap-3 text-sm text-muted-foreground">
+            <span className="flex items-center gap-1.5">
+              <Globe className="size-3.5" />
+              {site?.domain ?? '…'}
+            </span>
+            {client ? (
+              <Link
+                to={`/clients?id=${client.id}`}
+                className="flex items-center gap-1.5 hover:text-foreground hover:underline"
+              >
+                <Building2 className="size-3.5" />
+                {client.name}
+              </Link>
+            ) : null}
           </div>
         </div>
       </div>

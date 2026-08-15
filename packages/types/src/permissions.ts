@@ -39,6 +39,8 @@ export const PERMISSION_KEYS = [
   'automation:manage',
   'workqueue:read',
   'workqueue:manage',
+  'knowledge:read',
+  'knowledge:manage',
   'activities:read',
 ] as const;
 
@@ -91,6 +93,8 @@ export const PERMISSIONS: readonly PermissionDefinition[] = [
   { key: 'automation:manage', module: 'automation', description: 'Configure recurring automation and run history' },
   { key: 'workqueue:read', module: 'workqueue', description: 'View the agency work queue and saved filters' },
   { key: 'workqueue:manage', module: 'workqueue', description: 'Triage work items: assign, prioritize, review, ignore and create tasks' },
+  { key: 'knowledge:read', module: 'knowledge', description: 'View the site knowledge base and its facts' },
+  { key: 'knowledge:manage', module: 'knowledge', description: 'Add, edit and verify knowledge base facts' },
   { key: 'activities:read', module: 'activities', description: 'View activity logs' },
 ];
 

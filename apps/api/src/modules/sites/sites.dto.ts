@@ -14,8 +14,9 @@ import { SITE_ROLES, SITE_STATUSES } from '@creative-seo/types';
 const DOMAIN_REGEX = /^(?!-)[a-zA-Z0-9-]{1,63}(\.[a-zA-Z0-9-]{1,63})+$/;
 
 export class CreateSiteDto {
+  @IsOptional()
   @IsUUID()
-  organizationId: string;
+  organizationId?: string;
 
   @IsString()
   @MinLength(2)

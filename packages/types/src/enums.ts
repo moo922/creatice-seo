@@ -450,6 +450,9 @@ export const ACTIVITY_ACTIONS = [
   'workqueue.task',
   'workqueue.filter.save',
   'workqueue.filter.delete',
+  'knowledge.fact.create',
+  'knowledge.fact.update',
+  'knowledge.fact.delete',
 ] as const;
 export type ActivityAction = (typeof ACTIVITY_ACTIONS)[number];
 
@@ -564,3 +567,34 @@ export type WorkSource = (typeof WORK_SOURCES)[number];
  *  intentionally absent — that requires explicit, per-item confirmation. */
 export const WORK_BULK_ACTIONS = ['assign', 'change_priority', 'mark_reviewed', 'create_tasks', 'ignore'] as const;
 export type WorkBulkAction = (typeof WORK_BULK_ACTIONS)[number];
+
+// ---------------------------------------------------------------------------
+// Site knowledge base (persistent, verified facts about a client)
+// ---------------------------------------------------------------------------
+
+/** Required fact categories for the site knowledge base. */
+export const KNOWLEDGE_CATEGORIES = [
+  'COMPANY',
+  'BUSINESS_DESCRIPTION',
+  'SERVICES',
+  'PRODUCTS',
+  'LOCATIONS',
+  'TARGET_MARKETS',
+  'PEOPLE',
+  'CERTIFICATIONS',
+  'STATISTICS',
+  'PRICES',
+  'GUARANTEES',
+  'DIFFERENTIATORS',
+  'CTAS',
+  'APPROVED_CLAIMS',
+  'PROHIBITED_CLAIMS',
+  'BRAND_TERMINOLOGY',
+  'BRAND_VOICE',
+  'CONTENT_RULES',
+] as const;
+export type KnowledgeCategory = (typeof KNOWLEDGE_CATEGORIES)[number];
+
+/** How trustworthy a knowledge fact is for content generation. */
+export const KNOWLEDGE_VERIFICATION_STATUSES = ['VERIFIED', 'UNVERIFIED', 'INFERRED', 'EXTERNAL'] as const;
+export type KnowledgeVerificationStatus = (typeof KNOWLEDGE_VERIFICATION_STATUSES)[number];

@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import type { AiProviderConfigDto, ReportBrandingDto } from '@creative-seo/types';
+import { Link } from 'react-router-dom';
+import type { AiProviderConfigDto, OrganizationDto, ReportBrandingDto, SiteDto } from '@creative-seo/types';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
@@ -46,6 +47,8 @@ export function SettingsTab({ siteId }: { siteId: string }) {
 
   return (
     <div className="space-y-6">
+      <SiteDetailsCard siteId={siteId} />
+
       <Card>
         <CardHeader>
           <CardTitle>AI provider routing</CardTitle>
@@ -72,6 +75,140 @@ export function SettingsTab({ siteId }: { siteId: string }) {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function SiteDetailsCard({ siteId }: { siteId: string }) {
+  const { t } = useTranslation();
+  const { hasPermission } = useAuth();
+  const queryClient = useQueryClient();
+
+  const siteQuery = useQuery({
+    queryKey: ['site', siteId],
+    queryFn: () => api.get<SiteDto>(`/sites/${siteId}`),
+  });
+
+  const organizationsQuery = useQuery({
+    queryKey: ['organizations'],
+    enabled: Boolean(siteQuery.data?.organizationId),
+    queryFn: () => api.get<OrganizationDto[]>('/organizations'),
+  });
+
+  const site = siteQuery.data;
+  const client = site?.organizationId
+    ? organizationsQuery.data?.find((org) => org.id === site.organizationId)
+    : undefined;
+
+  const [name, setName] = useState('');
+  const [domain, setDomain] = useState('');
+  const [locale, setLocale] = useState('');
+  const [status, setStatus] = useState<SiteDto['status']>('ACTIVE');
+  const [touched, setTouched] = useState(false);
+
+  useEffect(() => {
+    if (site) {
+      setName('');
+      setDomain('');
+      setLocale('');
+      setStatus(site.status);
+      setTouched(false);
+    }
+  }, [site?.id, site?.updatedAt]);
+
+  const saveMutation = useMutation({
+    mutationFn: (body: Record<string, unknown>) => api.patch<SiteDto>(`/sites/${siteId}`, body),
+    onSuccess: () => {
+      setTouched(false);
+      queryClient.invalidateQueries({ queryKey: ['site', siteId] });
+    },
+  });
+
+  const canEdit = hasPermission('sites:update');
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{t('settings.details')}</CardTitle>
+        {client ? (
+          <CardDescription>
+            {t('settings.client')}:{' '}
+            <Link to={`/clients?id=${client.id}`} className="font-medium underline-offset-2 hover:underline">
+              {client.name}
+            </Link>
+          </CardDescription>
+        ) : (
+          <CardDescription>{t('settings.clientNone')}</CardDescription>
+        )}
+      </CardHeader>
+      <CardContent>
+        {siteQuery.isLoading ? (
+          <EmptyState message="Loading…" />
+        ) : !site ? (
+          <EmptyState message="No site." />
+        ) : (
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              saveMutation.mutate({ name: name.trim() || site.name, domain: domain.trim() || site.domain, locale: locale.trim() || site.locale, status });
+            }}
+            className="grid gap-4 sm:grid-cols-2"
+          >
+            <Field label={t('settings.name')}>
+              <Input
+                value={name || site.name}
+                onChange={(event) => {
+                  setName(event.target.value);
+                  setTouched(true);
+                }}
+                disabled={!canEdit}
+              />
+            </Field>
+            <Field label={t('settings.domain')}>
+              <Input
+                value={domain || site.domain}
+                onChange={(event) => {
+                  setDomain(event.target.value);
+                  setTouched(true);
+                }}
+                disabled={!canEdit}
+              />
+            </Field>
+            <Field label={t('settings.locale')}>
+              <Input
+                value={locale || site.locale}
+                onChange={(event) => {
+                  setLocale(event.target.value);
+                  setTouched(true);
+                }}
+                disabled={!canEdit}
+              />
+            </Field>
+            <Field label={t('settings.status')}>
+              <Select
+                value={status}
+                onChange={(event) => {
+                  setStatus(event.target.value as SiteDto['status']);
+                  setTouched(true);
+                }}
+                disabled={!canEdit}
+              >
+                <option value="ACTIVE">ACTIVE</option>
+                <option value="PAUSED">PAUSED</option>
+                <option value="ARCHIVED">ARCHIVED</option>
+              </Select>
+            </Field>
+            {canEdit ? (
+              <div className="flex items-end gap-2">
+                <Button type="submit" disabled={saveMutation.isPending || !touched}>
+                  {saveMutation.isPending ? t('common.loading') : t('common.save')}
+                </Button>
+                {saveMutation.isError ? <span className="text-sm text-destructive">{t('settings.error')}</span> : null}
+              </div>
+            ) : null}
+          </form>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

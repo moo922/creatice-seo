@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
+import { Organization } from '../entities/organization';
 import { User } from '../entities/user';
 import { createDataSource } from '../data-source';
 import { loadDbEnv } from './env';
@@ -8,12 +9,17 @@ const adminEnvSchema = z.object({
   ADMIN_EMAIL: z.string().email().optional(),
   ADMIN_PASSWORD: z.string().min(8).optional(),
   ADMIN_FULL_NAME: z.string().optional(),
+  DEFAULT_ORG_NAME: z.string().min(2).optional(),
 });
 
 /**
  * Bootstraps the initial SUPER_ADMIN account from ADMIN_EMAIL / ADMIN_PASSWORD
  * / ADMIN_FULL_NAME environment variables. Idempotent: skips if a SUPER_ADMIN
  * already exists (unless ADMIN_FORCE=1). Roles/permissions come from migration 0006.
+ *
+ * Also ensures the default client organization exists (DEFAULT_ORG_NAME, default
+ * "Default Client"). Sites created without an explicit organization and client
+ * users without one are attached to this organization.
  */
 async function main(): Promise<void> {
   const env = loadDbEnv();
@@ -32,6 +38,22 @@ async function main(): Promise<void> {
   const dataSource = createDataSource({ url: env.DATABASE_URL });
   await dataSource.initialize();
   const userRepo = dataSource.getRepository(User);
+  const orgRepo = dataSource.getRepository(Organization);
+
+  const defaultOrgName = admin.DEFAULT_ORG_NAME ?? 'Default Client';
+  let defaultOrg = await orgRepo.findOne({ where: { slug: 'default-client' } });
+  if (!defaultOrg) {
+    defaultOrg = await orgRepo.save(
+      orgRepo.create({
+        name: defaultOrgName,
+        slug: 'default-client',
+        status: 'ACTIVE',
+        createdBy: null,
+        meta: { default: true },
+      }),
+    );
+    console.log(`Default client organization created: ${defaultOrg.name} (${defaultOrg.id})`);
+  }
 
   const existing = await userRepo
     .createQueryBuilder('user')

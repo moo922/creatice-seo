@@ -40,6 +40,7 @@ import { KeywordsModule } from './modules/keywords/keywords.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { ActivationModule } from './modules/activation/activation.module';
 import { WorkQueueModule } from './modules/workqueue/workqueue.module';
+import { KnowledgeBaseModule } from './modules/knowledge-base/knowledge-base.module';
 
 @Module({
   imports: [
@@ -86,6 +87,7 @@ import { WorkQueueModule } from './modules/workqueue/workqueue.module';
     DashboardModule,
     ActivationModule,
     WorkQueueModule,
+    KnowledgeBaseModule,
     HealthModule,
   ],
   providers: [

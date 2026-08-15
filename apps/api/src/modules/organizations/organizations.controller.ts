@@ -35,6 +35,12 @@ export class OrganizationsController {
     return this.organizations.findByIdOrThrow(id, user);
   }
 
+  @Get(':id/sites')
+  @RequirePermissions('organizations:read')
+  listSites(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthPrincipal) {
+    return this.organizations.listSites(id, user);
+  }
+
   @Patch(':id')
   @RequirePermissions('organizations:manage')
   update(

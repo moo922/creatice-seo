@@ -55,6 +55,8 @@ import type {
   WorkItemStatus,
   WorkSource,
   WorkBulkAction,
+  KnowledgeCategory,
+  KnowledgeVerificationStatus,
 } from './enums';
 import type { PermissionKey } from './permissions';
 
@@ -106,6 +108,13 @@ export interface OrganizationDto {
   slug: string;
   status: 'ACTIVE' | 'SUSPENDED' | 'ARCHIVED';
   createdAt: string;
+  /** Number of websites owned by this client organization. */
+  siteCount: number;
+}
+
+/** A client with its websites attached (used by the Clients page detail view). */
+export interface OrganizationDetailDto extends OrganizationDto {
+  sites: SiteDto[];
 }
 
 export interface SiteDto {
@@ -293,7 +302,7 @@ export interface UpdateOrganizationRequest {
 }
 
 export interface CreateSiteRequest {
-  organizationId: string;
+  organizationId?: string;
   name: string;
   domain: string;
   locale?: string;
@@ -1616,6 +1625,7 @@ export interface SitePortfolioRowDto {
   siteName: string;
   domain: string;
   status: SiteStatus;
+  clientName: string | null;
   seoHealth: number | null;
   aeoReadiness: number | null;
   geoReadiness: number | null;
@@ -1994,4 +2004,39 @@ export interface WorkBulkActionDto {
 export interface WorkBulkResultDto {
   applied: number;
   skipped: string[];
+}
+
+// ---------------------------------------------------------------------------
+// Site knowledge base (persistent, verified facts)
+// ---------------------------------------------------------------------------
+
+export interface KnowledgeFactDto {
+  id: string;
+  siteId: string;
+  category: KnowledgeCategory;
+  key: string;
+  value: string;
+  verificationStatus: KnowledgeVerificationStatus;
+  source: string | null;
+  notes: string | null;
+  createdBy: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateKnowledgeFactRequest {
+  category: KnowledgeCategory;
+  key: string;
+  value: string;
+  verificationStatus?: KnowledgeVerificationStatus;
+  source?: string | null;
+  notes?: string | null;
+}
+
+export interface UpdateKnowledgeFactRequest {
+  key?: string;
+  value?: string;
+  verificationStatus?: KnowledgeVerificationStatus;
+  source?: string | null;
+  notes?: string | null;
 }

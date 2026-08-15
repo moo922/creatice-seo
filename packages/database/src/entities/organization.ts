@@ -1,5 +1,6 @@
-import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import { Column, CreateDateColumn, Entity, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 import type { OrganizationStatus } from '@creative-seo/types';
+import { Site } from './site';
 
 @Entity('organizations')
 export class Organization {
@@ -26,4 +27,11 @@ export class Organization {
 
   @UpdateDateColumn({ type: 'timestamptz', name: 'updated_at' })
   updatedAt: Date;
+
+  /** Websites owned by this client (loaded via loadRelationCountAndMap). */
+  @OneToMany(() => Site, (site) => site.organization)
+  sites: Site[];
+
+  /** Populated at runtime via loadRelationCountAndMap — not a stored column. */
+  siteCount?: number;
 }

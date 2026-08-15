@@ -16,6 +16,7 @@ import {
   KeywordMetric,
   LinkAnalysis,
   OperationsTask,
+  Organization,
   Recommendation,
   Report,
   Site,
@@ -75,6 +76,7 @@ export class DashboardService {
     @InjectRepository(Report) private readonly reports: Repository<Report>,
     @InjectRepository(ActivityLog) private readonly activityLogs: Repository<ActivityLog>,
     @InjectRepository(AiProviderConfig) private readonly aiConfigs: Repository<AiProviderConfig>,
+    @InjectRepository(Organization) private readonly orgs: Repository<Organization>,
   ) {}
 
   // -------------------------------------------------------------------------
@@ -141,6 +143,8 @@ export class DashboardService {
     summary.totalSites = sites.length;
     summary.activeSites = sites.filter((site) => site.status === 'ACTIVE').length;
 
+    const clientNames = await this.orgNamesBySite(sites);
+
     for (const site of sites) {
       const ctx: SiteContext = {
         issues: issuesBySite.get(site.id) ?? [],
@@ -161,6 +165,7 @@ export class DashboardService {
         wp: wpBySiteMap.get(site.id) ?? null,
       };
       const row = await this.buildPortfolioRow(site, ctx);
+      row.clientName = clientNames.get(site.id) ?? null;
       rows.push(row);
       needsAttention.push(...this.needsAttentionFor(site, row, ctx));
     }
@@ -321,6 +326,24 @@ export class DashboardService {
     return rows.map((row) => row.siteId);
   }
 
+  /** Map of siteId → client organization name (for the portfolio client column). */
+  private async orgNamesBySite(sites: Site[]): Promise<Map<string, string>> {
+    const orgIds = [...new Set(sites.map((site) => site.organizationId))];
+    const map = new Map<string, string>();
+    if (orgIds.length === 0) {
+      return map;
+    }
+    const orgs = await this.orgs.find({ where: { id: In(orgIds) } });
+    const byId = new Map(orgs.map((org) => [org.id, org.name]));
+    for (const site of sites) {
+      const name = byId.get(site.organizationId);
+      if (name) {
+        map.set(site.id, name);
+      }
+    }
+    return map;
+  }
+
   private async buildPortfolioRow(site: Site, ctx: SiteContext): Promise<SitePortfolioRowDto> {
     const open = ctx.issues.filter((r) => !CLOSED.has(r.status));
     const openTasks = ctx.tasks.filter((r) => r.status !== 'DONE').reduce((sumVal, r) => sumVal + Number(r.count), 0);
@@ -338,6 +361,7 @@ export class DashboardService {
       siteName: site.name,
       domain: site.domain,
       status: site.status,
+      clientName: null,
       seoHealth: baseline ? baseline.onPageHealth : null,
       aeoReadiness: baseline ? baseline.aeoReadiness : null,
       geoReadiness: baseline ? baseline.geoReadiness : null,

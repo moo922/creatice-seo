@@ -42,7 +42,12 @@ export function PortfolioDashboard() {
     let list = dashboard?.sites ?? [];
     if (search.trim()) {
       const needle = search.toLowerCase();
-      list = list.filter((site) => site.siteName.toLowerCase().includes(needle) || site.domain.toLowerCase().includes(needle));
+      list = list.filter(
+        (site) =>
+          site.siteName.toLowerCase().includes(needle) ||
+          site.domain.toLowerCase().includes(needle) ||
+          (site.clientName ?? '').toLowerCase().includes(needle),
+      );
     }
     if (filter) {
       list = list.filter((site) => {
@@ -224,6 +229,7 @@ export function PortfolioDashboard() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Site</TableHead>
+                  <TableHead>Client</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>SEO</TableHead>
                   <TableHead>AEO</TableHead>
@@ -247,6 +253,7 @@ export function PortfolioDashboard() {
                       <Link to={`/sites/${site.siteId}`} className="font-medium underline-offset-2 hover:underline">{site.siteName}</Link>
                       <div className="text-xs text-muted-foreground">{site.domain}</div>
                     </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{site.clientName ?? '—'}</TableCell>
                     <TableCell><StatusBadge status={site.status} /></TableCell>
                     <TableCell>{site.seoHealth ?? '—'}</TableCell>
                     <TableCell>{site.aeoReadiness ?? '—'}</TableCell>

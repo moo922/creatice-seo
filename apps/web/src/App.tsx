@@ -5,6 +5,9 @@ import { LoginPage } from '@/features/auth/login-page';
 import { PortfolioDashboard } from '@/features/portfolio/portfolio-dashboard';
 import { SiteDetailPage } from '@/features/sites/site-detail-page';
 import { SitesPage } from '@/features/sites/sites-page';
+import { AddSitePage } from '@/features/sites/add-site-page';
+import { ClientsPage } from '@/features/clients/clients-page';
+import { KnowledgeBasePage } from '@/features/knowledge/knowledge-page';
 import { WordPressPage } from '@/features/wordpress/wordpress-page';
 import { IssuesPage } from '@/features/issues/issues-page';
 import { TasksPage } from '@/features/tasks/tasks-page';
@@ -27,7 +30,10 @@ export function App() {
         <Route element={<AppShell />}>
           <Route index element={<PortfolioDashboard />} />
           <Route path="/sites" element={<SitesPage />} />
+          <Route path="/sites/new" element={<AddSitePage />} />
           <Route path="/sites/:siteId" element={<SiteDetailPage />} />
+          <Route path="/clients" element={<ClientsPage />} />
+          <Route path="/knowledge" element={<KnowledgeBasePage />} />
           <Route path="/wordpress" element={<WordPressPage />} />
           <Route path="/issues" element={<IssuesPage />} />
           <Route path="/tasks" element={<TasksPage />} />

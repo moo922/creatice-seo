@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { ActivationStepDto, SiteActivationDto } from '@creative-seo/types';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
@@ -22,6 +23,7 @@ const STATUS_META: Record<StepStatus, { label: string; className: string }> = {
 };
 
 export function ActivationTab({ siteId }: { siteId: string }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { hasPermission } = useAuth();
   const [actionError, setActionError] = useState<string | null>(null);
@@ -70,24 +72,25 @@ export function ActivationTab({ siteId }: { siteId: string }) {
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Rocket className="size-4 text-primary" />
-                Site Activation
+                {t('activation.title')}
               </CardTitle>
               <CardDescription className="mt-1">
-                Guided first-site activation for {data.siteDomain}. Drive each stage through the existing workflows —
-                failures surface actionable diagnostics and completed steps are never auto-repeated.
+                {t('activation.subtitle', { domain: data.siteDomain })}
               </CardDescription>
             </div>
             <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isRefetching}>
               {isRefetching ? <Spinner /> : <RefreshCw />}
-              Refresh
+              {t('common.refresh')}
             </Button>
           </div>
 
           <div>
             <div className="mb-1 flex items-center justify-between text-sm">
-              <span className="font-medium">{data.ready ? 'Activation complete' : 'Activation progress'}</span>
+              <span className="font-medium">
+                {data.ready ? t('activation.ready') : t('activation.progress')}
+              </span>
               <span className="text-muted-foreground">
-                {data.completedSteps}/{data.totalSteps} stages · {data.progress}%
+                {data.completedSteps}/{data.totalSteps} · {data.progress}%
               </span>
             </div>
             <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
@@ -111,25 +114,25 @@ export function ActivationTab({ siteId }: { siteId: string }) {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-emerald-700">
               <CheckCircle2 className="size-5" />
-              Site Ready
+              {t('activation.siteReady')}
             </CardTitle>
-            <CardDescription>All activation stages complete. Every metric below is read live from platform data.</CardDescription>
+            <CardDescription>{t('activation.siteReadyHint')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-              <KpiCard label="Pages Imported" value={data.summary.pagesImported} />
-              <KpiCard label="Pages Crawled" value={data.summary.pagesCrawled} />
-              <KpiCard label="Issues Found" value={data.summary.issuesFound} />
-              <KpiCard label="Critical Issues" value={data.summary.criticalIssues} />
-              <KpiCard label="SEO Health" value={formatScore(data.summary.seoHealth)} />
-              <KpiCard label="AEO Readiness" value={formatScore(data.summary.aeoReadiness)} />
-              <KpiCard label="GEO Readiness" value={formatScore(data.summary.geoReadiness)} />
-              <KpiCard label="Search Queries" value={data.summary.searchQueriesImported} />
-              <KpiCard label="Keyword Opportunities" value={data.summary.keywordOpportunities} />
-              <KpiCard label="Cannibalization Cases" value={data.summary.cannibalizationCases} />
-              <KpiCard label="Recommendations" value={data.summary.recommendations} />
+              <KpiCard label={t('activation.kpis.pagesImported')} value={data.summary.pagesImported} />
+              <KpiCard label={t('activation.kpis.pagesCrawled')} value={data.summary.pagesCrawled} />
+              <KpiCard label={t('activation.kpis.issuesFound')} value={data.summary.issuesFound} />
+              <KpiCard label={t('activation.kpis.criticalIssues')} value={data.summary.criticalIssues} />
+              <KpiCard label={t('activation.kpis.seoHealth')} value={formatScore(data.summary.seoHealth)} />
+              <KpiCard label={t('activation.kpis.aeoReadiness')} value={formatScore(data.summary.aeoReadiness)} />
+              <KpiCard label={t('activation.kpis.geoReadiness')} value={formatScore(data.summary.geoReadiness)} />
+              <KpiCard label={t('activation.kpis.searchQueries')} value={data.summary.searchQueriesImported} />
+              <KpiCard label={t('activation.kpis.keywords')} value={data.summary.keywordOpportunities} />
+              <KpiCard label={t('activation.kpis.cannibalization')} value={data.summary.cannibalizationCases} />
+              <KpiCard label={t('activation.kpis.recommendations')} value={data.summary.recommendations} />
               <KpiCard
-                label="Baseline Date"
+                label={t('activation.kpis.baselineDate')}
                 value={data.summary.baselineDate ? new Date(data.summary.baselineDate).toLocaleDateString() : '—'}
               />
             </div>
@@ -137,10 +140,10 @@ export function ActivationTab({ siteId }: { siteId: string }) {
               <div className="flex flex-wrap gap-3">
                 <Button onClick={() => generateReport.mutate()} disabled={generateReport.isPending}>
                   {generateReport.isPending ? <Spinner /> : <Rocket />}
-                  {data.summary.initialReportExists ? 'Regenerate Initial Report' : 'Generate Initial Report'}
+                  {data.summary.initialReportExists ? t('activation.regenerateInitial') : t('activation.generateInitial')}
                 </Button>
                 <Button variant="outline" onClick={() => generateReport.mutate()} disabled={generateReport.isPending}>
-                  Create 30/60/90 Day Action Plan
+                  {t('activation.createActionPlan')}
                 </Button>
               </div>
             ) : null}
@@ -150,11 +153,11 @@ export function ActivationTab({ siteId }: { siteId: string }) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Activation Stages</CardTitle>
+          <CardTitle>{t('activation.stages')}</CardTitle>
           {running ? (
             <CardDescription className="flex items-center gap-2">
               <Spinner />
-              {running.label} is running — this view auto-refreshes.
+              {t('activation.runningHint', { step: running.label })}
             </CardDescription>
           ) : null}
         </CardHeader>
@@ -190,6 +193,7 @@ function StepRow({
   running: boolean;
   onRun: () => void;
 }) {
+  const { t } = useTranslation();
   const meta = STATUS_META[step.status];
   const Icon =
     step.status === 'COMPLETED' ? CheckCircle2 : step.status === 'FAILED' ? AlertTriangle : step.status === 'RUNNING' ? Spinner : CircleDashed;
@@ -209,10 +213,10 @@ function StepRow({
           <span className="font-medium">{step.label}</span>
           <Badge variant="outline" className={meta.className}>
             {step.status === 'RUNNING' ? <Spinner className="size-3" /> : <Icon className="size-3" />}
-            {meta.label}
+            {t(`activation.status.${step.status}`)}
           </Badge>
-          {step.expensive ? <span className="text-xs text-muted-foreground">not auto-repeated</span> : null}
-          {step.requiresManualAction ? <span className="text-xs text-primary">manual step</span> : null}
+          {step.expensive ? <span className="text-xs text-muted-foreground">{t('activation.notAutoRepeated')}</span> : null}
+          {step.requiresManualAction ? <span className="text-xs text-primary">{t('activation.manualStep')}</span> : null}
         </div>
         {step.message ? <p className="mt-1 text-sm text-muted-foreground">{step.message}</p> : null}
         {step.status === 'FAILED' && step.detail ? (
@@ -226,14 +230,14 @@ function StepRow({
           <Button size="sm" variant="outline" asChild>
             <a href={oauthUrl} target="_blank" rel="noreferrer">
               <ExternalLink />
-              Connect
+              {t('activation.connect')}
             </a>
           </Button>
         ) : null}
         {step.status === 'COMPLETED' ? null : canManage ? (
           <Button size="sm" onClick={onRun} disabled={running || !step.runnable}>
             {running ? <Spinner /> : <Play />}
-            Run
+            {t('activation.run')}
           </Button>
         ) : null}
       </div>

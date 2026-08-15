@@ -44,6 +44,7 @@ import { SiteAutomationSettings } from './site-automation-settings';
 import { AutomationRun } from './automation-run';
 import { WorkItemState } from './work-item-state';
 import { WorkFilter } from './work-filter';
+import { KnowledgeFact } from './knowledge-fact';
 
 export const entities = [
   User,
@@ -92,6 +93,7 @@ export const entities = [
   AutomationRun,
   WorkItemState,
   WorkFilter,
+  KnowledgeFact,
 ];
 
 export {
@@ -141,4 +143,5 @@ export {
   AutomationRun,
   WorkItemState,
   WorkFilter,
+  KnowledgeFact,
 };
