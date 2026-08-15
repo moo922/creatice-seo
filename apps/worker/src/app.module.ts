@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AiCoreModule } from '@creative-seo/ai';
+import { AutomationCoreModule } from '@creative-seo/automation';
 import { ContentCoreModule } from '@creative-seo/content';
 import { OperationsCoreModule } from '@creative-seo/operations';
 import { VisibilityCoreModule } from '@creative-seo/visibility';
@@ -15,6 +16,7 @@ import { HealthServer } from './health/health-server';
 import { QueueManager } from './queue/queue-manager';
 import { QueueProcessor } from './queue/queue-processor';
 import { ScheduledJobsService } from './queue/scheduler';
+import { AutomationScheduler } from './queue/automation-scheduler';
 
 @Module({
   imports: [
@@ -31,12 +33,13 @@ import { ScheduledJobsService } from './queue/scheduler';
     }),
     TypeOrmModule.forFeature([Site]),
     AiCoreModule,
+    AutomationCoreModule,
     ContentCoreModule,
     OperationsCoreModule,
     VisibilityCoreModule,
     ReportingCoreModule,
     LinksCoreModule,
   ],
-  providers: [QueueManager, HealthServer, QueueProcessor, ScheduledJobsService],
+  providers: [QueueManager, HealthServer, QueueProcessor, ScheduledJobsService, AutomationScheduler],
 })
 export class AppModule {}

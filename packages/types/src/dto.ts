@@ -47,6 +47,14 @@ import type {
   SiteStatus,
   ActivationStepKey,
   ActivationStepStatus,
+  AutomationOperation,
+  AutomationFrequency,
+  AutomationRunStatus,
+  WorkItemType,
+  WorkItemPriority,
+  WorkItemStatus,
+  WorkSource,
+  WorkBulkAction,
 } from './enums';
 import type { PermissionKey } from './permissions';
 
@@ -1799,4 +1807,189 @@ export interface SiteActivationDto {
   progress: number;
   steps: ActivationStepDto[];
   summary: ActivationSummaryDto;
+}
+
+// ---------------------------------------------------------------------------
+// Recurring platform automation (per-site scheduled operations)
+// ---------------------------------------------------------------------------
+
+/** Schedule + switch for one recurring operation. */
+export interface AutomationOperationSettingsDto {
+  enabled: boolean;
+  frequency: AutomationFrequency;
+  /** Day of week, 0 = Sunday..6 = Saturday (JS convention). Only for `weekly`. */
+  weekday?: number;
+  /** Day of month 1..31 (clamped to the last day of shorter months). Only for `monthly`. */
+  dayOfMonth?: number;
+  /** Wall-clock time of day in the site timezone, `HH:MM` (24-hour). */
+  time?: string;
+}
+
+/** Per-site automation configuration (one row per site). */
+export interface SiteAutomationSettingsDto {
+  siteId: string;
+  enabled: boolean;
+  timezone: string;
+  operations: Record<AutomationOperation, AutomationOperationSettingsDto>;
+  defaults: {
+    autoAnalyze: boolean;
+    autoDetectIssues: boolean;
+    autoGenerateRecommendations: boolean;
+    autoGenerateContent: boolean;
+    autoPublish: boolean;
+    autoApplyFixes: boolean;
+  };
+  updatedAt: string;
+}
+
+export interface AutomationRunDto {
+  id: string;
+  siteId: string;
+  operation: AutomationOperation;
+  status: AutomationRunStatus;
+  scheduledFor: string;
+  startedAt: string | null;
+  completedAt: string | null;
+  durationMs: number | null;
+  recordsProcessed: number;
+  error: string | null;
+  message: string | null;
+  createdAt: string;
+}
+
+/**
+ * Per-operation automation status used by the dashboard/UI. Combines the last
+ * recorded run with the next scheduled occurrence in the site's timezone.
+ */
+export interface AutomationStatusDto {
+  operation: AutomationOperation;
+  enabled: boolean;
+  frequency: AutomationFrequency;
+  lastRunAt: string | null;
+  nextRunAt: string | null;
+  durationMs: number | null;
+  status: AutomationRunStatus | null;
+  error: string | null;
+  recordsProcessed: number;
+}
+
+export interface AutomationStatusResponseDto {
+  siteId: string;
+  timezone: string;
+  enabled: boolean;
+  items: AutomationStatusDto[];
+}
+
+export interface AutomationHistoryQuery {
+  operation?: AutomationOperation;
+  status?: AutomationRunStatus;
+  limit?: number;
+  offset?: number;
+}
+
+// ---------------------------------------------------------------------------
+// Agency work queue (centralized operations workspace)
+// ---------------------------------------------------------------------------
+
+export interface WorkItemSiteDto {
+  siteId: string;
+  name: string;
+  domain: string;
+}
+
+/** A single actionable item in the unified work queue. */
+export interface WorkItemDto {
+  /** Stable identity across fetches — the source key the state overrides key on. */
+  itemKey: string;
+  type: WorkItemType;
+  priority: WorkItemPriority;
+  status: WorkItemStatus;
+  /** Why this needs attention (headline). */
+  reason: string;
+  /** Secondary detail line (percentages, error messages, counts). */
+  detail: string;
+  site: WorkItemSiteDto | null;
+  source: WorkSource;
+  assignedTo: { userId: string; fullName: string } | null;
+  dueDate: string | null;
+  createdAt: string;
+  /** In-app deep link into the relevant portfolio/site view. */
+  url: string;
+  /** Optional external page URL referenced by the item (e.g. a page losing traffic). */
+  pageUrl: string | null;
+  /** Human advice shown in the queue. */
+  recommendedAction: string;
+  /** Source entity reference (type + id) for routing/audit. */
+  entity: { type: string; id: string };
+  /** The work_item_state row id once any override/assignment exists, else null. */
+  stateId: string | null;
+}
+
+/** Headline counts behind the workspace summary cards ("what needs my attention"). */
+export interface WorkQueueSummaryDto {
+  myWork: number;
+  critical: number;
+  pendingReviews: number;
+  contentApprovals: number;
+  openRecommendations: number;
+  overdueTasks: number;
+  failedJobs: number;
+  reportsDue: number;
+  visibilityLoss: number;
+  integrationProblems: number;
+  open: number;
+  total: number;
+}
+
+export interface WorkQueuePaginationDto {
+  page: number;
+  perPage: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface WorkQueueResponseDto {
+  items: WorkItemDto[];
+  summary: WorkQueueSummaryDto;
+  pagination: WorkQueuePaginationDto;
+}
+
+/** Criteria a saved filter captures (mirrors the query-string filters). */
+export interface WorkFilterCriteriaDto {
+  types?: WorkItemType[];
+  statuses?: WorkItemStatus[];
+  priorities?: WorkItemPriority[];
+  sources?: WorkSource[];
+  sites?: string[];
+  assignedTo?: 'me' | 'unassigned';
+  overdue?: boolean;
+  search?: string;
+}
+
+export interface WorkFilterDto {
+  id: string;
+  name: string;
+  builtin: boolean;
+  criteria: WorkFilterCriteriaDto;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SaveWorkFilterInput {
+  name: string;
+  criteria: WorkFilterCriteriaDto;
+}
+
+export interface WorkBulkActionDto {
+  action: WorkBulkAction;
+  itemKeys: string[];
+  assignedToUserId?: string | null;
+  priority?: WorkItemPriority;
+  taskTitle?: string;
+  taskDeadline?: string | null;
+}
+
+export interface WorkBulkResultDto {
+  applied: number;
+  skipped: string[];
 }

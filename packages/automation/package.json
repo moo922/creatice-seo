@@ -1,0 +1,37 @@
+{
+  "name": "@creative-seo/automation",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Recurring platform automation: per-site scheduled operations, DB-backed scheduler with locks and missed-run recovery, headless executors and job history",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint \"src/**/*.ts\"",
+    "test": "jest --runInBand --config jest.unit.json"
+  },
+  "dependencies": {
+    "@creative-seo/ai": "*",
+    "@creative-seo/config": "*",
+    "@creative-seo/content": "*",
+    "@creative-seo/crawler": "*",
+    "@creative-seo/database": "*",
+    "@creative-seo/links": "*",
+    "@creative-seo/operations": "*",
+    "@creative-seo/reporting": "*",
+    "@creative-seo/types": "*",
+    "@creative-seo/visibility": "*",
+    "@nestjs/common": "^11.0.0",
+    "@nestjs/typeorm": "^11.0.0",
+    "typeorm": "^0.3.20"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "@types/node": "^22.0.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.2.5",
+    "typescript": "^5.6.3"
+  }
+}

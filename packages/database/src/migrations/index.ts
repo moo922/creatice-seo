@@ -28,6 +28,10 @@ import { CreateOrchestration00271720000000027 } from './0027-create-orchestratio
 import { SeedClientOrchestrationPermissions00281720000000028 } from './0028-seed-client-orchestration-permissions';
 import { CreateContentPublications00291720000000029 } from './0029-create-content-publications';
 import { CreateSiteActivation00301720000000030 } from './0030-create-site-activation';
+import { CreateAutomation00311720000000031 } from './0031-create-automation';
+import { SeedAutomationPermissions00321720000000032 } from './0032-seed-automation-permissions';
+import { CreateWorkQueue00331720000000033 } from './0033-create-work-queue';
+import { SeedWorkqueuePermissions00341720000000034 } from './0034-seed-workqueue-permissions';
 
 export const migrations = [
   CreateIdentity00011720000000001,
@@ -60,6 +64,10 @@ export const migrations = [
   SeedClientOrchestrationPermissions00281720000000028,
   CreateContentPublications00291720000000029,
   CreateSiteActivation00301720000000030,
+  CreateAutomation00311720000000031,
+  SeedAutomationPermissions00321720000000032,
+  CreateWorkQueue00331720000000033,
+  SeedWorkqueuePermissions00341720000000034,
 ];
 
 export {
@@ -93,4 +101,8 @@ export {
   SeedClientOrchestrationPermissions00281720000000028,
   CreateContentPublications00291720000000029,
   CreateSiteActivation00301720000000030,
+  CreateAutomation00311720000000031,
+  SeedAutomationPermissions00321720000000032,
+  CreateWorkQueue00331720000000033,
+  SeedWorkqueuePermissions00341720000000034,
 };

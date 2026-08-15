@@ -26,6 +26,10 @@ export const ROLE_PERMISSIONS: Record<RoleKey, PermissionKey[]> = {
     'gsc:manage',
     'keywords:read',
     'keywords:manage',
+    'automation:read',
+    'automation:manage',
+    'workqueue:read',
+    'workqueue:manage',
     'activities:read',
   ],
   CONTENT_MANAGER: [

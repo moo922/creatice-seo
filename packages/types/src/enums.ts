@@ -436,6 +436,16 @@ export const ACTIVITY_ACTIONS = [
   'orchestration.job.callback',
   'orchestration.job.fail',
   'activation.step.run',
+  'automation.settings.update',
+  'automation.dispatch',
+  'automation.run',
+  'workqueue.assign',
+  'workqueue.priority',
+  'workqueue.reviewed',
+  'workqueue.ignore',
+  'workqueue.task',
+  'workqueue.filter.save',
+  'workqueue.filter.delete',
 ] as const;
 export type ActivityAction = (typeof ACTIVITY_ACTIONS)[number];
 
@@ -472,3 +482,81 @@ export const ACTIVATION_STEPS = [
   'generate-initial-report',
 ] as const;
 export type ActivationStepKey = (typeof ACTIVATION_STEPS)[number];
+
+// ---------------------------------------------------------------------------
+// Recurring platform automation (per-site scheduled operations)
+// ---------------------------------------------------------------------------
+
+export const AUTOMATION_OPERATIONS = [
+  'gsc-sync',
+  'technical-health',
+  'full-crawl',
+  'seo-audit',
+  'keyword-opportunities',
+  'internal-link-audit',
+  'content-decay',
+  'ai-visibility',
+  'monthly-snapshot',
+  'client-report',
+] as const;
+export type AutomationOperation = (typeof AUTOMATION_OPERATIONS)[number];
+
+export const AUTOMATION_FREQUENCIES = ['daily', 'weekly', 'monthly'] as const;
+export type AutomationFrequency = (typeof AUTOMATION_FREQUENCIES)[number];
+
+export const AUTOMATION_RUN_STATUSES = ['PENDING', 'RUNNING', 'COMPLETED', 'FAILED', 'SKIPPED'] as const;
+export type AutomationRunStatus = (typeof AUTOMATION_RUN_STATUSES)[number];
+
+/** Wall-clock time of day in the site's timezone, `HH:MM` (24-hour). */
+export const AUTOMATION_TIME_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/;
+
+// ---------------------------------------------------------------------------
+// Agency work queue (centralized operations workspace)
+// ---------------------------------------------------------------------------
+
+/**
+ * Work item kinds surfaced in the unified work queue. Each maps to one or more
+ * source tables (issues, tasks, content, links, jobs, reports, integrations).
+ */
+export const WORK_ITEM_TYPES = [
+  'critical_issue',
+  'recommendation',
+  'overdue_task',
+  'content_approval',
+  'pending_review',
+  'failed_job',
+  'report_due',
+  'visibility_loss',
+  'integration_problem',
+] as const;
+export type WorkItemType = (typeof WORK_ITEM_TYPES)[number];
+
+/** Same rank vocabulary as issue severities / recommendation priorities. */
+export const WORK_ITEM_PRIORITIES = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] as const;
+export type WorkItemPriority = (typeof WORK_ITEM_PRIORITIES)[number];
+
+/** Work item status. Base items are PENDING; state overrides move them along. */
+export const WORK_ITEM_STATUSES = ['PENDING', 'IN_PROGRESS', 'REVIEWED', 'IGNORED', 'DONE'] as const;
+export type WorkItemStatus = (typeof WORK_ITEM_STATUSES)[number];
+
+/** Where a work item comes from (drives grouping and deep links). */
+export const WORK_SOURCES = [
+  'issues',
+  'recommendations',
+  'tasks',
+  'content',
+  'links',
+  'keywords',
+  'automation',
+  'workflow',
+  'visibility',
+  'reports',
+  'integrations',
+  'gsc',
+] as const;
+export type WorkSource = (typeof WORK_SOURCES)[number];
+
+/** Safe bulk operations on the work queue. Publishing/modifying WordPress is
+ *  intentionally absent — that requires explicit, per-item confirmation. */
+export const WORK_BULK_ACTIONS = ['assign', 'change_priority', 'mark_reviewed', 'create_tasks', 'ignore'] as const;
+export type WorkBulkAction = (typeof WORK_BULK_ACTIONS)[number];

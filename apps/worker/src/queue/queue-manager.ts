@@ -3,7 +3,7 @@ import { Queue } from 'bullmq';
 import Redis from 'ioredis';
 import { WorkerConfig } from '../config/worker-config';
 
-export const JOB_QUEUES = ['crawler', 'gsc-sync', 'content', 'reports', 'ai-visibility'] as const;
+export const JOB_QUEUES = ['crawler', 'gsc-sync', 'content', 'reports', 'ai-visibility', 'automation'] as const;
 export type JobQueueName = (typeof JOB_QUEUES)[number];
 
 /**

@@ -12,6 +12,7 @@ import { ReportsPage } from '@/features/reports/reports-page';
 import { AutomationPage } from '@/features/automation/automation-page';
 import { MonitoringPage } from '@/features/monitoring/monitoring-page';
 import { VisibilityPage } from '@/features/visibility/visibility-page';
+import { WorkQueuePage } from '@/features/workqueue/workqueue-page';
 import { ClientPortalPage } from '@/features/client/client-portal-page';
 import { ClientSitePage } from '@/features/client/client-site-page';
 
@@ -34,6 +35,7 @@ export function App() {
           <Route path="/automation" element={<AutomationPage />} />
           <Route path="/monitoring" element={<MonitoringPage />} />
           <Route path="/visibility" element={<VisibilityPage />} />
+          <Route path="/work" element={<WorkQueuePage />} />
           <Route path="/client" element={<ClientPortalPage />} />
           <Route path="/client/sites/:siteId" element={<ClientSitePage />} />
         </Route>

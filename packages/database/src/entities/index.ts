@@ -40,6 +40,10 @@ import { Report } from './report';
 import { WorkflowJob } from './workflow-job';
 import { ContentPublication } from './content-publication';
 import { SiteActivationStep } from './site-activation-step';
+import { SiteAutomationSettings } from './site-automation-settings';
+import { AutomationRun } from './automation-run';
+import { WorkItemState } from './work-item-state';
+import { WorkFilter } from './work-filter';
 
 export const entities = [
   User,
@@ -84,6 +88,10 @@ export const entities = [
   WorkflowJob,
   ContentPublication,
   SiteActivationStep,
+  SiteAutomationSettings,
+  AutomationRun,
+  WorkItemState,
+  WorkFilter,
 ];
 
 export {
@@ -129,4 +137,8 @@ export {
   WorkflowJob,
   ContentPublication,
   SiteActivationStep,
+  SiteAutomationSettings,
+  AutomationRun,
+  WorkItemState,
+  WorkFilter,
 };

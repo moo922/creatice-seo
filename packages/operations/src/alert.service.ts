@@ -29,7 +29,9 @@ export class AlertService {
     siteId: string,
     organizationId: string | null,
     input: EvaluateAlertsRequest,
+    options: { withRecommendations?: boolean } = {},
   ): Promise<AlertEvalResultDto[]> {
+    const withRecommendations = options.withRecommendations ?? true;
     const ruleInput: AlertRuleInput = {
       gscHealthy: input.gscHealthy ?? true,
       wordpressHealthy: input.wordpressHealthy ?? true,
@@ -81,15 +83,17 @@ export class AlertService {
       );
 
       const metrics = metricsFromAlert(signal);
-      const recommendation = await this.operations.createRecommendation(siteId, organizationId, {
-        issueId: issue.id,
-        title: `Address: ${signal.title}`,
-        evidence: JSON.stringify(signal.data),
-        impact: metrics.impact,
-        confidence: metrics.confidence,
-        effort: metrics.effort,
-        aiExplain: true,
-      });
+      const recommendation = withRecommendations
+        ? await this.operations.createRecommendation(siteId, organizationId, {
+            issueId: issue.id,
+            title: `Address: ${signal.title}`,
+            evidence: JSON.stringify(signal.data),
+            impact: metrics.impact,
+            confidence: metrics.confidence,
+            effort: metrics.effort,
+            aiExplain: true,
+          })
+        : null;
 
       alert.issueId = issue.id;
       await this.alerts.save(alert);

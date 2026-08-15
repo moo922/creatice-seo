@@ -35,6 +35,10 @@ export const PERMISSION_KEYS = [
   'client:access',
   'orchestration:read',
   'orchestration:manage',
+  'automation:read',
+  'automation:manage',
+  'workqueue:read',
+  'workqueue:manage',
   'activities:read',
 ] as const;
 
@@ -83,6 +87,10 @@ export const PERMISSIONS: readonly PermissionDefinition[] = [
   { key: 'client:access', module: 'client', description: 'Access the restricted client portal for authorized websites' },
   { key: 'orchestration:read', module: 'orchestration', description: 'View orchestration jobs and their status' },
   { key: 'orchestration:manage', module: 'orchestration', description: 'Create and dispatch n8n orchestration jobs' },
+  { key: 'automation:read', module: 'automation', description: 'View per-site automation settings and job history' },
+  { key: 'automation:manage', module: 'automation', description: 'Configure recurring automation and run history' },
+  { key: 'workqueue:read', module: 'workqueue', description: 'View the agency work queue and saved filters' },
+  { key: 'workqueue:manage', module: 'workqueue', description: 'Triage work items: assign, prioritize, review, ignore and create tasks' },
   { key: 'activities:read', module: 'activities', description: 'View activity logs' },
 ];
 

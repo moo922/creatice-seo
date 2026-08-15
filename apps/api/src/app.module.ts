@@ -39,6 +39,7 @@ import { OrchestrationModule } from './modules/orchestration/orchestration.modul
 import { KeywordsModule } from './modules/keywords/keywords.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { ActivationModule } from './modules/activation/activation.module';
+import { WorkQueueModule } from './modules/workqueue/workqueue.module';
 
 @Module({
   imports: [
@@ -84,6 +85,7 @@ import { ActivationModule } from './modules/activation/activation.module';
     KeywordsModule,
     DashboardModule,
     ActivationModule,
+    WorkQueueModule,
     HealthModule,
   ],
   providers: [

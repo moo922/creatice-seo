@@ -1,6 +1,7 @@
 import { Injectable, Logger, OnApplicationShutdown, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Site } from '@creative-seo/database';
+import { AutomationExecutorService } from '@creative-seo/automation';
 import { BaselineService, OperationsService } from '@creative-seo/operations';
 import { ContentPipelineService, type PipelineInput } from '@creative-seo/content';
 import { VisibilityService, type VisibilityTarget } from '@creative-seo/visibility';
@@ -10,7 +11,7 @@ import { Repository } from 'typeorm';
 import { Worker } from 'bullmq';
 import { QueueManager } from './queue-manager';
 
-const PROCESSED_QUEUES = ['content', 'reports', 'ai-visibility'] as const;
+const PROCESSED_QUEUES = ['content', 'reports', 'ai-visibility', 'automation'] as const;
 type ProcessedQueue = (typeof PROCESSED_QUEUES)[number];
 
 interface JobData {
@@ -21,14 +22,17 @@ interface JobData {
   periodStart?: string | null;
   periodEnd?: string | null;
   createdBy?: string | null;
+  runId?: string;
+  operation?: string;
 }
 
 /**
  * BullMQ processors for the queues the platform actually produces work for
- * (content pipeline, reports/snapshots, AI visibility). Each handler executes
- * the package-level service and records a failure alert — scheduled jobs never
- * fail silently. `crawler` and `gsc-sync` queues remain reserved for n8n /
- * future producers.
+ * (content pipeline, reports/snapshots, AI visibility, recurring automation).
+ * Each handler executes the package-level service and records a failure alert —
+ * scheduled jobs never fail silently. The automation executor records its own
+ * run status and failure issue, so automation failures are not double-reported.
+ * `crawler` and `gsc-sync` queues remain reserved for n8n / future producers.
  */
 @Injectable()
 export class QueueProcessor implements OnModuleInit, OnApplicationShutdown {
@@ -42,6 +46,7 @@ export class QueueProcessor implements OnModuleInit, OnApplicationShutdown {
     private readonly reporting: ReportingService,
     private readonly visibility: VisibilityService,
     private readonly operations: OperationsService,
+    private readonly automation: AutomationExecutorService,
     @InjectRepository(Site) private readonly sites: Repository<Site>,
   ) {}
 
@@ -72,9 +77,13 @@ export class QueueProcessor implements OnModuleInit, OnApplicationShutdown {
           return this.runReports(data);
         case 'ai-visibility':
           return this.runVisibility(data);
+        case 'automation':
+          return this.runAutomation(data);
       }
     } catch (error) {
-      await this.recordFailure(data, queue, error).catch(() => undefined);
+      if (queue !== 'automation') {
+        await this.recordFailure(data, queue, error).catch(() => undefined);
+      }
       throw error;
     }
   }
@@ -115,6 +124,12 @@ export class QueueProcessor implements OnModuleInit, OnApplicationShutdown {
     };
     const run = await this.visibility.run(siteId, data.organizationId ?? null, target, {}, null);
     return { status: 'ok', id: run.id };
+  }
+
+  private async runAutomation(data: JobData): Promise<{ status: string }> {
+    if (!data.runId) throw new Error('Automation job payload missing runId');
+    const status = await this.automation.executeRun(data.runId);
+    return { status };
   }
 
   private async recordFailure(data: JobData, queue: string, error: unknown): Promise<void> {
