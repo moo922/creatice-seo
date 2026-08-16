@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import {
   GscDailyMetric,
   GscProperty,
+  GscSiteDailyMetric,
   Site,
   SiteActivationStep,
   WordPressPost,
@@ -16,7 +17,7 @@ import { ActivityLogModule } from '../activity-log/activity-log.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Site, SiteActivationStep, WordPressPost, GscProperty, GscDailyMetric]),
+    TypeOrmModule.forFeature([Site, SiteActivationStep, WordPressPost, GscProperty, GscDailyMetric, GscSiteDailyMetric]),
     WordPressModule,
     KeywordsModule,
     GscModule,

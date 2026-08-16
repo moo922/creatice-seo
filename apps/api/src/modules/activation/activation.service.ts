@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import {
   GscDailyMetric,
   GscProperty,
+  GscSiteDailyMetric,
   Site,
   SiteActivationStep,
   WordPressPost,
@@ -101,6 +102,8 @@ export class ActivationService {
     private readonly gscProperties: Repository<GscProperty>,
     @InjectRepository(GscDailyMetric)
     private readonly gscMetrics: Repository<GscDailyMetric>,
+    @InjectRepository(GscSiteDailyMetric)
+    private readonly siteDailyMetrics: Repository<GscSiteDailyMetric>,
     private readonly wordpress: WordPressService,
     private readonly links: LinksService,
     private readonly audits: AuditService,
@@ -641,6 +644,9 @@ export class ActivationService {
     if (gscStatus.property?.id) {
       gscMetricRows = await this.gscMetrics.count({ where: { propertyId: gscStatus.property.id } });
     }
+    if (gscMetricRows === 0) {
+      gscMetricRows = await this.siteDailyMetrics.count({ where: { siteId } });
+    }
 
     return {
       site,
@@ -673,13 +679,10 @@ export class ActivationService {
     let impressions = 0;
     let positions: number[] = [];
     if (data.gscConnected) {
-      const property = await this.gscProperties.findOne({ where: { siteId: data.site.id, selected: true } });
-      if (property) {
-        const rows = await this.gscMetrics.find({ where: { propertyId: property.id } });
-        clicks = rows.reduce((total, row) => total + Number(row.clicks), 0);
-        impressions = rows.reduce((total, row) => total + Number(row.impressions), 0);
-        positions = rows.map((row) => Number(row.position)).filter((position) => position > 0);
-      }
+      const rows = await this.siteDailyMetrics.find({ where: { siteId: data.site.id } });
+      clicks = rows.reduce((total, row) => total + Number(row.clicks), 0);
+      impressions = rows.reduce((total, row) => total + Number(row.impressions), 0);
+      positions = rows.map((row) => (row.averagePosition ?? 0)).filter((position) => position > 0);
     }
 
     const pct = (part: number, whole: number) => (whole > 0 ? Math.round((part / whole) * 100) : 0);
@@ -716,10 +719,10 @@ export class ActivationService {
     let position: { avgPosition: number; prevAvgPosition: number; keywords: number } | undefined;
 
     if (property) {
-      const rows = await this.gscMetrics.find({ where: { propertyId: property.id }, order: { metricDate: 'ASC' } });
+      const rows = await this.siteDailyMetrics.find({ where: { siteId: data.site.id }, order: { date: 'ASC' } });
       const totalClicks = rows.reduce((total, row) => total + Number(row.clicks), 0);
       const totalImpressions = rows.reduce((total, row) => total + Number(row.impressions), 0);
-      const positions = rows.map((row) => Number(row.position)).filter((value) => value > 0);
+      const positions = rows.map((row) => (row.averagePosition ?? 0)).filter((value) => value > 0);
       traffic = { clicks: totalClicks, prevClicks: 0 };
       ctr = { ctr: totalImpressions > 0 ? round2(totalClicks / totalImpressions) : 0, prevCtr: 0 };
       position = {

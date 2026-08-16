@@ -9,8 +9,8 @@ import {
   Cluster,
   ContentPackage,
   ContentPublication,
-  GscDailyMetric,
   GscProperty,
+  GscSiteDailyMetric,
   Issue,
   LinkSuggestion,
   OperationsTask,
@@ -82,7 +82,7 @@ export class WorkQueueService {
     @InjectRepository(GscProperty) private readonly gscProperties: Repository<GscProperty>,
     @InjectRepository(WordPressIntegration) private readonly wpIntegrations: Repository<WordPressIntegration>,
     @InjectRepository(BaselineSnapshot) private readonly baselines: Repository<BaselineSnapshot>,
-    @InjectRepository(GscDailyMetric) private readonly gscMetrics: Repository<GscDailyMetric>,
+    @InjectRepository(GscSiteDailyMetric) private readonly gscMetrics: Repository<GscSiteDailyMetric>,
     @InjectRepository(User) private readonly users: Repository<User>,
     @InjectRepository(WorkItemState) private readonly states: Repository<WorkItemState>,
     @InjectRepository(WorkFilter) private readonly filters: Repository<WorkFilter>,
@@ -678,14 +678,13 @@ export class WorkQueueService {
   private gscWindow(ids: string[], start: string, end: string): Promise<GscAggRow[]> {
     return this.gscMetrics
       .createQueryBuilder('m')
-      .innerJoin(GscProperty, 'p', 'p.id = m.property_id')
-      .select('p.site_id', 'siteId')
+      .select('m.site_id', 'siteId')
       .addSelect('COALESCE(SUM(m.clicks), 0)', 'clicks')
       .addSelect('COALESCE(SUM(m.impressions), 0)', 'impressions')
-      .addSelect('AVG(m.position) FILTER (WHERE m.position > 0)', 'position')
-      .where('p.site_id IN (:...ids)', { ids })
-      .andWhere('m.metric_date BETWEEN :s AND :e', { s: start, e: end })
-      .groupBy('p.site_id')
+      .addSelect('AVG(m.average_position) FILTER (WHERE m.average_position > 0)', 'position')
+      .where('m.site_id IN (:...ids)', { ids })
+      .andWhere('m.date BETWEEN :s AND :e', { s: start, e: end })
+      .groupBy('m.site_id')
       .getRawMany();
   }
 
