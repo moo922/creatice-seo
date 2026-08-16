@@ -37,6 +37,7 @@ import { SeedKnowledgePermissions00361720000000036 } from './0036-seed-knowledge
 import { CreateCrawlRuns00371720000000037 } from './0037-create-crawl-runs';
 import { AddCrawlAuditSignals00381720000000038 } from './0038-add-crawl-audit-signals';
 import { CreateAuditRuns00391720000000039 } from './0039-create-audit-runs';
+import { CreateLighthouseRuns00401720000000040 } from './0040-create-lighthouse-runs';
 
 export const migrations = [
   CreateIdentity00011720000000001,
@@ -78,6 +79,7 @@ export const migrations = [
   CreateCrawlRuns00371720000000037,
   AddCrawlAuditSignals00381720000000038,
   CreateAuditRuns00391720000000039,
+  CreateLighthouseRuns00401720000000040,
 ];
 
 export {
@@ -120,4 +122,5 @@ export {
   CreateCrawlRuns00371720000000037,
   AddCrawlAuditSignals00381720000000038,
   CreateAuditRuns00391720000000039,
+  CreateLighthouseRuns00401720000000040,
 };

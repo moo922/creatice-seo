@@ -14,20 +14,43 @@ import {
 } from '@creative-seo/audit-rules';
 import { OperationsService } from '@creative-seo/operations';
 import type {
+  AuditCounts,
+  AuditOverviewDto,
   AuditReportDto,
   AuditResultDto,
   AuditRunDto,
+  AuditRunHistoryEntryDto,
+  AuditSeverityCounts,
+  AuditSitemapSummary,
+  CrawlLinkDto,
+  CrawlPageDto,
   CrawlRunDto,
   HealthScoresDto,
   IssueDto,
   IssueKind,
   IssueSeverity,
+  PageInspectionDto,
   RunAuditRequest,
 } from '@creative-seo/types';
 import { Repository } from 'typeorm';
 import { analyzeLinkGraph } from './analysis';
 import type { CrawledPageData } from './graph';
 import { normalizeUrl } from './graph';
+
+/** Categories evaluated per audit type (AEO/GEO stay empty — not implemented). */
+const TYPE_CATEGORIES: Record<string, string[]> = {
+  TECHNICAL: ['technical', 'on-page', 'content', 'rank-math'],
+  ON_PAGE: ['on-page', 'content'],
+  CONTENT: ['content'],
+  INTERNAL_LINKING: ['internal-linking'],
+  SEO: ['technical', 'on-page', 'content', 'rank-math', 'internal-linking'],
+  FULL: ['technical', 'on-page', 'content', 'rank-math', 'internal-linking'],
+  AEO: [],
+  GEO: [],
+};
+
+const CANONICAL_RULES = new Set(['CANONICAL_MISSING', 'CANONICAL_INVALID', 'CANONICAL_CONFLICT', 'CANONICAL_TO_NON_200', 'DUPLICATE_CANONICAL_TARGET']);
+const SCHEMA_RULES = new Set(['SCHEMA_PARSE_ERROR', 'INVALID_JSON_LD', 'SCHEMA_EMPTY']);
 
 const OPEN_ISSUE_STATUSES = ['DETECTED', 'REVIEWED', 'APPROVED', 'IN_PROGRESS', 'FIXED', 'VERIFYING'];
 const VERIFICATION_ELIGIBLE = ['DETECTED', 'REVIEWED', 'APPROVED', 'IN_PROGRESS'];
@@ -131,8 +154,11 @@ export class AuditService {
         linkAnalysis: this.integrateLinkAnalysis(site.domain, pages, links),
       };
 
-      // Evaluate with passes so coverage is reproducible from stored results.
-      const findings = evaluateAudit(context, true);
+      // Evaluate with passes so coverage is reproducible from stored results,
+      // then restrict to the categories this audit type covers.
+      const allFindings = evaluateAudit(context, true);
+      const allowed = TYPE_CATEGORIES[type];
+      const findings = allowed ? allFindings.filter((finding) => allowed.includes(finding.category)) : [];
       const pageIdByUrl = new Map(pages.map((page) => [normalizeUrl(page.url), page.id]));
       const ruleVersionByKey = new Map(AUDIT_RULES.map((rule) => [rule.definition.key, rule.definition.version]));
 
@@ -230,6 +256,181 @@ export class AuditService {
       })),
       { pagesCrawled: crawlRun?.pagesCrawled ?? 0 },
     );
+  }
+
+  /** Aggregated audit dashboard for the latest completed audit + crawl run. */
+  async getOverview(siteId: string): Promise<AuditOverviewDto> {
+    const auditRun = await this.auditRuns.findOne({
+      where: { siteId, status: 'COMPLETED' },
+      order: { startedAt: 'DESC' },
+    });
+    const crawlRun = await this.crawlRuns.findOne({
+      where: { siteId, status: 'COMPLETED' },
+      order: { startedAt: 'DESC' },
+    });
+
+    let pages: CrawlPage[] = [];
+    let errors: CrawlError[] = [];
+    let results: AuditResult[] = [];
+    let scores: HealthScoresDto | null = null;
+    if (crawlRun) {
+      [pages, errors] = await Promise.all([
+        this.crawlPages.find({ where: { crawlRunId: crawlRun.id } }),
+        this.crawlErrors.find({ where: { crawlRunId: crawlRun.id } }),
+      ]);
+    }
+    if (auditRun) {
+      results = await this.auditResults.find({ where: { auditRunId: auditRun.id } });
+      scores = computeHealthScores(
+        results.map((result) => ({
+          ruleKey: result.ruleKey,
+          category: result.category,
+          severity: result.severity as 'info' | 'low' | 'medium' | 'high' | 'critical',
+          passed: result.passed,
+          url: result.url,
+        })),
+        { pagesCrawled: crawlRun?.pagesCrawled ?? 0 },
+      );
+    }
+
+    const failed = results.filter((result) => !result.passed);
+    const distinctByRule = (ruleKeys: string[]): number => {
+      const set = new Set<string>();
+      for (const result of failed) {
+        if (ruleKeys.includes(result.ruleKey)) set.add(result.url);
+      }
+      return set.size;
+    };
+
+    const counts: AuditCounts = {
+      http4xx: errors.filter((error) => error.statusCode !== null && error.statusCode >= 400 && error.statusCode < 500).length,
+      http5xx: errors.filter((error) => error.statusCode !== null && error.statusCode >= 500 && error.statusCode < 600).length,
+      redirects: pages.filter((page) => page.redirectChain.length > 1).length,
+      missingTitles: distinctByRule(['MISSING_TITLE', 'EMPTY_TITLE']),
+      missingMeta: distinctByRule(['MISSING_META_DESCRIPTION']),
+      missingH1: distinctByRule(['MISSING_H1', 'EMPTY_H1']),
+      duplicateTitles: distinctByRule(['DUPLICATE_TITLE']),
+      canonicalProblems: distinctByRule([...CANONICAL_RULES]),
+      brokenInternalLinks: distinctByRule(['BROKEN_INTERNAL_LINK']),
+      schemaErrors: distinctByRule([...SCHEMA_RULES]),
+      orphanPages: distinctByRule(['ORPHAN_PAGE']),
+    };
+
+    const issues: AuditSeverityCounts = {
+      critical: failed.filter((result) => result.severity === 'critical').length,
+      high: failed.filter((result) => result.severity === 'high').length,
+      medium: failed.filter((result) => result.severity === 'medium').length,
+      low: failed.filter((result) => result.severity === 'low').length,
+    };
+
+    const sitemap = crawlRun ? this.buildSitemapSummary(crawlRun, pages, errors) : null;
+
+    return {
+      scores,
+      auditRun: auditRun ? toAuditRunDto(auditRun) : null,
+      crawlRun: crawlRun ? toRunDto(crawlRun) : null,
+      pagesCrawled: crawlRun?.pagesCrawled ?? 0,
+      pagesIndexable: pages.filter((page) => page.indexable).length,
+      pagesNoindex: pages.filter((page) => page.metaRobots.includes('noindex')).length,
+      counts,
+      issues,
+      sitemap,
+      measuredAt: new Date().toISOString(),
+    };
+  }
+
+  /** Audit history with per-run scores, severity counts and duration. */
+  async getHistory(siteId: string): Promise<AuditRunHistoryEntryDto[]> {
+    const runs = await this.auditRuns.find({ where: { siteId }, order: { startedAt: 'DESC' } });
+    const entries: AuditRunHistoryEntryDto[] = [];
+    for (const run of runs) {
+      const [results, crawlRun] = await Promise.all([
+        this.auditResults.find({ where: { auditRunId: run.id } }),
+        run.crawlRunId ? this.crawlRuns.findOne({ where: { id: run.crawlRunId } }) : null,
+      ]);
+      const failed = results.filter((result) => !result.passed);
+      const durationSeconds =
+        run.startedAt && run.finishedAt ? Math.max(1, Math.round((run.finishedAt.getTime() - run.startedAt.getTime()) / 1000)) : null;
+      entries.push({
+        run: toAuditRunDto(run),
+        pagesCrawled: crawlRun?.pagesCrawled ?? 0,
+        scores: computeHealthScores(
+          results.map((result) => ({
+            ruleKey: result.ruleKey,
+            category: result.category,
+            severity: result.severity as 'info' | 'low' | 'medium' | 'high' | 'critical',
+            passed: result.passed,
+            url: result.url,
+          })),
+          { pagesCrawled: crawlRun?.pagesCrawled ?? 0 },
+        ),
+        issues: {
+          critical: failed.filter((result) => result.severity === 'critical').length,
+          high: failed.filter((result) => result.severity === 'high').length,
+          medium: failed.filter((result) => result.severity === 'medium').length,
+          low: failed.filter((result) => result.severity === 'low').length,
+        },
+        durationSeconds,
+      });
+    }
+    return entries;
+  }
+
+  /** Latest crawl signals + audit findings + history for a single URL. */
+  async getPageInspection(siteId: string, url: string): Promise<PageInspectionDto> {
+    const pageRows = await this.crawlPages.find({
+      where: { siteId, url },
+      order: { createdAt: 'DESC' },
+    });
+    const latestCrawl = await this.crawlRuns.findOne({
+      where: { siteId, status: 'COMPLETED' },
+      order: { startedAt: 'DESC' },
+    });
+    const current =
+      (latestCrawl ? pageRows.find((page) => page.crawlRunId === latestCrawl.id) : undefined) ?? pageRows[0] ?? null;
+
+    let inLinks: CrawlLink[] = [];
+    let outLinks: CrawlLink[] = [];
+    if (current) {
+      const normalized = normalizeUrl(url);
+      [inLinks, outLinks] = await Promise.all([
+        this.crawlLinks.find({ where: { siteId, internal: true, normalizedTargetUrl: normalized } }),
+        this.crawlLinks.find({ where: { siteId, sourcePageId: current.id } }),
+      ]);
+    }
+
+    const latestAudit = await this.auditRuns.findOne({
+      where: { siteId, status: 'COMPLETED' },
+      order: { startedAt: 'DESC' },
+    });
+    let findings: AuditResultDto[] = [];
+    if (latestAudit) {
+      const results = await this.auditResults.find({ where: { auditRunId: latestAudit.id, url, passed: false } });
+      findings = results.map(toResultDto);
+    }
+
+    return {
+      url,
+      current: current ? toCrawlPageDto(current) : null,
+      inLinks: inLinks.map(toCrawlLinkDto),
+      outLinks: outLinks.map(toCrawlLinkDto),
+      findings,
+      history: pageRows.map(toCrawlPageDto),
+    };
+  }
+
+  private buildSitemapSummary(run: CrawlRun, pages: CrawlPage[], errors: CrawlError[]): AuditSitemapSummary | null {
+    if (run.sitemapStatus === 'NOT_FOUND' && run.sitemapUrls.length === 0) return null;
+    const sitemapSet = new Set(run.sitemapUrls.map((item) => normalizeUrl(item)));
+    const crawled = pages.filter((page) => sitemapSet.has(normalizeUrl(page.url))).length;
+    const failed = errors.filter((error) => sitemapSet.has(normalizeUrl(error.url))).length;
+    return {
+      url: run.sitemapUrls[0] ?? null,
+      status: run.sitemapStatus,
+      urlsInSitemap: run.sitemapUrls.length,
+      urlsCrawled: crawled,
+      urlsFailed: failed,
+    };
   }
 
   private async resolveRun(siteId: string, runId?: string): Promise<CrawlRun | null> {
@@ -489,5 +690,56 @@ function toResultDto(result: AuditResult): AuditResultDto {
     passed: result.passed,
     evidence: result.evidence,
     createdAt: result.createdAt.toISOString(),
+  };
+}
+
+function toCrawlPageDto(page: CrawlPage): CrawlPageDto {
+  return {
+    id: page.id,
+    crawlRunId: page.crawlRunId,
+    siteId: page.siteId,
+    url: page.url,
+    normalizedUrl: page.normalizedUrl,
+    finalUrl: page.finalUrl,
+    httpStatus: page.httpStatus,
+    contentType: page.contentType,
+    depth: page.depth,
+    title: page.title,
+    metaDescription: page.metaDescription,
+    h1: page.h1,
+    headings: page.headings,
+    canonical: page.canonical,
+    metaRobots: page.metaRobots,
+    indexable: page.indexable,
+    language: page.language,
+    wordCount: page.wordCount,
+    contentHash: page.contentHash,
+    rendered: page.rendered,
+    schemaJson: page.schemaJson,
+    schemaBlocks: page.schemaBlocks,
+    schemaErrors: page.schemaErrors,
+    hreflang: page.hreflang,
+    images: page.images,
+    redirectChain: page.redirectChain,
+    redirectLoop: page.redirectLoop,
+    createdAt: page.createdAt.toISOString(),
+  };
+}
+
+function toCrawlLinkDto(link: CrawlLink): CrawlLinkDto {
+  return {
+    id: link.id,
+    crawlRunId: link.crawlRunId,
+    siteId: link.siteId,
+    sourcePageId: link.sourcePageId,
+    sourceUrl: link.sourceUrl,
+    targetUrl: link.targetUrl,
+    normalizedTargetUrl: link.normalizedTargetUrl,
+    anchorText: link.anchorText,
+    rel: link.rel,
+    internal: link.internal,
+    nofollow: link.nofollow,
+    statusCodeWhenKnown: link.statusCodeWhenKnown,
+    createdAt: link.createdAt.toISOString(),
   };
 }

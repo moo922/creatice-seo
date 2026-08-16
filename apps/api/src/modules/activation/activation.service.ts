@@ -46,13 +46,13 @@ interface SiteData {
   rankMathDetected: boolean;
   wpPostCount: number;
   crawledPages: Awaited<ReturnType<LinksService['listCrawledPages']>>;
-  latestAnalysis: Awaited<ReturnType<LinksService['listAnalyses']>>[number] | null;
   keywords: Awaited<ReturnType<KeywordsService['listKeywords']>>;
   clusters: Awaited<ReturnType<KeywordsService['listClusters']>>;
   mappings: Awaited<ReturnType<KeywordsService['listMappings']>>;
   issues: Awaited<ReturnType<OperationsService['listIssues']>>;
   recommendations: Awaited<ReturnType<OperationsService['listRecommendations']>>;
   baselines: Awaited<ReturnType<BaselineService['listSnapshots']>>;
+  auditRuns: Awaited<ReturnType<AuditService['listAuditRuns']>>;
   observations: Awaited<ReturnType<VisibilityService['listObservations']>>;
   reports: Awaited<ReturnType<ReportingService['listReports']>>;
   gscConnected: boolean;
@@ -303,28 +303,43 @@ export class ActivationService {
       }
 
       case 'run-technical-audit': {
-        const report = await this.links.runAnalysis(data.site.id, data.site.domain, actor.id);
-        return {
-          status: 'COMPLETED',
-          message: `Technical audit complete (${report.analysis.stats.crawledPages ?? 0} pages analyzed)`,
-          detail: report.analysis.stats as unknown as Record<string, unknown>,
-        };
+        try {
+          const report = await this.audits.runAudit(
+            { id: data.site.id, organizationId: data.site.organizationId, domain: data.site.domain, language: data.site.language },
+            actor.id,
+            { type: 'TECHNICAL' },
+          );
+          return {
+            status: 'COMPLETED',
+            message: `Technical/on-page audit complete (${report.results.length} checks, ${report.findings.length} findings)`,
+            detail: { auditRunId: report.auditRun?.id ?? null, findings: report.findings.length, scores: report.scores },
+          };
+        } catch (error) {
+          if (error instanceof NotFoundException) {
+            return { status: 'FAILED', message: 'Run a site crawl before the technical audit.', detail: null };
+          }
+          throw error;
+        }
       }
 
       case 'run-seo-audit': {
-        const result = await this.keywords.runPipeline(data.site.id, actor.organizationId ?? null, {});
-        if (data.keywords.length > 0 || result.createdKeywords > 0) {
+        try {
+          const report = await this.audits.runAudit(
+            { id: data.site.id, organizationId: data.site.organizationId, domain: data.site.domain, language: data.site.language },
+            actor.id,
+            { type: 'SEO' },
+          );
           return {
             status: 'COMPLETED',
-            message: `SEO audit complete — ${result.clusters.length} keyword clusters`,
-            detail: { createdKeywords: result.createdKeywords, clusters: result.clusters.length, errors: result.errors },
+            message: `SEO audit complete — Internal Platform Health ${report.scores?.seoHealth ?? 'not measured'}`,
+            detail: { auditRunId: report.auditRun?.id ?? null, findings: report.findings.length, scores: report.scores },
           };
+        } catch (error) {
+          if (error instanceof NotFoundException) {
+            return { status: 'FAILED', message: 'Run a site crawl before the SEO audit.', detail: null };
+          }
+          throw error;
         }
-        return {
-          status: 'WARNING',
-          message: 'No keywords seeded yet — run Import Existing Queries or seed keywords first',
-          detail: { errors: result.errors },
-        };
       }
 
       case 'run-aeo-audit':
@@ -507,9 +522,9 @@ export class ActivationService {
       case 'build-url-inventory':
         return data.crawledPages.length > 0 ? 'COMPLETED' : 'NOT_STARTED';
       case 'run-technical-audit':
-        return data.latestAnalysis?.status === 'COMPLETED' ? 'COMPLETED' : 'NOT_STARTED';
+        return hasCompletedAudit(data, ['TECHNICAL', 'SEO', 'FULL']) ? 'COMPLETED' : 'NOT_STARTED';
       case 'run-seo-audit':
-        return data.keywords.length > 0 ? 'COMPLETED' : 'NOT_STARTED';
+        return hasCompletedAudit(data, ['SEO', 'FULL']) ? 'COMPLETED' : 'NOT_STARTED';
       case 'run-aeo-audit':
       case 'run-geo-readiness':
         return 'NOT_IMPLEMENTED';
@@ -598,17 +613,17 @@ export class ActivationService {
       // No integration configured yet.
     }
 
-    const [wpPostCount, crawledPages, analyses, keywords, clusters, mappings, issues, recommendations, baselines, observations, reports] =
+    const [wpPostCount, crawledPages, keywords, clusters, mappings, issues, recommendations, baselines, auditRuns, observations, reports] =
       await Promise.all([
         this.wpPosts.count({ where: { siteId } }),
         this.links.listCrawledPages(siteId),
-        this.links.listAnalyses(siteId),
         this.keywords.listKeywords(siteId),
         this.keywords.listClusters(siteId),
         this.keywords.listMappings(siteId),
         this.operations.listIssues(siteId),
         this.operations.listRecommendations(siteId),
         this.baselines.listSnapshots(siteId),
+        this.audits.listAuditRuns(siteId),
         this.visibility.listObservations(siteId, { limit: 200 }),
         this.reporting.listReports(siteId, { limit: 100 }),
       ]);
@@ -627,21 +642,19 @@ export class ActivationService {
       gscMetricRows = await this.gscMetrics.count({ where: { propertyId: gscStatus.property.id } });
     }
 
-    const latestAnalysis = analyses.find((analysis) => analysis.status === 'COMPLETED') ?? analyses[0] ?? null;
-
     return {
       site,
       integrationStatus,
       rankMathDetected,
       wpPostCount,
       crawledPages,
-      latestAnalysis,
       keywords,
       clusters,
       mappings,
       issues,
       recommendations,
       baselines,
+      auditRuns,
       observations,
       reports,
       gscConnected: gscStatus.connected,
@@ -816,6 +829,11 @@ function hasDashboardData(data: SiteData): boolean {
     data.keywords.length > 0 ||
     data.observations.length > 0
   );
+}
+
+/** True when a completed audit run exists for one of the given types. */
+function hasCompletedAudit(data: SiteData, types: string[]): boolean {
+  return data.auditRuns.some((run) => run.status === 'COMPLETED' && types.includes(run.type));
 }
 
 function defaultCompletedMessage(key: ActivationStepKey): string {

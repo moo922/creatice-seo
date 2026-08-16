@@ -1574,6 +1574,91 @@ export interface AuditReportDto {
   generatedAt: string;
 }
 
+export interface AuditSeverityCounts {
+  critical: number;
+  high: number;
+  medium: number;
+  low: number;
+}
+
+export interface AuditSitemapSummary {
+  url: string | null;
+  status: string;
+  urlsInSitemap: number;
+  urlsCrawled: number;
+  urlsFailed: number;
+}
+
+export interface AuditCounts {
+  http4xx: number;
+  http5xx: number;
+  redirects: number;
+  missingTitles: number;
+  missingMeta: number;
+  missingH1: number;
+  duplicateTitles: number;
+  canonicalProblems: number;
+  brokenInternalLinks: number;
+  schemaErrors: number;
+  orphanPages: number;
+}
+
+export interface AuditOverviewDto {
+  scores: HealthScoresDto | null;
+  auditRun: AuditRunDto | null;
+  crawlRun: CrawlRunDto | null;
+  pagesCrawled: number;
+  pagesIndexable: number;
+  pagesNoindex: number;
+  counts: AuditCounts;
+  issues: AuditSeverityCounts;
+  sitemap: AuditSitemapSummary | null;
+  measuredAt: string;
+}
+
+export interface AuditRunHistoryEntryDto {
+  run: AuditRunDto;
+  pagesCrawled: number;
+  scores: HealthScoresDto | null;
+  issues: AuditSeverityCounts;
+  durationSeconds: number | null;
+}
+
+export interface PageInspectionDto {
+  url: string;
+  current: CrawlPageDto | null;
+  inLinks: CrawlLinkDto[];
+  outLinks: CrawlLinkDto[];
+  findings: AuditResultDto[];
+  history: CrawlPageDto[];
+}
+
+// ---------------------------------------------------------------------------
+// Lighthouse (independent, local browser audit)
+// ---------------------------------------------------------------------------
+
+export interface LighthouseScoreDto {
+  performance: number | null;
+  accessibility: number | null;
+  bestPractices: number | null;
+  seo: number | null;
+}
+
+export interface LighthouseRunDto {
+  id: string;
+  siteId: string;
+  url: string;
+  status: 'RUNNING' | 'COMPLETED' | 'FAILED';
+  scores: LighthouseScoreDto;
+  error: string | null;
+  createdBy: string | null;
+  createdAt: string;
+}
+
+export interface RunLighthouseRequest {
+  url: string;
+}
+
 // ---------------------------------------------------------------------------
 // Self-hosted reporting
 // ---------------------------------------------------------------------------

@@ -39,6 +39,7 @@ import { CrawlLink } from './crawl-link';
 import { CrawlError } from './crawl-error';
 import { AuditRun } from './audit-run';
 import { AuditResult } from './audit-result';
+import { LighthouseRun } from './lighthouse-run';
 import { LinkAnalysis } from './link-analysis';
 import { LinkSuggestion } from './link-suggestion';
 import { ReportBranding } from './report-branding';
@@ -94,6 +95,7 @@ export const entities = [
   CrawlError,
   AuditRun,
   AuditResult,
+  LighthouseRun,
   LinkAnalysis,
   LinkSuggestion,
   ReportBranding,
@@ -150,6 +152,7 @@ export {
   CrawlError,
   AuditRun,
   AuditResult,
+  LighthouseRun,
   LinkAnalysis,
   LinkSuggestion,
   ReportBranding,

@@ -10,6 +10,7 @@ import {
   CrawlRun,
   AuditRun,
   AuditResult,
+  LighthouseRun,
   Keyword,
   LinkAnalysis,
   LinkSuggestion,
@@ -17,6 +18,7 @@ import {
 } from '@creative-seo/database';
 import { LinksService } from './links.service';
 import { AuditService } from './audit.service';
+import { LighthouseService } from './lighthouse.service';
 
 /**
  * Internal-link intelligence + deterministic audit infrastructure for the API
@@ -35,6 +37,7 @@ import { AuditService } from './audit.service';
       CrawlError,
       AuditRun,
       AuditResult,
+      LighthouseRun,
       LinkAnalysis,
       LinkSuggestion,
       UrlMapping,
@@ -43,7 +46,7 @@ import { AuditService } from './audit.service';
       Keyword,
     ]),
   ],
-  providers: [LinksService, AuditService],
-  exports: [LinksService, AuditService],
+  providers: [LinksService, AuditService, LighthouseService],
+  exports: [LinksService, AuditService, LighthouseService],
 })
 export class LinksCoreModule {}

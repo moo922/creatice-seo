@@ -96,6 +96,12 @@ export class RunAuditDto {
   persist?: boolean;
 }
 
+export class RunLighthouseDto {
+  @IsString()
+  @MaxLength(2000)
+  url: string;
+}
+
 export class ApplyLinkSuggestionDto {
   @IsOptional()
   @IsString()
