@@ -241,7 +241,14 @@ export class DashboardService {
     const currentTotals = toTotals(current);
     const previousTotals = toTotals(previous);
     const baselineLatest = baselineRows.length > 0 ? (baselineRows[baselineRows.length - 1]!.metrics as unknown as BaselineMetricsDto) : null;
-    const baselineTotals: SiteMetricTotalsDto | null = baselineLatest ? baselineLatest.gscMetrics : null;
+    const baselineTotals: SiteMetricTotalsDto | null = baselineLatest
+      ? {
+          clicks: baselineLatest.gscMetrics.clicks ?? 0,
+          impressions: baselineLatest.gscMetrics.impressions ?? 0,
+          ctr: baselineLatest.gscMetrics.ctr ?? 0,
+          avgPosition: baselineLatest.gscMetrics.avgPosition,
+        }
+      : null;
 
     const openIssues = issues.filter((i) => !CLOSED.has(i.status)).length;
     const criticalOpen = issues.filter((i) => !CLOSED.has(i.status) && i.severity === 'CRITICAL').length;
@@ -811,11 +818,11 @@ function baselineProgress(first: BaselineSnapshot, latest: BaselineSnapshot): { 
     { key: 'seoHealth', label: 'SEO Health', initial: n(initial.seoHealth), current: n(current.seoHealth) },
     { key: 'aeoReadiness', label: 'AEO Readiness', initial: n(initial.aeoReadiness), current: n(current.aeoReadiness) },
     { key: 'geoReadiness', label: 'GEO Readiness', initial: n(initial.geoReadiness), current: n(current.geoReadiness) },
-    { key: 'criticalIssues', label: 'Critical Issues', initial: initial.technicalIssues, current: current.technicalIssues },
+    { key: 'criticalIssues', label: 'Critical Issues', initial: n(initial.technicalIssues), current: n(current.technicalIssues) },
     { key: 'highIssues', label: 'High Issues', initial: n(initial.crawlHealth), current: n(current.crawlHealth) },
-    { key: 'organicClicks', label: 'Organic Clicks', initial: initial.gscMetrics.clicks, current: current.gscMetrics.clicks },
-    { key: 'organicImpressions', label: 'Organic Impressions', initial: initial.gscMetrics.impressions, current: current.gscMetrics.impressions },
-    { key: 'topKeywords', label: 'Top 10 Keywords', initial: initial.keywordVisibility, current: current.keywordVisibility },
+    { key: 'organicClicks', label: 'Organic Clicks', initial: n(initial.gscMetrics.clicks), current: n(current.gscMetrics.clicks) },
+    { key: 'organicImpressions', label: 'Organic Impressions', initial: n(initial.gscMetrics.impressions), current: n(current.gscMetrics.impressions) },
+    { key: 'topKeywords', label: 'Top 10 Keywords', initial: n(initial.keywordVisibility), current: n(current.keywordVisibility) },
   ];
   const metrics: BaselineProgressMetricDto[] = items.map((item) => ({
     key: item.key,

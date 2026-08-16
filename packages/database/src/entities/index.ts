@@ -12,6 +12,7 @@ import { WordPressPost } from './wordpress-post';
 import { GscProperty } from './gsc-property';
 import { GscToken } from './gsc-token';
 import { GscDailyMetric } from './gsc-daily-metric';
+import { GscSiteDailyMetric, GscQueryDailyMetric, GscPageDailyMetric, GscQueryPageDailyMetric } from './gsc-canonical-metrics';
 import { GscSyncState } from './gsc-sync-state';
 import { GscOpportunity } from './gsc-opportunity';
 import { Keyword } from './keyword';
@@ -68,6 +69,10 @@ export const entities = [
   GscProperty,
   GscToken,
   GscDailyMetric,
+  GscSiteDailyMetric,
+  GscQueryDailyMetric,
+  GscPageDailyMetric,
+  GscQueryPageDailyMetric,
   GscSyncState,
   GscOpportunity,
   Keyword,
@@ -125,6 +130,10 @@ export {
   GscProperty,
   GscToken,
   GscDailyMetric,
+  GscSiteDailyMetric,
+  GscQueryDailyMetric,
+  GscPageDailyMetric,
+  GscQueryPageDailyMetric,
   GscSyncState,
   GscOpportunity,
   Keyword,

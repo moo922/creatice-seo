@@ -39,6 +39,7 @@ import { AddCrawlAuditSignals00381720000000038 } from './0038-add-crawl-audit-si
 import { CreateAuditRuns00391720000000039 } from './0039-create-audit-runs';
 import { CreateLighthouseRuns00401720000000040 } from './0040-create-lighthouse-runs';
 import { AddLinkAnalysisCrawlRun00411720000000041 } from './0041-add-link-analysis-crawl-run';
+import { CanonicalMetricGrains00421720000000042 } from './0042-canonical-metric-grains';
 
 export const migrations = [
   CreateIdentity00011720000000001,
@@ -82,6 +83,7 @@ export const migrations = [
   CreateAuditRuns00391720000000039,
   CreateLighthouseRuns00401720000000040,
   AddLinkAnalysisCrawlRun00411720000000041,
+  CanonicalMetricGrains00421720000000042,
 ];
 
 export {
@@ -126,4 +128,5 @@ export {
   CreateAuditRuns00391720000000039,
   CreateLighthouseRuns00401720000000040,
   AddLinkAnalysisCrawlRun00411720000000041,
+  CanonicalMetricGrains00421720000000042,
 };

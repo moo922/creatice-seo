@@ -4,6 +4,7 @@ import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { createDataSourceOptions } from '@creative-seo/database';
 import { AiCoreModule } from '@creative-seo/ai';
+import { MetricsCoreModule } from '@creative-seo/metrics';
 import { ContentCoreModule } from '@creative-seo/content';
 import { OperationsCoreModule } from '@creative-seo/operations';
 import { VisibilityCoreModule } from '@creative-seo/visibility';
@@ -56,6 +57,7 @@ import { KnowledgeBaseModule } from './modules/knowledge-base/knowledge-base.mod
     }),
     AppConfigModule,
     AiCoreModule,
+    MetricsCoreModule,
     ContentCoreModule,
     OperationsCoreModule,
     VisibilityCoreModule,

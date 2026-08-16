@@ -7,6 +7,7 @@ import type {
   BaselineType,
   CreateBaselineSnapshotRequest,
   IssueSnapshotEntry,
+  MetricAvailability,
   ProgressDashboardDto,
   SnapshotComparisonDto,
 } from '@creative-seo/types';
@@ -35,14 +36,25 @@ export class BaselineService {
     createdBy: string | null,
   ): Promise<BaselineSnapshotDto> {
     const issues = await this.operations.getIssueSnapshot(siteId);
+
+    // Baselines are versioned: the version is the count of existing baseline
+    // snapshots for the site + 1. Historical baselines are never mutated.
+    let baselineVersion = 1;
+    if (input.type === 'BASELINE') {
+      baselineVersion = (await this.snapshots.count({ where: { siteId, isBaseline: true } })) + 1;
+    }
+
     const row = this.snapshots.create({
       siteId,
       organizationId,
       type: input.type,
       isBaseline: input.type === 'BASELINE',
+      baselineVersion,
       periodStart: input.periodStart ?? null,
       periodEnd: input.periodEnd ?? null,
+      dataCutoffDate: input.dataCutoffDate ?? null,
       metrics: input.metrics as unknown as Record<string, unknown>,
+      availability: (input.availability ?? defaultAvailability(input.metrics)) as unknown as Record<string, MetricAvailability>,
       issues: issues as unknown as Record<string, unknown>[],
       note: input.note ?? null,
       createdBy,
@@ -52,9 +64,10 @@ export class BaselineService {
   }
 
   /**
-   * Recurring snapshot: captures the site's latest known metrics (or a zeroed
-   * set when no snapshot exists yet) as a new immutable snapshot. Used by the
-   * worker scheduler for MONTHLY / QUARTERLY snapshots.
+   * Recurring snapshot. When no prior snapshot exists this does NOT fabricate
+   * zeros — it records "not measured" via availability. When a prior snapshot
+   * exists the latest known metrics are carried forward verbatim (copy is
+   * explicit and documented), never recomputed from live data.
    */
   async capture(
     siteId: string,
@@ -65,22 +78,14 @@ export class BaselineService {
     const latest = await this.snapshots.findOne({ where: { siteId }, order: { createdAt: 'DESC' } });
     const metrics: BaselineMetricsDto = latest
       ? (latest.metrics as unknown as BaselineMetricsDto)
-      : {
-          crawlHealth: 0,
-          technicalIssues: 0,
-          onPageHealth: 0,
-          contentHealth: 0,
-          aeoReadiness: null,
-          geoReadiness: null,
-          gscMetrics: { clicks: 0, impressions: 0, ctr: 0, avgPosition: null },
-          keywordVisibility: 0,
-          internalLinkHealth: null,
-          seoHealth: null,
-        };
+      : (emptyMetrics() as BaselineMetricsDto);
+    const availability = latest
+      ? ((latest.availability ?? {}) as Record<string, MetricAvailability>)
+      : emptyAvailability();
     return this.createSnapshot(
       siteId,
       organizationId,
-      { type, metrics, note: `Recurring ${type.toLowerCase()} snapshot` },
+      { type, metrics, availability, note: `Recurring ${type.toLowerCase()} snapshot` },
       createdBy,
     );
   }
@@ -210,15 +215,62 @@ export class BaselineService {
       organizationId: row.organizationId,
       type: row.type as BaselineType,
       isBaseline: row.isBaseline,
+      baselineVersion: row.baselineVersion,
       periodStart: row.periodStart,
       periodEnd: row.periodEnd,
+      dataCutoffDate: row.dataCutoffDate,
+      referenceCrawlRunId: row.referenceCrawlRunId,
+      referenceAuditRunId: row.referenceAuditRunId,
       metrics: row.metrics as unknown as BaselineMetricsDto,
+      availability: (row.availability ?? {}) as Record<string, MetricAvailability>,
       issues: (row.issues ?? []) as unknown as IssueSnapshotEntry[],
       note: row.note,
       createdBy: row.createdBy,
       createdAt: row.createdAt.toISOString(),
     };
   }
+}
+
+function emptyMetrics(): BaselineMetricsDto {
+  return {
+    crawlHealth: null,
+    technicalIssues: null,
+    onPageHealth: null,
+    contentHealth: null,
+    aeoReadiness: null,
+    geoReadiness: null,
+    gscMetrics: { clicks: null, impressions: null, ctr: null, avgPosition: null },
+    keywordVisibility: null,
+    internalLinkHealth: null,
+    seoHealth: null,
+  };
+}
+
+function emptyAvailability(): Record<string, MetricAvailability> {
+  return {
+    crawlHealth: 'NOT_MEASURED',
+    technicalIssues: 'NOT_MEASURED',
+    onPageHealth: 'NOT_MEASURED',
+    contentHealth: 'NOT_MEASURED',
+    aeoReadiness: 'NOT_MEASURED',
+    geoReadiness: 'NOT_MEASURED',
+    gscMetrics: 'NOT_SYNCED',
+    keywordVisibility: 'NOT_MEASURED',
+    internalLinkHealth: 'NOT_MEASURED',
+    seoHealth: 'NOT_MEASURED',
+  };
+}
+
+/** Derives availability from non-null metric values (AVAILABLE vs NOT_MEASURED). */
+function defaultAvailability(metrics: BaselineMetricsDto): Record<string, MetricAvailability> {
+  const availability: Record<string, MetricAvailability> = {};
+  const scalarKeys = ['crawlHealth', 'technicalIssues', 'onPageHealth', 'contentHealth', 'aeoReadiness', 'geoReadiness', 'keywordVisibility', 'internalLinkHealth', 'seoHealth'] as const;
+  for (const key of scalarKeys) {
+    availability[key] = (metrics[key] as number | null) === null ? 'NOT_MEASURED' : 'AVAILABLE';
+  }
+  const gsc = metrics.gscMetrics;
+  availability.gscMetrics = gsc && gsc.clicks !== null && gsc.clicks !== undefined ? 'AVAILABLE' : 'NOT_SYNCED';
+  return availability;
 }
 
 function sum(values: number[]): number {

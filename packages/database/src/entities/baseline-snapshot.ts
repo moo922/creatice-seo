@@ -26,14 +26,30 @@ export class BaselineSnapshot {
   @Column({ type: 'boolean', name: 'is_baseline', default: false })
   isBaseline: boolean;
 
+  @Column({ type: 'int', name: 'baseline_version', default: 1 })
+  baselineVersion: number;
+
   @Column({ type: 'date', name: 'period_start', nullable: true })
   periodStart: string | null;
 
   @Column({ type: 'date', name: 'period_end', nullable: true })
   periodEnd: string | null;
 
+  @Column({ type: 'date', name: 'data_cutoff_date', nullable: true })
+  dataCutoffDate: string | null;
+
+  @Column({ type: 'uuid', name: 'reference_crawl_run_id', nullable: true })
+  referenceCrawlRunId: string | null;
+
+  @Column({ type: 'uuid', name: 'reference_audit_run_id', nullable: true })
+  referenceAuditRunId: string | null;
+
   @Column({ type: 'jsonb' })
   metrics: Record<string, unknown>;
+
+  /** Per-metric availability state (AVAILABLE / NOT_MEASURED / ... ). */
+  @Column({ type: 'jsonb', default: () => "'{}'" })
+  availability: Record<string, string>;
 
   /** Issue id+status snapshot used to compute initial/new/resolved/remaining/regressed. */
   @Column({ type: 'jsonb', default: () => "'[]'" })

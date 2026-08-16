@@ -12,7 +12,11 @@ import { Repository } from 'typeorm';
 import {
   GscDailyMetric,
   GscOpportunity,
+  GscPageDailyMetric,
   GscProperty,
+  GscQueryDailyMetric,
+  GscQueryPageDailyMetric,
+  GscSiteDailyMetric,
   GscSyncState,
   GscToken,
   Site,
@@ -55,6 +59,10 @@ export class GscService {
     @InjectRepository(GscProperty) private readonly properties: Repository<GscProperty>,
     @InjectRepository(GscToken) private readonly tokens: Repository<GscToken>,
     @InjectRepository(GscDailyMetric) private readonly metrics: Repository<GscDailyMetric>,
+    @InjectRepository(GscSiteDailyMetric) private readonly siteDaily: Repository<GscSiteDailyMetric>,
+    @InjectRepository(GscQueryDailyMetric) private readonly queryDaily: Repository<GscQueryDailyMetric>,
+    @InjectRepository(GscPageDailyMetric) private readonly pageDaily: Repository<GscPageDailyMetric>,
+    @InjectRepository(GscQueryPageDailyMetric) private readonly queryPageDaily: Repository<GscQueryPageDailyMetric>,
     @InjectRepository(GscSyncState) private readonly syncStates: Repository<GscSyncState>,
     @InjectRepository(GscOpportunity) private readonly opportunities: Repository<GscOpportunity>,
     private readonly client: GscClientService,
@@ -431,84 +439,125 @@ export class GscService {
     startDate: string,
     endDate: string,
   ): Promise<number> {
-    const state = await this.syncStates.findOne({ where: { propertyId: property.id, dimensionsKey: dimensions.join(',') } });
-    const day = state ? state.lastSyncDate : startDate;
+    const dimensionsKey = dimensions.join(',');
+    const state = await this.syncStates.findOne({ where: { propertyId: property.id, dimensionsKey } });
+    const day = state?.lastSyncDate ?? startDate;
     let total = 0;
+    let latestWritten: string | null = null;
 
     for (let cursor = day; cursor <= endDate; cursor = this.addDays(cursor, 1)) {
       const response = await this.client.searchAnalytics(accessToken, property.siteUrl, cursor, cursor, dimensions);
-      total += await this.upsertMetricsDay(property.id, cursor, dimensions, response.rows ?? []);
+      const written = await this.upsertMetricsDay(property.id, property.siteId, cursor, dimensions, response.rows ?? []);
+      total += written;
+      if (written > 0 || (response.rows ?? []).length > 0) latestWritten = cursor;
     }
 
-    await this.syncStates.save(
-      this.syncStates.create({
-        propertyId: property.id,
-        dimensionsKey: dimensions.join(','),
-        lastSyncDate: endDate,
-        lastSuccessAt: new Date(),
-      }),
-    );
+    await this.syncStates.save({
+      propertyId: property.id,
+      dimensionsKey,
+      lastSyncDate: endDate,
+      lastSuccessAt: new Date(),
+      lastRequestedDate: endDate,
+      lastSuccessfulDate: latestWritten ?? state?.lastSuccessfulDate ?? null,
+      latestAvailableDate: latestWritten ?? state?.latestAvailableDate ?? null,
+      syncStatus: 'OK',
+      lastError: null,
+      updatedAt: new Date(),
+    });
     return total;
   }
 
-  private async upsertMetricsDay(propertyId: string, date: string, dimensions: GscDimension[], rows: GscSearchAnalyticsRow[]): Promise<number> {
+  /**
+   * Writes a day of Search Console rows into the canonical per-grain tables in
+   * addition to the legacy gsc_daily_metrics table (kept for compatibility).
+   * Upserts are idempotent on (site_id, date, grain, dimension-key).
+   */
+  private async upsertMetricsDay(propertyId: string, siteId: string, date: string, dimensions: GscDimension[], rows: GscSearchAnalyticsRow[]): Promise<number> {
     if (rows.length === 0) {
       return 0;
     }
-    const values: unknown[] = [];
+
+    // Legacy write (kept for backward compatibility).
+    await this.upsertLegacyDay(propertyId, date, dimensions, rows);
+
+    const dimsSet = new Set(dimensions);
+    const hasQuery = dimsSet.has('query');
+    const hasPage = dimsSet.has('page');
+
     for (const row of rows) {
       const dims: Record<string, string> = {};
       row.keys.forEach((value, index) => {
         const dimension = dimensions[index];
-        if (dimension) {
-          dims[dimension] = value;
-        }
+        if (dimension) dims[dimension] = value;
       });
-      values.push(
-        propertyId,
-        date,
-        dims.query ?? '',
-        dims.page ?? '',
-        dims.country ?? '',
-        dims.device ?? '',
-        rowKey(row.keys),
-        row.clicks,
-        row.impressions,
-        row.ctr,
-        row.position,
-      );
-    }
+      const clicks = row.clicks;
+      const impressions = row.impressions;
+      const ctr = row.ctr;
+      const position = row.position;
 
-    const CHUNK = 500;
-    let written = 0;
-    for (let i = 0; i < values.length; i += CHUNK * 11) {
-      const chunk = values.slice(i, i + CHUNK * 11);
-      const rowCount = chunk.length / 11;
-      const placeholders = chunk.map((_, index) => {
-        const col = (index % 11) + 1;
-        return `$${index + 1}::${metricColumnType(col)}`;
-      });
-      const joined = Array.from({ length: rowCount }, (_, rowIndex) =>
-        `(${placeholders.slice(rowIndex * 11, rowIndex * 11 + 11).join(', ')})`,
-      ).join(', ');
-      await this.metrics.query(
-        `
-        INSERT INTO "gsc_daily_metrics"
-          ("property_id", "metric_date", "query", "page", "country", "device", "row_key",
-           "clicks", "impressions", "ctr", "position")
-        VALUES ${joined}
-        ON CONFLICT ("property_id", "metric_date", "row_key") DO UPDATE SET
-          "clicks" = EXCLUDED."clicks",
-          "impressions" = EXCLUDED."impressions",
-          "ctr" = EXCLUDED."ctr",
-          "position" = EXCLUDED."position",
-          "updated_at" = now()
-        `,
-        chunk,
-      );
-      written += rowCount;
+      // QUERY_PAGE_DAILY
+      if (hasQuery && hasPage) {
+        await this.queryPageDaily.upsert(
+          {
+            siteId,
+            date,
+            query: dims.query ?? '',
+            pageUrl: dims.page ?? '',
+            normalizedQuery: normalizeText(dims.query ?? ''),
+            normalizedUrl: normalizeUrl(dims.page ?? ''),
+            clicks,
+            impressions,
+            ctr,
+            position,
+          },
+          ['siteId', 'date', 'query', 'pageUrl'],
+        );
+      } else if (hasQuery) {
+        // QUERY_DAILY
+        await this.queryDaily.upsert(
+          {
+            siteId,
+            date,
+            query: dims.query ?? '',
+            normalizedQuery: normalizeText(dims.query ?? ''),
+            clicks,
+            impressions,
+            ctr,
+            position,
+          },
+          ['siteId', 'date', 'query'],
+        );
+      } else if (hasPage) {
+        // PAGE_DAILY
+        await this.pageDaily.upsert(
+          {
+            siteId,
+            date,
+            pageUrl: dims.page ?? '',
+            normalizedUrl: normalizeUrl(dims.page ?? ''),
+            clicks,
+            impressions,
+            ctr,
+            position,
+          },
+          ['siteId', 'date', 'pageUrl'],
+        );
+      } else {
+        // SITE_DAILY (no query/page split) — aggregate across all rows for the day.
+        await this.siteDaily.upsert(
+          {
+            siteId,
+            date,
+            clicks,
+            impressions,
+            ctr,
+            averagePosition: position ?? null,
+          },
+          ['siteId', 'date'],
+        );
+      }
     }
-    return written;
+    return rows.length;
   }
 
   private async storeTokens(siteId: string, tokens: StoredTokens): Promise<void> {
@@ -840,10 +889,79 @@ export class GscService {
     const endMs = new Date(`${end}T00:00:00Z`).getTime();
     return Math.round((endMs - startMs) / 86_400_000);
   }
+
+  /** Legacy flat write kept for backward compatibility (compat model). */
+  private async upsertLegacyDay(propertyId: string, date: string, dimensions: GscDimension[], rows: GscSearchAnalyticsRow[]): Promise<void> {
+    const values: unknown[] = [];
+    for (const row of rows) {
+      const dims: Record<string, string> = {};
+      row.keys.forEach((value, index) => {
+        const dimension = dimensions[index];
+        if (dimension) dims[dimension] = value;
+      });
+      values.push(
+        propertyId,
+        date,
+        dims.query ?? '',
+        dims.page ?? '',
+        dims.country ?? '',
+        dims.device ?? '',
+        rowKey(row.keys),
+        row.clicks,
+        row.impressions,
+        row.ctr,
+        row.position,
+      );
+    }
+    const CHUNK = 500;
+    for (let i = 0; i < values.length; i += CHUNK * 11) {
+      const chunk = values.slice(i, i + CHUNK * 11);
+      const rowCount = chunk.length / 11;
+      const placeholders = chunk.map((_, index) => {
+        const col = (index % 11) + 1;
+        return `$${index + 1}::${metricColumnType(col)}`;
+      });
+      const joined = Array.from({ length: rowCount }, (_, rowIndex) =>
+        `(${placeholders.slice(rowIndex * 11, rowIndex * 11 + 11).join(', ')})`,
+      ).join(', ');
+      await this.metrics.query(
+        `
+        INSERT INTO "gsc_daily_metrics"
+          ("property_id", "metric_date", "query", "page", "country", "device", "row_key",
+           "clicks", "impressions", "ctr", "position")
+        VALUES ${joined}
+        ON CONFLICT ("property_id", "metric_date", "row_key") DO UPDATE SET
+          "clicks" = EXCLUDED."clicks",
+          "impressions" = EXCLUDED."impressions",
+          "ctr" = EXCLUDED."ctr",
+          "position" = EXCLUDED."position",
+          "updated_at" = now()
+        `,
+        chunk,
+      );
+    }
+  }
 }
 
 function rowKey(keys: string[]): string {
   return createHmac('sha1', 'gsc').update(keys.join('\u0001')).digest('hex');
+}
+
+function normalizeUrl(value: string): string {
+  try {
+    const url = new URL(value.toLowerCase().trim());
+    url.hash = '';
+    url.search = '';
+    let path = url.pathname.replace(/\/+$/, '');
+    if (path === '') path = '/';
+    return `${url.hostname.replace(/^www\./, '')}${path}`;
+  } catch {
+    return value.toLowerCase().trim().replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/+$/, '');
+  }
+}
+
+function normalizeText(value: string): string {
+  return value.toLowerCase().replace(/\s+/g, ' ').trim();
 }
 
 /** Casts for gsc_daily_metrics columns (1-indexed, 11 per row). */

@@ -63,6 +63,8 @@ import type {
   CrawlErrorType,
   AuditRunStatus,
   AuditRunType,
+  MetricGrain,
+  MetricAvailability,
 } from './enums';
 import type { PermissionKey } from './permissions';
 
@@ -1017,18 +1019,18 @@ export interface CreateChangeLogRequest {
 
 export interface BaselineMetricsDto {
   crawlHealth: number | null;
-  technicalIssues: number;
+  technicalIssues: number | null;
   onPageHealth: number | null;
-  contentHealth: number;
+  contentHealth: number | null;
   aeoReadiness: number | null;
   geoReadiness: number | null;
   gscMetrics: {
-    clicks: number;
-    impressions: number;
-    ctr: number;
+    clicks: number | null;
+    impressions: number | null;
+    ctr: number | null;
     avgPosition: number | null;
   };
-  keywordVisibility: number;
+  keywordVisibility: number | null;
   internalLinkHealth: number | null;
   /** Composite Internal Platform Health Score (versioned). */
   seoHealth: number | null;
@@ -1039,15 +1041,136 @@ export interface IssueSnapshotEntry {
   status: IssueStatus;
 }
 
+// ---------------------------------------------------------------------------
+// Canonical metric grains & data availability (DATA TRUTH)
+// ---------------------------------------------------------------------------
+
+/**
+ * A single site-level daily performance row (grain SITE_DAILY). Site-level
+ * summaries aggregate ONLY rows of this grain.
+ */
+export interface SiteDailyMetricDto {
+  siteId: string;
+  date: string;
+  clicks: number;
+  impressions: number;
+  ctr: number;
+  averagePosition: number | null;
+}
+
+export interface QueryDailyMetricDto {
+  siteId: string;
+  date: string;
+  query: string;
+  normalizedQuery: string;
+  clicks: number;
+  impressions: number;
+  ctr: number;
+  position: number | null;
+}
+
+export interface PageDailyMetricDto {
+  siteId: string;
+  date: string;
+  pageUrl: string;
+  normalizedUrl: string;
+  clicks: number;
+  impressions: number;
+  ctr: number;
+  position: number | null;
+}
+
+export interface QueryPageDailyMetricDto {
+  siteId: string;
+  date: string;
+  query: string;
+  normalizedQuery: string;
+  pageUrl: string;
+  normalizedUrl: string;
+  clicks: number;
+  impressions: number;
+  ctr: number;
+  position: number | null;
+}
+
+/**
+ * Aggregated performance over a period for one grain. Position uses the
+ * documented weighted method (weighted by impressions) where supported, and is
+ * null when a trustworthy aggregate cannot be computed from persisted data.
+ */
+export interface PeriodPerformanceDto {
+  clicks: number;
+  impressions: number;
+  ctr: number;
+  averagePosition: number | null;
+  positionMethod: 'weighted' | 'preserved-aggregate' | 'unavailable';
+}
+
+/** A metric value with an explicit availability state (never zero for "not measured"). */
+export interface AvailableMetric {
+  value: number | null;
+  availability: MetricAvailability;
+}
+
+export interface SitePerformanceDto {
+  siteId: string;
+  grain: 'SITE_DAILY';
+  periodStart: string;
+  periodEnd: string;
+  totals: PeriodPerformanceDto;
+  latestAvailableDate: string | null;
+}
+
+export interface QueryPerformanceDto {
+  siteId: string;
+  query: string;
+  periodStart: string;
+  periodEnd: string;
+  totals: PeriodPerformanceDto;
+  distinctPages: number;
+  activeDates: number;
+}
+
+export interface PagePerformanceDto {
+  siteId: string;
+  pageUrl: string;
+  normalizedUrl: string;
+  periodStart: string;
+  periodEnd: string;
+  totals: PeriodPerformanceDto;
+  activeDates: number;
+}
+
+/** A cannibalization candidate derived from QUERY_PAGE_DAILY evidence. */
+export interface CannibalizationCandidateDto {
+  query: string;
+  normalizedQuery: string;
+  periodStart: string;
+  periodEnd: string;
+  distinctUrls: number;
+  totalImpressions: number;
+  competingUrls: Array<{ pageUrl: string; impressions: number; clicks: number }>;
+  evidence: {
+    minTotalImpressions: number;
+    minImpressionsPerUrl: number;
+    minActiveDates: number;
+  };
+}
+
 export interface BaselineSnapshotDto {
   id: string;
   siteId: string;
   organizationId: string | null;
   type: BaselineType;
   isBaseline: boolean;
+  baselineVersion: number;
   periodStart: string | null;
   periodEnd: string | null;
+  dataCutoffDate: string | null;
+  referenceCrawlRunId: string | null;
+  referenceAuditRunId: string | null;
   metrics: BaselineMetricsDto;
+  availability: Record<string, MetricAvailability>;
   issues: IssueSnapshotEntry[];
   note: string | null;
   createdBy: string | null;
@@ -1058,7 +1181,9 @@ export interface CreateBaselineSnapshotRequest {
   type: BaselineType;
   periodStart?: string | null;
   periodEnd?: string | null;
+  dataCutoffDate?: string | null;
   metrics: BaselineMetricsDto;
+  availability?: Record<string, MetricAvailability>;
   note?: string | null;
 }
 

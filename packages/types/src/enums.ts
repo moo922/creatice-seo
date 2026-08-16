@@ -362,6 +362,44 @@ export type AuditRunStatus = (typeof AUDIT_RUN_STATUSES)[number];
 export const AUDIT_HEALTH_SCORE_VERSION = 1;
 
 // ---------------------------------------------------------------------------
+// Canonical metric grains & data availability
+// ---------------------------------------------------------------------------
+
+/**
+ * Explicit aggregation grain for every persisted Google Search Console metric
+ * row. Consumers MUST filter by grain before summing — rows of different
+ * grains can never be safely added together (e.g. SITE_DAILY clicks + QUERY_DAILY
+ * clicks would double-count the same traffic).
+ */
+export const METRIC_GRAINS = [
+  'SITE_DAILY',
+  'PAGE_DAILY',
+  'QUERY_DAILY',
+  'QUERY_PAGE_DAILY',
+  'COUNTRY_DAILY',
+  'DEVICE_DAILY',
+  'QUERY_COUNTRY_DAILY',
+  'QUERY_DEVICE_DAILY',
+] as const;
+export type MetricGrain = (typeof METRIC_GRAINS)[number];
+
+/**
+ * Data-availability state for a high-level metric. A metric whose underlying
+ * data is unavailable must NEVER be represented as zero — use one of these
+ * states so "not measured" stays distinct from "measured zero".
+ */
+export const METRIC_AVAILABILITY = [
+  'AVAILABLE',
+  'NOT_CONNECTED',
+  'NOT_SYNCED',
+  'INSUFFICIENT_DATA',
+  'NOT_MEASURED',
+  'STALE',
+  'ERROR',
+] as const;
+export type MetricAvailability = (typeof METRIC_AVAILABILITY)[number];
+
+// ---------------------------------------------------------------------------
 // Self-hosted reporting
 // ---------------------------------------------------------------------------
 
