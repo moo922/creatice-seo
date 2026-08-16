@@ -20,6 +20,7 @@ const STATUS_META: Record<StepStatus, { label: string; className: string }> = {
   COMPLETED: { label: 'Completed', className: 'bg-emerald-100 text-emerald-700' },
   WARNING: { label: 'Warning', className: 'bg-amber-100 text-amber-700' },
   FAILED: { label: 'Failed', className: 'bg-destructive/10 text-destructive' },
+  NOT_IMPLEMENTED: { label: 'Not implemented', className: 'bg-muted text-muted-foreground' },
 };
 
 export function ActivationTab({ siteId }: { siteId: string }) {

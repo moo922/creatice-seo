@@ -70,11 +70,12 @@ export class BaselineService {
           technicalIssues: 0,
           onPageHealth: 0,
           contentHealth: 0,
-          aeoReadiness: 0,
-          geoReadiness: 0,
+          aeoReadiness: null,
+          geoReadiness: null,
           gscMetrics: { clicks: 0, impressions: 0, ctr: 0, avgPosition: null },
           keywordVisibility: 0,
-          internalLinkHealth: 0,
+          internalLinkHealth: null,
+          seoHealth: null,
         };
     return this.createSnapshot(
       siteId,

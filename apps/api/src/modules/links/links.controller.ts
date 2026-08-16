@@ -2,7 +2,14 @@ import { Body, Controller, Get, NotFoundException, Param, ParseUUIDPipe, Post, Q
 import { InjectRepository } from '@nestjs/typeorm';
 import { Site } from '@creative-seo/database';
 import { LinksService } from '@creative-seo/links';
-import type { LinkAnalysisDto, LinkAnalysisReportDto, LinkSuggestionDto } from '@creative-seo/types';
+import type {
+  CrawlRunDetailDto,
+  CrawlRunDto,
+  CrawlRunResultDto,
+  LinkAnalysisDto,
+  LinkAnalysisReportDto,
+  LinkSuggestionDto,
+} from '@creative-seo/types';
 import { Repository } from 'typeorm';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
 import { SiteAccessGuard } from '../../common/guards/site-access.guard';
@@ -13,6 +20,7 @@ import {
   CreateCrawledPageDto,
   LinkSuggestionDecisionDto,
   LinkSuggestionQueryDto,
+  StartCrawlDto,
   VerifyLinkSuggestionDto,
 } from './links.dto';
 
@@ -46,6 +54,36 @@ export class SiteLinksController {
   @Get('crawl-pages')
   crawledPages(@Param('siteId', ParseUUIDPipe) siteId: string) {
     return this.links.listCrawledPages(siteId);
+  }
+
+  // ---- Crawl runs (versioned) ----
+
+  @Post('crawls')
+  @RequirePermissions('links:manage')
+  async runCrawl(
+    @Param('siteId', ParseUUIDPipe) siteId: string,
+    @Body() dto: StartCrawlDto,
+    @CurrentUser() user: AuthPrincipal,
+  ): Promise<CrawlRunResultDto> {
+    const site = await this.requireSite(siteId);
+    return this.links.runCrawl(
+      { id: site.id, organizationId: site.organizationId, domain: site.domain },
+      user?.id ?? null,
+      dto,
+    );
+  }
+
+  @Get('crawls')
+  crawlRuns(@Param('siteId', ParseUUIDPipe) siteId: string): Promise<CrawlRunDto[]> {
+    return this.links.listCrawlRuns(siteId);
+  }
+
+  @Get('crawls/:runId')
+  getCrawlRun(
+    @Param('siteId', ParseUUIDPipe) siteId: string,
+    @Param('runId', ParseUUIDPipe) runId: string,
+  ): Promise<CrawlRunDetailDto> {
+    return this.links.getCrawlRun(siteId, runId);
   }
 
   // ---- Analysis ----
@@ -135,11 +173,15 @@ export class SiteLinksController {
     return this.links.verifyAppliedFromCrawl(siteId);
   }
 
-  private async requireSiteDomain(siteId: string): Promise<string> {
+  private async requireSite(siteId: string): Promise<Site> {
     const site = await this.sites.findOne({ where: { id: siteId } });
     if (!site) {
       throw new NotFoundException('Site not found');
     }
-    return site.domain;
+    return site;
+  }
+
+  private async requireSiteDomain(siteId: string): Promise<string> {
+    return (await this.requireSite(siteId)).domain;
   }
 }

@@ -276,7 +276,7 @@ export class DashboardService {
         lastCrawl: analysis?.createdAt?.toISOString() ?? null,
       },
       main: {
-        seoHealth: baselineLatest ? baselineLatest.onPageHealth : null,
+        seoHealth: baselineLatest ? baselineLatest.seoHealth : null,
         aeoReadiness: baselineLatest ? baselineLatest.aeoReadiness : null,
         geoReadiness: baselineLatest ? baselineLatest.geoReadiness : null,
         clicks: currentTotals.clicks,
@@ -362,7 +362,7 @@ export class DashboardService {
       domain: site.domain,
       status: site.status,
       clientName: null,
-      seoHealth: baseline ? baseline.onPageHealth : null,
+      seoHealth: baseline ? baseline.seoHealth : null,
       aeoReadiness: baseline ? baseline.aeoReadiness : null,
       geoReadiness: baseline ? baseline.geoReadiness : null,
       clicks,
@@ -806,12 +806,13 @@ function contentStages(packages: ContentPackage[], publications: ContentPublicat
 function baselineProgress(first: BaselineSnapshot, latest: BaselineSnapshot): { exists: true; metrics: BaselineProgressMetricDto[] } {
   const initial = first.metrics as unknown as BaselineMetricsDto;
   const current = latest.metrics as unknown as BaselineMetricsDto;
+  const n = (value: number | null | undefined): number => value ?? 0;
   const items: Array<{ key: string; label: string; initial: number; current: number }> = [
-    { key: 'seoHealth', label: 'SEO Health', initial: initial.onPageHealth, current: current.onPageHealth },
-    { key: 'aeoReadiness', label: 'AEO Readiness', initial: initial.aeoReadiness, current: current.aeoReadiness },
-    { key: 'geoReadiness', label: 'GEO Readiness', initial: initial.geoReadiness, current: current.geoReadiness },
+    { key: 'seoHealth', label: 'SEO Health', initial: n(initial.seoHealth), current: n(current.seoHealth) },
+    { key: 'aeoReadiness', label: 'AEO Readiness', initial: n(initial.aeoReadiness), current: n(current.aeoReadiness) },
+    { key: 'geoReadiness', label: 'GEO Readiness', initial: n(initial.geoReadiness), current: n(current.geoReadiness) },
     { key: 'criticalIssues', label: 'Critical Issues', initial: initial.technicalIssues, current: current.technicalIssues },
-    { key: 'highIssues', label: 'High Issues', initial: initial.crawlHealth, current: current.crawlHealth },
+    { key: 'highIssues', label: 'High Issues', initial: n(initial.crawlHealth), current: n(current.crawlHealth) },
     { key: 'organicClicks', label: 'Organic Clicks', initial: initial.gscMetrics.clicks, current: current.gscMetrics.clicks },
     { key: 'organicImpressions', label: 'Organic Impressions', initial: initial.gscMetrics.impressions, current: current.gscMetrics.impressions },
     { key: 'topKeywords', label: 'Top 10 Keywords', initial: initial.keywordVisibility, current: current.keywordVisibility },

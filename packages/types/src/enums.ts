@@ -239,6 +239,7 @@ export const BASELINE_METRIC_KEYS = [
   'gscMetrics',
   'keywordVisibility',
   'internalLinkHealth',
+  'seoHealth',
 ] as const;
 export type BaselineMetricKey = (typeof BASELINE_METRIC_KEYS)[number];
 
@@ -309,6 +310,56 @@ export type LinkDetection = (typeof LINK_DETECTIONS)[number];
 
 export const LINK_ANALYSIS_STATUSES = ['RUNNING', 'COMPLETED', 'FAILED'] as const;
 export type LinkAnalysisStatus = (typeof LINK_ANALYSIS_STATUSES)[number];
+
+// ---------------------------------------------------------------------------
+// Versioned crawl runs
+// ---------------------------------------------------------------------------
+
+export const CRAWL_RUN_STATUSES = ['RUNNING', 'COMPLETED', 'FAILED'] as const;
+export type CrawlRunStatus = (typeof CRAWL_RUN_STATUSES)[number];
+
+/** How robots.txt was resolved for a crawl run. */
+export const CRAWL_ROBOTS_STATUSES = ['ALLOWED', 'BLOCKED', 'NOT_FOUND', 'ERROR'] as const;
+export type CrawlRobotsStatus = (typeof CRAWL_ROBOTS_STATUSES)[number];
+
+/** How sitemap discovery resolved for a crawl run. */
+export const CRAWL_SITEMAP_STATUSES = ['OK', 'NOT_FOUND', 'ERROR'] as const;
+export type CrawlSitemapStatus = (typeof CRAWL_SITEMAP_STATUSES)[number];
+
+export const CRAWL_ERROR_TYPES = [
+  'http',
+  'robots',
+  'network',
+  'timeout',
+  'invalid_url',
+  'ssrf',
+  'blocked',
+  'other',
+] as const;
+export type CrawlErrorType = (typeof CRAWL_ERROR_TYPES)[number];
+
+// ---------------------------------------------------------------------------
+// Deterministic audit engine
+// ---------------------------------------------------------------------------
+
+/** Scope of an audit run over a crawl run. */
+export const AUDIT_RUN_TYPES = [
+  'FULL',
+  'TECHNICAL',
+  'ON_PAGE',
+  'CONTENT',
+  'INTERNAL_LINKING',
+  'SEO',
+  'AEO',
+  'GEO',
+] as const;
+export type AuditRunType = (typeof AUDIT_RUN_TYPES)[number];
+
+export const AUDIT_RUN_STATUSES = ['RUNNING', 'COMPLETED', 'FAILED'] as const;
+export type AuditRunStatus = (typeof AUDIT_RUN_STATUSES)[number];
+
+/** Version of the Internal Platform Health Score algorithm. */
+export const AUDIT_HEALTH_SCORE_VERSION = 1;
 
 // ---------------------------------------------------------------------------
 // Self-hosted reporting
@@ -460,7 +511,7 @@ export type ActivityAction = (typeof ACTIVITY_ACTIONS)[number];
 // Site activation (guided first-site wizard)
 // ---------------------------------------------------------------------------
 
-export const ACTIVATION_STEP_STATUSES = ['NOT_STARTED', 'READY', 'RUNNING', 'COMPLETED', 'WARNING', 'FAILED'] as const;
+export const ACTIVATION_STEP_STATUSES = ['NOT_STARTED', 'READY', 'RUNNING', 'COMPLETED', 'WARNING', 'FAILED', 'NOT_IMPLEMENTED'] as const;
 export type ActivationStepStatus = (typeof ACTIVATION_STEP_STATUSES)[number];
 
 /** Ordered guided activation sequence for a new client site. */

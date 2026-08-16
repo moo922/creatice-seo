@@ -57,6 +57,12 @@ import type {
   WorkBulkAction,
   KnowledgeCategory,
   KnowledgeVerificationStatus,
+  CrawlRunStatus,
+  CrawlRobotsStatus,
+  CrawlSitemapStatus,
+  CrawlErrorType,
+  AuditRunStatus,
+  AuditRunType,
 } from './enums';
 import type { PermissionKey } from './permissions';
 
@@ -900,6 +906,7 @@ export interface IssueDto {
   data: Record<string, unknown>;
   note: string | null;
   detectedAt: string;
+  lastDetectedAt: string;
   resolvedAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -1009,12 +1016,12 @@ export interface CreateChangeLogRequest {
 }
 
 export interface BaselineMetricsDto {
-  crawlHealth: number;
+  crawlHealth: number | null;
   technicalIssues: number;
-  onPageHealth: number;
+  onPageHealth: number | null;
   contentHealth: number;
-  aeoReadiness: number;
-  geoReadiness: number;
+  aeoReadiness: number | null;
+  geoReadiness: number | null;
   gscMetrics: {
     clicks: number;
     impressions: number;
@@ -1022,7 +1029,9 @@ export interface BaselineMetricsDto {
     avgPosition: number | null;
   };
   keywordVisibility: number;
-  internalLinkHealth: number;
+  internalLinkHealth: number | null;
+  /** Composite Internal Platform Health Score (versioned). */
+  seoHealth: number | null;
 }
 
 export interface IssueSnapshotEntry {
@@ -1056,7 +1065,7 @@ export interface CreateBaselineSnapshotRequest {
 export interface MetricComparisonDto {
   key: BaselineMetricKey;
   prev: number | null;
-  curr: number;
+  curr: number | null;
   delta: number | null;
   deltaPct: number | null;
   direction: 'improved' | 'declined' | 'flat' | 'n/a';
@@ -1358,6 +1367,211 @@ export interface LinkSuggestionQuery {
   targetUrl?: string;
   limit?: number;
   offset?: number;
+}
+
+// ---------------------------------------------------------------------------
+// Versioned crawl runs
+// ---------------------------------------------------------------------------
+
+export interface CrawlRunDto {
+  id: string;
+  siteId: string;
+  organizationId: string | null;
+  status: CrawlRunStatus;
+  startedAt: string;
+  finishedAt: string | null;
+  seedUrl: string;
+  userAgent: string;
+  maxPages: number;
+  pagesDiscovered: number;
+  pagesCrawled: number;
+  pagesFailed: number;
+  robotsStatus: CrawlRobotsStatus;
+  sitemapStatus: CrawlSitemapStatus;
+  renderedPages: number;
+  sitemapUrls: string[];
+  error: string | null;
+  createdBy: string | null;
+  createdAt: string;
+}
+
+export interface CrawlHeadingDto {
+  tag: string;
+  text: string;
+}
+
+export interface CrawlHreflangDto {
+  href: string;
+  hreflang: string;
+}
+
+export interface CrawlImageDto {
+  src: string;
+  alt: string | null;
+}
+
+export interface CrawlSchemaErrorDto {
+  message: string;
+}
+
+export interface CrawlPageDto {
+  id: string;
+  crawlRunId: string;
+  siteId: string;
+  url: string;
+  normalizedUrl: string;
+  finalUrl: string | null;
+  httpStatus: number | null;
+  contentType: string | null;
+  depth: number;
+  title: string | null;
+  metaDescription: string | null;
+  h1: string | null;
+  headings: CrawlHeadingDto[];
+  canonical: string | null;
+  metaRobots: string[];
+  indexable: boolean;
+  language: string | null;
+  wordCount: number;
+  contentHash: string | null;
+  rendered: boolean;
+  schemaJson: unknown[] | null;
+  schemaBlocks: number;
+  schemaErrors: CrawlSchemaErrorDto[];
+  hreflang: CrawlHreflangDto[];
+  images: CrawlImageDto[];
+  redirectChain: string[];
+  redirectLoop: boolean;
+  createdAt: string;
+}
+
+export interface CrawlLinkDto {
+  id: string;
+  crawlRunId: string;
+  siteId: string;
+  sourcePageId: string | null;
+  sourceUrl: string;
+  targetUrl: string;
+  normalizedTargetUrl: string;
+  anchorText: string;
+  rel: string | null;
+  internal: boolean;
+  nofollow: boolean;
+  statusCodeWhenKnown: number | null;
+  createdAt: string;
+}
+
+export interface CrawlErrorDto {
+  id: string;
+  crawlRunId: string;
+  siteId: string;
+  url: string;
+  errorType: CrawlErrorType;
+  message: string;
+  statusCode: number | null;
+  createdAt: string;
+}
+
+export interface StartCrawlRequest {
+  maxPages?: number;
+  maxDepth?: number;
+  seedPath?: string;
+}
+
+export interface CrawlRunResultDto {
+  run: CrawlRunDto;
+  pages: CrawlPageDto[];
+  links: CrawlLinkDto[];
+  errors: CrawlErrorDto[];
+}
+
+export interface CrawlRunDetailDto extends CrawlRunResultDto {
+  linkCount: number;
+}
+
+// ---------------------------------------------------------------------------
+// Deterministic audit engine
+// ---------------------------------------------------------------------------
+
+export interface AuditFindingDto {
+  ruleKey: string;
+  category: string;
+  severity: 'info' | 'low' | 'medium' | 'high' | 'critical';
+  url: string | null;
+  passed: boolean;
+  evidence: Record<string, unknown>;
+}
+
+export interface AuditRuleDto {
+  key: string;
+  category: string;
+  severity: 'info' | 'low' | 'medium' | 'high' | 'critical';
+  description: string;
+  version: number;
+  active: boolean;
+}
+
+export interface RunAuditRequest {
+  crawlRunId?: string;
+  /** Audit scope. Defaults to FULL. */
+  type?: AuditRunType;
+  /** Persist high/medium findings as issues. Defaults to true. */
+  persist?: boolean;
+}
+
+export interface AuditRunDto {
+  id: string;
+  siteId: string;
+  crawlRunId: string;
+  type: string;
+  status: AuditRunStatus;
+  startedAt: string;
+  finishedAt: string | null;
+  scoreVersion: number;
+  createdBy: string | null;
+  createdAt: string;
+}
+
+export interface AuditResultDto {
+  id: string;
+  auditRunId: string;
+  siteId: string;
+  crawlPageId: string | null;
+  url: string;
+  ruleKey: string;
+  ruleVersion: number;
+  category: string;
+  severity: 'info' | 'low' | 'medium' | 'high' | 'critical';
+  passed: boolean;
+  evidence: Record<string, unknown>;
+  createdAt: string;
+}
+
+/** Deterministic Internal Platform Health Score (not a Google score). */
+export interface HealthScoresDto {
+  technicalHealth: number | null;
+  onPageHealth: number | null;
+  internalLinkingHealth: number | null;
+  seoHealth: number | null;
+  scoreVersion: number;
+  label: string;
+  coverage: {
+    evaluatedUrls: number;
+    pagesCrawled: number;
+  };
+}
+
+export interface AuditReportDto {
+  auditRun: AuditRunDto | null;
+  run: CrawlRunDto | null;
+  results: AuditResultDto[];
+  /** Convenience: failed results mapped to findings. */
+  findings: AuditFindingDto[];
+  scores: HealthScoresDto | null;
+  issuesCreated: number;
+  issuesUpdated: number;
+  issuesMovedToVerification: number;
+  generatedAt: string;
 }
 
 // ---------------------------------------------------------------------------

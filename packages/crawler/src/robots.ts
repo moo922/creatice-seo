@@ -55,6 +55,22 @@ export function parseRobotsTxt(text: string): RobotsRules {
   return { groups, parsed: true };
 }
 
+/**
+ * Extracts the URLs referenced by `Sitemap:` directives in a robots.txt body.
+ * These are non-standard per-user-agent fields, so they are collected across
+ * the whole file regardless of group.
+ */
+export function extractSitemapDirectives(text: string): string[] {
+  const out: string[] = [];
+  for (const rawLine of text.split('\n')) {
+    const line = rawLine.trim();
+    if (!line.startsWith('Sitemap:')) continue;
+    const url = line.slice('Sitemap:'.length).trim();
+    if (url) out.push(url.slice(0, 2000));
+  }
+  return out;
+}
+
 /** Selects the applicable rules for a user agent (exact match first, then *). */
 export function selectGroup(rules: RobotsRules, userAgent: string): RobotsGroup | null {
   const ua = userAgent.toLowerCase();

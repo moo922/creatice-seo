@@ -196,6 +196,7 @@ function SnapshotForm({ submitting, error, onSubmit }: { submitting: boolean; er
                 gscMetrics: { clicks: 0, impressions: 0, ctr: 0, avgPosition: null },
                 keywordVisibility: num(keywordVisibility),
                 internalLinkHealth: num(internalLinkHealth),
+                seoHealth: null,
               },
             });
           }}

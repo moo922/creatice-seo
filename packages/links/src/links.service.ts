@@ -4,27 +4,40 @@ import {
   Cluster,
   ClusterKeyword,
   CrawledPage,
+  CrawlError,
+  CrawlLink,
+  CrawlPage,
+  CrawlRun,
   Keyword,
   LinkAnalysis,
   LinkSuggestion,
   UrlMapping,
 } from '@creative-seo/database';
+import { crawlSite, DEFAULT_USER_AGENT } from '@creative-seo/crawler';
 import { OperationsService } from '@creative-seo/operations';
 import type {
   ApplyLinkSuggestionRequest,
   CreateCrawledPageRequest,
+  CrawlErrorDto,
+  CrawlErrorType,
+  CrawlLinkDto,
+  CrawlPageDto,
+  CrawlRunDetailDto,
+  CrawlRunDto,
+  CrawlRunResultDto,
   LinkAnalysisDto,
   LinkAnalysisReportDto,
   LinkSuggestionDecisionRequest,
   LinkSuggestionDto,
   LinkSuggestionQuery,
   LinkStatsDto,
+  StartCrawlRequest,
   VerifyLinkSuggestionRequest,
 } from '@creative-seo/types';
 import { In, IsNull, Not, Repository } from 'typeorm';
 import { analyzeLinkGraph } from './analysis';
 import type { ApprovedTarget, CrawledPageData } from './graph';
-import { normalizeUrl } from './graph';
+import { isInternalLink, normalizeUrl } from './graph';
 
 const ACTIVE_STATUSES = ['SUGGESTED', 'APPROVED', 'APPLIED', 'VERIFIED'];
 
@@ -40,6 +53,10 @@ const ACTIVE_STATUSES = ['SUGGESTED', 'APPROVED', 'APPLIED', 'VERIFIED'];
 export class LinksService {
   constructor(
     @InjectRepository(CrawledPage) private readonly crawledPages: Repository<CrawledPage>,
+    @InjectRepository(CrawlRun) private readonly crawlRuns: Repository<CrawlRun>,
+    @InjectRepository(CrawlPage) private readonly crawlPages: Repository<CrawlPage>,
+    @InjectRepository(CrawlLink) private readonly crawlLinks: Repository<CrawlLink>,
+    @InjectRepository(CrawlError) private readonly crawlErrors: Repository<CrawlError>,
     @InjectRepository(LinkAnalysis) private readonly analyses: Repository<LinkAnalysis>,
     @InjectRepository(LinkSuggestion) private readonly suggestions: Repository<LinkSuggestion>,
     @InjectRepository(UrlMapping) private readonly urlMappings: Repository<UrlMapping>,
@@ -72,6 +89,189 @@ export class LinksService {
 
   async listCrawledPages(siteId: string): Promise<CrawledPage[]> {
     return this.crawledPages.find({ where: { siteId }, order: { crawledAt: 'DESC' } });
+  }
+
+  // -------------------------------------------------------------------------
+  // Versioned crawl runs
+  // -------------------------------------------------------------------------
+
+  /**
+   * Runs a deterministic crawl and persists it as a versioned crawl run
+   * (crawl_runs/crawl_pages/crawl_links/crawl_errors). For backward
+   * compatibility the flat `crawled_pages` table is also kept in sync so
+   * existing link analysis and activation flows keep working unchanged.
+   */
+  async runCrawl(
+    site: { id: string; organizationId: string | null; domain: string },
+    actorId: string | null,
+    options: StartCrawlRequest = {},
+  ): Promise<CrawlRunResultDto> {
+    const maxPages = Math.min(Math.max(options.maxPages ?? 50, 1), 500);
+    const run = await this.crawlRuns.save(
+      this.crawlRuns.create({
+        siteId: site.id,
+        organizationId: site.organizationId,
+        status: 'RUNNING',
+        startedAt: new Date(),
+        seedUrl: `https://${site.domain}${options.seedPath ?? '/'}`,
+        userAgent: DEFAULT_USER_AGENT,
+        maxPages,
+        pagesDiscovered: 0,
+        pagesCrawled: 0,
+        pagesFailed: 0,
+        robotsStatus: 'ERROR',
+        sitemapStatus: 'NOT_FOUND',
+        renderedPages: 0,
+        sitemapUrls: [],
+        error: null,
+        createdBy: actorId,
+      }),
+    );
+
+    try {
+      const crawl = await crawlSite({
+        origin: site.domain,
+        seedPath: options.seedPath,
+        maxPages,
+        maxDepth: options.maxDepth,
+        userAgent: DEFAULT_USER_AGENT,
+      });
+
+      const pageRows: CrawlPage[] = crawl.pages.map((page) =>
+        this.crawlPages.create({
+          crawlRunId: run.id,
+          siteId: site.id,
+          url: page.url,
+          normalizedUrl: page.normalizedUrl,
+          finalUrl: page.finalUrl,
+          httpStatus: page.httpStatus,
+          contentType: page.contentType,
+          depth: page.depth,
+          title: page.title,
+          metaDescription: page.description,
+          h1: page.h1,
+          headings: page.headings,
+          canonical: page.canonical,
+          metaRobots: page.metaRobots,
+          indexable: page.indexable,
+          language: page.language,
+          wordCount: page.wordCount,
+          contentHash: page.contentHash,
+          rendered: page.rendered,
+          schemaJson: page.schemaJson,
+          schemaBlocks: page.schemaBlocks,
+          schemaErrors: page.schemaErrors,
+          hreflang: page.hreflang,
+          images: page.images,
+          redirectChain: page.redirectChain,
+          redirectLoop: page.redirectLoop,
+        }),
+      );
+      const savedPages = await this.crawlPages.save(pageRows);
+      const pageIdByUrl = new Map(savedPages.map((row) => [row.url, row.id]));
+      const statusByUrl = new Map(crawl.pages.map((page) => [page.url, page.httpStatus]));
+
+      // Backward compatibility: keep the flat crawled_pages table current so
+      // link analysis and activation continue to work against the latest crawl.
+      for (const page of crawl.pages) {
+        await this.upsertCrawledPage(site.id, {
+          url: page.url,
+          title: page.title,
+          httpStatus: page.httpStatus,
+          text: page.text,
+          headings: page.headings.map((heading) => heading.text),
+          outLinks: page.links.map((link) => ({ url: link.url, anchor: link.anchor })),
+        });
+      }
+
+      const linkRows: CrawlLink[] = [];
+      for (const page of crawl.pages) {
+        const sourcePageId = pageIdByUrl.get(page.url) ?? null;
+        for (const link of page.links) {
+          linkRows.push(
+            this.crawlLinks.create({
+              crawlRunId: run.id,
+              siteId: site.id,
+              sourcePageId,
+              sourceUrl: page.url,
+              targetUrl: link.url,
+              normalizedTargetUrl: normalizeUrl(link.url),
+              anchorText: link.anchor,
+              rel: link.rel,
+              internal: isInternalLink(link.url, site.domain),
+              nofollow: link.nofollow,
+              statusCodeWhenKnown: statusByUrl.get(link.url) ?? null,
+            }),
+          );
+          if (linkRows.length >= 50_000) break;
+        }
+        if (linkRows.length >= 50_000) break;
+      }
+      await this.saveChunked(this.crawlLinks, linkRows);
+
+      const errorRows: CrawlError[] = crawl.issues.map((issue) =>
+        this.crawlErrors.create({
+          crawlRunId: run.id,
+          siteId: site.id,
+          url: issue.url,
+          errorType: mapCrawlErrorType(issue.kind),
+          message: issue.message,
+          statusCode: issue.statusCode,
+        }),
+      );
+      await this.crawlErrors.save(errorRows);
+
+      run.status = 'COMPLETED';
+      run.finishedAt = new Date();
+      run.pagesDiscovered = crawl.pagesDiscovered;
+      run.pagesCrawled = crawl.pages.length;
+      run.pagesFailed = crawl.issues.length;
+      run.robotsStatus = crawl.robots.status;
+      run.sitemapStatus = crawl.sitemap.status;
+      run.renderedPages = crawl.renderedPages;
+      run.sitemapUrls = crawl.sitemap.locations;
+      run.error = crawl.timedOut ? 'crawl timed out before exhausting the queue' : null;
+      await this.crawlRuns.save(run);
+
+      return this.toCrawlResultDto(run, savedPages, linkRows, errorRows);
+    } catch (error) {
+      run.status = 'FAILED';
+      run.finishedAt = new Date();
+      run.error = error instanceof Error ? error.message.slice(0, 2000) : 'crawl failed';
+      await this.crawlRuns.save(run);
+      throw error;
+    }
+  }
+
+  async listCrawlRuns(siteId: string): Promise<CrawlRunDto[]> {
+    const rows = await this.crawlRuns.find({ where: { siteId }, order: { startedAt: 'DESC' } });
+    return rows.map((row) => this.toCrawlRunDto(row));
+  }
+
+  async getCrawlRun(siteId: string, runId: string): Promise<CrawlRunDetailDto> {
+    const run = await this.crawlRuns.findOne({ where: { id: runId, siteId } });
+    if (!run) {
+      throw new NotFoundException('Crawl run not found');
+    }
+    const [pages, links, errors] = await Promise.all([
+      this.crawlPages.find({ where: { crawlRunId: runId }, order: { depth: 'ASC' } }),
+      this.crawlLinks.find({ where: { crawlRunId: runId } }),
+      this.crawlErrors.find({ where: { crawlRunId: runId }, order: { createdAt: 'ASC' } }),
+    ]);
+    return {
+      run: this.toCrawlRunDto(run),
+      pages: pages.map((row) => this.toCrawlPageDto(row)),
+      links: links.map((row) => this.toCrawlLinkDto(row)),
+      errors: errors.map((row) => this.toCrawlErrorDto(row)),
+      linkCount: links.length,
+    };
+  }
+
+  private async saveChunked<T extends { id?: string }>(repository: Repository<T>, rows: T[]): Promise<void> {
+    const CHUNK = 2000;
+    for (let i = 0; i < rows.length; i += CHUNK) {
+      await repository.save(rows.slice(i, i + CHUNK));
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -367,9 +567,121 @@ export class LinksService {
       updatedAt: row.updatedAt.toISOString(),
     };
   }
+
+  private toCrawlRunDto(row: CrawlRun): CrawlRunDto {
+    return {
+      id: row.id,
+      siteId: row.siteId,
+      organizationId: row.organizationId,
+      status: row.status as CrawlRunDto['status'],
+      startedAt: row.startedAt.toISOString(),
+      finishedAt: row.finishedAt?.toISOString() ?? null,
+      seedUrl: row.seedUrl,
+      userAgent: row.userAgent,
+      maxPages: row.maxPages,
+      pagesDiscovered: row.pagesDiscovered,
+      pagesCrawled: row.pagesCrawled,
+      pagesFailed: row.pagesFailed,
+      robotsStatus: row.robotsStatus as CrawlRunDto['robotsStatus'],
+      sitemapStatus: row.sitemapStatus as CrawlRunDto['sitemapStatus'],
+      renderedPages: row.renderedPages,
+      sitemapUrls: row.sitemapUrls,
+      error: row.error,
+      createdBy: row.createdBy,
+      createdAt: row.createdAt.toISOString(),
+    };
+  }
+
+  private toCrawlPageDto(row: CrawlPage): CrawlPageDto {
+    return {
+      id: row.id,
+      crawlRunId: row.crawlRunId,
+      siteId: row.siteId,
+      url: row.url,
+      normalizedUrl: row.normalizedUrl,
+      finalUrl: row.finalUrl,
+      httpStatus: row.httpStatus,
+      contentType: row.contentType,
+      depth: row.depth,
+      title: row.title,
+      metaDescription: row.metaDescription,
+      h1: row.h1,
+      headings: row.headings,
+      canonical: row.canonical,
+      metaRobots: row.metaRobots,
+      indexable: row.indexable,
+      language: row.language,
+      wordCount: row.wordCount,
+      contentHash: row.contentHash,
+      rendered: row.rendered,
+      schemaJson: row.schemaJson,
+      schemaBlocks: row.schemaBlocks,
+      schemaErrors: row.schemaErrors,
+      hreflang: row.hreflang,
+      images: row.images,
+      redirectChain: row.redirectChain,
+      redirectLoop: row.redirectLoop,
+      createdAt: row.createdAt.toISOString(),
+    };
+  }
+
+  private toCrawlLinkDto(row: CrawlLink): CrawlLinkDto {
+    return {
+      id: row.id,
+      crawlRunId: row.crawlRunId,
+      siteId: row.siteId,
+      sourcePageId: row.sourcePageId,
+      sourceUrl: row.sourceUrl,
+      targetUrl: row.targetUrl,
+      normalizedTargetUrl: row.normalizedTargetUrl,
+      anchorText: row.anchorText,
+      rel: row.rel,
+      internal: row.internal,
+      nofollow: row.nofollow,
+      statusCodeWhenKnown: row.statusCodeWhenKnown,
+      createdAt: row.createdAt.toISOString(),
+    };
+  }
+
+  private toCrawlErrorDto(row: CrawlError): CrawlErrorDto {
+    return {
+      id: row.id,
+      crawlRunId: row.crawlRunId,
+      siteId: row.siteId,
+      url: row.url,
+      errorType: row.errorType as CrawlErrorType,
+      message: row.message,
+      statusCode: row.statusCode,
+      createdAt: row.createdAt.toISOString(),
+    };
+  }
+
+  private toCrawlResultDto(run: CrawlRun, pages: CrawlPage[], links: CrawlLink[], errors: CrawlError[]): CrawlRunResultDto {
+    return {
+      run: this.toCrawlRunDto(run),
+      pages: pages.map((row) => this.toCrawlPageDto(row)),
+      links: links.map((row) => this.toCrawlLinkDto(row)),
+      errors: errors.map((row) => this.toCrawlErrorDto(row)),
+    };
+  }
 }
 
 function countWords(text: string): number {
   const words = text.match(/[\p{L}\p{N}]+/gu);
   return words?.length ?? 0;
+}
+
+function mapCrawlErrorType(kind: 'robots' | 'timeout' | 'http' | 'blocked' | 'error'): CrawlErrorType {
+  switch (kind) {
+    case 'robots':
+      return 'robots';
+    case 'timeout':
+      return 'timeout';
+    case 'http':
+      return 'http';
+    case 'blocked':
+      return 'blocked';
+    default:
+      return 'other';
+  }
 }

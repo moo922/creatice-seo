@@ -33,6 +33,12 @@ import { AiVisibilityPromptSet } from './ai-visibility-prompt-set';
 import { AiVisibilityRun } from './ai-visibility-run';
 import { AiVisibilityObservation } from './ai-visibility-observation';
 import { CrawledPage } from './crawled-page';
+import { CrawlRun } from './crawl-run';
+import { CrawlPage } from './crawl-page';
+import { CrawlLink } from './crawl-link';
+import { CrawlError } from './crawl-error';
+import { AuditRun } from './audit-run';
+import { AuditResult } from './audit-result';
 import { LinkAnalysis } from './link-analysis';
 import { LinkSuggestion } from './link-suggestion';
 import { ReportBranding } from './report-branding';
@@ -82,6 +88,12 @@ export const entities = [
   AiVisibilityRun,
   AiVisibilityObservation,
   CrawledPage,
+  CrawlRun,
+  CrawlPage,
+  CrawlLink,
+  CrawlError,
+  AuditRun,
+  AuditResult,
   LinkAnalysis,
   LinkSuggestion,
   ReportBranding,
@@ -132,6 +144,12 @@ export {
   AiVisibilityRun,
   AiVisibilityObservation,
   CrawledPage,
+  CrawlRun,
+  CrawlPage,
+  CrawlLink,
+  CrawlError,
+  AuditRun,
+  AuditResult,
   LinkAnalysis,
   LinkSuggestion,
   ReportBranding,

@@ -24,6 +24,7 @@ const SCALAR_KEYS: ReadonlyArray<Exclude<BaselineMetricKey, 'gscMetrics'>> = [
   'geoReadiness',
   'keywordVisibility',
   'internalLinkHealth',
+  'seoHealth',
 ];
 
 /** Metrics where a lower value is better. */
@@ -31,15 +32,15 @@ const LOWER_IS_BETTER: ReadonlySet<BaselineMetricKey> = new Set<BaselineMetricKe
 
 const CLOSED_STATUSES: ReadonlySet<IssueStatus> = new Set<IssueStatus>(['RESOLVED', 'IGNORED']);
 
-export function compareMetric(key: BaselineMetricKey, prev: number | null, curr: number): MetricComparisonDto {
-  const delta = prev === null ? null : round2(curr - prev);
-  const deltaPct = prev === null || prev === 0 ? null : round2(((curr - prev) / prev) * 100);
+export function compareMetric(key: BaselineMetricKey, prev: number | null, curr: number | null): MetricComparisonDto {
+  const delta = prev === null || curr === null ? null : round2(curr - prev);
+  const deltaPct = prev === null || prev === 0 || curr === null ? null : round2(((curr - prev) / prev) * 100);
 
   let direction: MetricComparisonDto['direction'] = 'n/a';
-  if (prev !== null && delta !== null && delta !== 0) {
+  if (prev !== null && curr !== null && delta !== null && delta !== 0) {
     const improved = LOWER_IS_BETTER.has(key) ? delta < 0 : delta > 0;
     direction = improved ? 'improved' : 'declined';
-  } else if (prev !== null && delta === 0) {
+  } else if (prev !== null && curr !== null && delta === 0) {
     direction = 'flat';
   }
 

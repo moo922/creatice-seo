@@ -13,6 +13,8 @@
     "test": "jest --runInBand --config jest.unit.json"
   },
   "dependencies": {
+    "@creative-seo/audit-rules": "^0.1.0",
+    "@creative-seo/crawler": "^0.1.0",
     "@creative-seo/database": "^0.1.0",
     "@creative-seo/operations": "^0.1.0",
     "@creative-seo/types": "^0.1.0",

@@ -61,10 +61,37 @@ export class OperationsService {
       data: input.data ?? {},
       note: null,
       detectedAt: new Date(),
+      lastDetectedAt: new Date(),
       resolvedAt: null,
     });
     const saved = await this.issues.save(row);
     return this.toIssueDto(saved);
+  }
+
+  /**
+   * Records that an existing issue was observed again: refreshes the last
+   * detection timestamp and evidence without creating a duplicate. Optionally
+   * reopens the issue when a previously fixed finding regresses.
+   */
+  async updateIssueDetection(
+    id: string,
+    update: { lastDetectedAt?: Date; evidence?: Record<string, unknown>; reopen?: boolean },
+  ): Promise<IssueDto> {
+    const row = await this.requireIssue(id);
+    if (update.lastDetectedAt) {
+      row.lastDetectedAt = update.lastDetectedAt;
+    } else {
+      row.lastDetectedAt = new Date();
+    }
+    if (update.evidence !== undefined && row.data && typeof row.data === 'object') {
+      row.data = { ...row.data, evidence: update.evidence, lastAuditAt: new Date().toISOString() };
+    }
+    if (update.reopen && (row.status === 'FIXED' || row.status === 'VERIFYING')) {
+      row.status = 'DETECTED';
+      row.note = row.note ? `${row.note}\nReopened: audit finding re-occurred.` : 'Reopened: audit finding re-occurred.';
+    }
+    await this.issues.save(row);
+    return this.toIssueDto(row);
   }
 
   async updateIssueStatus(id: string, update: UpdateIssueRequest): Promise<IssueDto> {
@@ -351,6 +378,7 @@ export class OperationsService {
       data: row.data,
       note: row.note,
       detectedAt: row.detectedAt.toISOString(),
+      lastDetectedAt: (row.lastDetectedAt ?? row.detectedAt).toISOString(),
       resolvedAt: row.resolvedAt?.toISOString() ?? null,
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),

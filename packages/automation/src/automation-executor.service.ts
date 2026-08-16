@@ -2,7 +2,6 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { GscDailyMetric, GscProperty, Site, SiteAutomationSettings } from '@creative-seo/database';
 import { Repository } from 'typeorm';
-import { crawlSite } from '@creative-seo/crawler';
 import { LinksService } from '@creative-seo/links';
 import { VisibilityService, type VisibilityTarget } from '@creative-seo/visibility';
 import { BaselineService, OperationsService, AlertService } from '@creative-seo/operations';
@@ -113,24 +112,17 @@ export class AutomationExecutorService {
       }
 
       case 'full-crawl': {
-        const crawl = await crawlSite({ origin: `https://${site.domain}`, maxPages: 100 });
-        let records = 0;
-        for (const page of crawl.pages) {
-          await this.links.upsertCrawledPage(site.id, {
-            url: page.url,
-            title: page.title ?? undefined,
-            httpStatus: page.httpStatus,
-            text: page.text,
-            headings: page.headings.map((heading) => heading.text),
-            outLinks: page.links.map((url) => ({ url, anchor: '' })),
-          });
-          records += 1;
-        }
+        const result = await this.links.runCrawl(
+          { id: site.id, organizationId, domain: site.domain },
+          null,
+          { maxPages: 100 },
+        );
+        const records = result.run.pagesCrawled;
         await this.evaluateAlerts(site.id, organizationId, flags);
         return {
           status: 'COMPLETED',
           records,
-          message: `Crawled ${records} page(s) (${crawl.issues.length} issue(s))`,
+          message: `Crawled ${records} page(s) (${result.errors.length} error(s))`,
         };
       }
 

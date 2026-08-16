@@ -34,6 +34,9 @@ import { CreateWorkQueue00331720000000033 } from './0033-create-work-queue';
 import { SeedWorkqueuePermissions00341720000000034 } from './0034-seed-workqueue-permissions';
 import { CreateKnowledgeBase00351720000000035 } from './0035-create-knowledge-base';
 import { SeedKnowledgePermissions00361720000000036 } from './0036-seed-knowledge-permissions';
+import { CreateCrawlRuns00371720000000037 } from './0037-create-crawl-runs';
+import { AddCrawlAuditSignals00381720000000038 } from './0038-add-crawl-audit-signals';
+import { CreateAuditRuns00391720000000039 } from './0039-create-audit-runs';
 
 export const migrations = [
   CreateIdentity00011720000000001,
@@ -72,6 +75,9 @@ export const migrations = [
   SeedWorkqueuePermissions00341720000000034,
   CreateKnowledgeBase00351720000000035,
   SeedKnowledgePermissions00361720000000036,
+  CreateCrawlRuns00371720000000037,
+  AddCrawlAuditSignals00381720000000038,
+  CreateAuditRuns00391720000000039,
 ];
 
 export {
@@ -111,4 +117,7 @@ export {
   SeedWorkqueuePermissions00341720000000034,
   CreateKnowledgeBase00351720000000035,
   SeedKnowledgePermissions00361720000000036,
+  CreateCrawlRuns00371720000000037,
+  AddCrawlAuditSignals00381720000000038,
+  CreateAuditRuns00391720000000039,
 };

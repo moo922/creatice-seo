@@ -2,7 +2,7 @@
   "name": "@creative-seo/audit-rules",
   "version": "0.1.0",
   "private": true,
-  "description": "Deterministic SEO/AEO/GEO audit rule registry (rules implemented in Phase 2)",
+  "description": "Deterministic audit rule registry: technical, on-page, structured-data and crawl-architecture checks over versioned crawl runs",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": ["dist"],
@@ -10,12 +10,15 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint \"src/**/*.ts\"",
-    "test": "echo \"@creative-seo/audit-rules has no runtime tests in Phase 1\""
+    "test": "jest --runInBand --config jest.unit.json"
   },
   "dependencies": {
     "@creative-seo/types": "^0.1.0"
   },
   "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.2.5",
     "typescript": "^5.6.3"
   }
 }

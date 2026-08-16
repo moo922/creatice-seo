@@ -11,6 +11,7 @@ const metrics = (overrides: Partial<BaselineMetricsDto> = {}): BaselineMetricsDt
   gscMetrics: { clicks: 1000, impressions: 50000, ctr: 0.02, avgPosition: 12 },
   keywordVisibility: 30,
   internalLinkHealth: 65,
+  seoHealth: 70,
   ...overrides,
 });
 
@@ -72,7 +73,7 @@ describe('compareSnapshots', () => {
     const comparison = compareSnapshots(from, to);
     expect(comparison.from.id).toBe('snap-1');
     expect(comparison.to.id).toBe('snap-2');
-    expect(comparison.metrics.length).toBe(9);
+    expect(comparison.metrics.length).toBe(10);
     expect(comparison.issueProgression).toBeDefined();
   });
 });

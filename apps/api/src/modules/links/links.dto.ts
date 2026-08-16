@@ -65,6 +65,37 @@ export class LinkSuggestionDecisionDto {
   notes?: string;
 }
 
+export class StartCrawlDto {
+  @IsOptional()
+  @Transform(({ value }) => (value === undefined ? undefined : Number(value)))
+  @IsInt()
+  @Min(1)
+  @Max(500)
+  maxPages?: number;
+
+  @IsOptional()
+  @Transform(({ value }) => (value === undefined ? undefined : Number(value)))
+  @IsInt()
+  @Min(1)
+  @Max(10)
+  maxDepth?: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  seedPath?: string;
+}
+
+export class RunAuditDto {
+  @IsOptional()
+  @IsString()
+  crawlRunId?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  persist?: boolean;
+}
+
 export class ApplyLinkSuggestionDto {
   @IsOptional()
   @IsString()

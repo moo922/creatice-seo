@@ -52,6 +52,10 @@ export class Issue {
   @CreateDateColumn({ type: 'timestamptz', name: 'detected_at' })
   detectedAt: Date;
 
+  /** Last time the underlying problem was observed (re-detection). */
+  @Column({ type: 'timestamptz', name: 'last_detected_at', nullable: true })
+  lastDetectedAt: Date | null;
+
   @Column({ type: 'timestamptz', name: 'resolved_at', nullable: true })
   resolvedAt: Date | null;
 

@@ -965,7 +965,7 @@ function buildAeoGaps(
   visibility: VisibilityMetricsDto | null,
 ): string[] {
   const gaps: string[] = [];
-  if (current && current.aeoReadiness < HEALTH_THRESHOLD) gaps.push('AEO readiness score below the healthy threshold (under 60).');
+  if (current && current.aeoReadiness !== null && current.aeoReadiness < HEALTH_THRESHOLD) gaps.push('AEO readiness score below the healthy threshold (under 60).');
   if (avg.aeo !== null && avg.aeo < HEALTH_THRESHOLD) gaps.push(`Average AEO validator score across content packages is ${Math.round(avg.aeo)} — answer-engine questions may be under-covered.`);
   if (visibility && visibility.citationRate < 0.5) gaps.push('Low on-site citation rate in AI observations — pages rarely cited as a source.');
   if (avg.rankMath !== null && avg.rankMath < HEALTH_THRESHOLD) gaps.push('Rank Math schema/structured-data coverage below the healthy threshold.');
@@ -979,7 +979,7 @@ function buildGeoGaps(
   visibility: VisibilityMetricsDto | null,
 ): string[] {
   const gaps: string[] = [];
-  if (current && current.geoReadiness < HEALTH_THRESHOLD) gaps.push('GEO readiness score below the healthy threshold (under 60).');
+  if (current && current.geoReadiness !== null && current.geoReadiness < HEALTH_THRESHOLD) gaps.push('GEO readiness score below the healthy threshold (under 60).');
   if (avg.geo !== null && avg.geo < HEALTH_THRESHOLD) gaps.push(`Average GEO validator score across content packages is ${Math.round(avg.geo)} — entity coverage may be incomplete.`);
   if (visibility && visibility.sourceCoverage < 0.5) gaps.push('Low source coverage in AI observations — the site is rarely cited.');
   if (visibility && visibility.competitorInclusion > 0.7) gaps.push('Competitors are mentioned in most AI answers while the site is absent.');

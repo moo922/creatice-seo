@@ -7,11 +7,11 @@ import {
   SiteActivationStep,
   WordPressPost,
 } from '@creative-seo/database';
-import { crawlSite, probeOrigin } from '@creative-seo/crawler';
-import { LinksService } from '@creative-seo/links';
+import { probeOrigin } from '@creative-seo/crawler';
+import { AuditService, LinksService } from '@creative-seo/links';
 import { AlertService, BaselineService, OperationsService } from '@creative-seo/operations';
 import { ReportingService } from '@creative-seo/reporting';
-import { VisibilityService, type VisibilityTarget } from '@creative-seo/visibility';
+import { VisibilityService } from '@creative-seo/visibility';
 import type {
   ActivationStepDto,
   ActivationStepKey,
@@ -103,6 +103,7 @@ export class ActivationService {
     private readonly gscMetrics: Repository<GscDailyMetric>,
     private readonly wordpress: WordPressService,
     private readonly links: LinksService,
+    private readonly audits: AuditService,
     private readonly keywords: KeywordsService,
     private readonly gsc: GscService,
     private readonly operations: OperationsService,
@@ -270,31 +271,34 @@ export class ActivationService {
 
       case 'crawl-website':
       case 'build-url-inventory': {
-        const crawl = await crawlSite({ origin: data.site.domain, maxPages: 50 });
-        for (const page of crawl.pages) {
-          await this.links.upsertCrawledPage(data.site.id, {
-            url: page.url,
-            title: page.title,
-            httpStatus: page.httpStatus,
-            text: page.text,
-            headings: page.headings.map((heading) => heading.text),
-            outLinks: page.links.map((url) => ({ url, anchor: '' })),
-          });
-        }
-        if (crawl.pages.length > 0) {
+        const result = await this.links.runCrawl(
+          { id: data.site.id, organizationId: data.site.organizationId, domain: data.site.domain },
+          actor.id,
+          { maxPages: 50 },
+        );
+        const { run } = result;
+        if (run.pagesCrawled > 0) {
           return {
             status: 'COMPLETED',
-            message: `Crawled ${crawl.pages.length} ${crawl.pages.length === 1 ? 'page' : 'pages'}`,
-            detail: { pages: crawl.pages.length, robotsFound: crawl.robots.found, issues: crawl.issues.slice(0, 10) },
+            message: `Crawled ${run.pagesCrawled} ${run.pagesCrawled === 1 ? 'page' : 'pages'}`,
+            detail: {
+              runId: run.id,
+              pages: run.pagesCrawled,
+              pagesDiscovered: run.pagesDiscovered,
+              robotsStatus: run.robotsStatus,
+              sitemapStatus: run.sitemapStatus,
+            },
           };
         }
-        const robots = crawl.robots.disallowsSeed ? 'robots.txt blocks crawl' : null;
-        const timeout = crawl.timedOut ? 'crawler timeout' : null;
-        const first = crawl.issues[0];
         return {
           status: 'FAILED',
-          message: robots ?? timeout ?? (first ? first.message : 'No pages were crawled'),
-          detail: { robotsFound: crawl.robots.found, issues: crawl.issues.slice(0, 10), timedOut: crawl.timedOut },
+          message: run.error ?? 'No pages were crawled',
+          detail: {
+            runId: run.id,
+            robotsStatus: run.robotsStatus,
+            sitemapStatus: run.sitemapStatus,
+            pagesFailed: run.pagesFailed,
+          },
         };
       }
 
@@ -324,15 +328,14 @@ export class ActivationService {
       }
 
       case 'run-aeo-audit':
-      case 'run-geo-readiness': {
-        const target = await this.resolveVisibilityTarget(data.site);
-        const run = await this.visibility.run(data.site.id, actor.organizationId ?? null, target, {}, actor.id);
+      case 'run-geo-readiness':
+        // AEO/GEO site audits are not implemented yet. AI Visibility is a
+        // separate module; observations must not be reported as an audit pass.
         return {
-          status: 'COMPLETED',
-          message: `Observation run started (${run.status.toLowerCase()})`,
-          detail: { runId: run.id, status: run.status },
+          status: 'NOT_IMPLEMENTED',
+          message: 'True AEO/GEO site audit is not implemented yet — planned for a later phase.',
+          detail: { module: 'ai-visibility', note: 'AI Visibility remains available as a separate module.' },
         };
-      }
 
       case 'create-baseline': {
         const metrics = await this.buildBaselineMetrics(data);
@@ -509,7 +512,7 @@ export class ActivationService {
         return data.keywords.length > 0 ? 'COMPLETED' : 'NOT_STARTED';
       case 'run-aeo-audit':
       case 'run-geo-readiness':
-        return data.observations.length > 0 ? 'COMPLETED' : 'NOT_STARTED';
+        return 'NOT_IMPLEMENTED';
       case 'create-baseline':
         return data.baselines.length > 0 ? 'COMPLETED' : 'NOT_STARTED';
       case 'connect-gsc':
@@ -651,12 +654,7 @@ export class ActivationService {
   /** Defensible directional scores derived only from real platform data. */
   private async buildBaselineMetrics(data: SiteData): Promise<BaselineMetricsDto> {
     const pages = data.crawledPages;
-    const withTitleAndMeta = pages.filter((page) => page.title && page.wordCount > 0).length;
     const withContent = pages.filter((page) => page.wordCount >= 300).length;
-    const withLinks = pages.filter((page) => (page.outLinks ?? []).length > 0).length;
-    const observations = data.observations;
-    const observed = observations.filter((obs) => !obs.error);
-    const cited = observed.filter((obs) => obs.websiteCited).length;
 
     let clicks = 0;
     let impressions = 0;
@@ -673,13 +671,19 @@ export class ActivationService {
 
     const pct = (part: number, whole: number) => (whole > 0 ? Math.round((part / whole) * 100) : 0);
 
+    // Versioned Internal Platform Health Score derived from the latest completed
+    // audit run (coverage, failed rules, severity, affected URLs). Never derived
+    // from page count, and never presented as a Google score.
+    const scores = await this.audits.latestScores(data.site.id);
+
     return {
-      crawlHealth: pages.length > 0 ? Math.min(100, pages.length * 5) : 0,
+      crawlHealth: scores?.technicalHealth ?? null,
       technicalIssues: data.issues.filter((issue) => issue.severity === 'CRITICAL' || issue.severity === 'HIGH').length,
-      onPageHealth: pct(withTitleAndMeta, pages.length),
+      onPageHealth: scores?.onPageHealth ?? null,
       contentHealth: pct(withContent, pages.length),
-      aeoReadiness: pct(cited, observed.length),
-      geoReadiness: pct(cited, observed.length),
+      // AEO/GEO site audits are not implemented yet — honest null, not AI-visibility proxy.
+      aeoReadiness: null,
+      geoReadiness: null,
       gscMetrics: {
         clicks: Math.round(clicks),
         impressions: Math.round(impressions),
@@ -687,7 +691,8 @@ export class ActivationService {
         avgPosition: positions.length > 0 ? round2(positions.reduce((total, value) => total + value, 0) / positions.length) : null,
       },
       keywordVisibility: data.keywords.filter((keyword) => (keyword.metrics?.impressions ?? 0) > 0).length,
-      internalLinkHealth: pct(withLinks, pages.length),
+      internalLinkHealth: scores?.internalLinkingHealth ?? null,
+      seoHealth: scores?.seoHealth ?? null,
     };
   }
 
@@ -726,24 +731,6 @@ export class ActivationService {
       position,
       criticalTechnicalIssueCount: data.issues.filter((issue) => issue.severity === 'CRITICAL').length || undefined,
       cannibalization: cannibalization.length > 0 ? cannibalization : undefined,
-    };
-  }
-
-  private async resolveVisibilityTarget(site: Site): Promise<VisibilityTarget> {
-    const settings = (site.settings ?? {}) as {
-      competitors?: string[];
-      industry?: string;
-      product?: string;
-      problem?: string;
-    };
-    return {
-      brand: site.name,
-      domain: site.domain,
-      competitors: settings.competitors ?? [],
-      industry: settings.industry ?? '',
-      product: settings.product ?? '',
-      location: site.country ?? '',
-      problem: settings.problem ?? '',
     };
   }
 
