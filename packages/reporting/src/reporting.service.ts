@@ -8,7 +8,8 @@ import {
   ContentPublication,
   GscDailyMetric,
   GscOpportunity,
-  GscProperty,
+  GscPageDailyMetric,
+  GscSiteDailyMetric,
   Keyword,
   KeywordMetric,
   LinkAnalysis,
@@ -93,8 +94,9 @@ export class ReportingService {
     @InjectRepository(Keyword) private readonly keywords: Repository<Keyword>,
     @InjectRepository(KeywordMetric) private readonly keywordMetrics: Repository<KeywordMetric>,
     @InjectRepository(GscDailyMetric) private readonly gscMetrics: Repository<GscDailyMetric>,
-    @InjectRepository(GscProperty) private readonly gscProperties: Repository<GscProperty>,
     @InjectRepository(GscOpportunity) private readonly gscOpportunities: Repository<GscOpportunity>,
+    @InjectRepository(GscSiteDailyMetric) private readonly siteDailyMetrics: Repository<GscSiteDailyMetric>,
+    @InjectRepository(GscPageDailyMetric) private readonly pageDailyMetrics: Repository<GscPageDailyMetric>,
     @InjectRepository(WordPressIntegration) private readonly wpIntegrations: Repository<WordPressIntegration>,
     @InjectRepository(WordPressPost) private readonly wpPosts: Repository<WordPressPost>,
     @InjectRepository(ContentPublication) private readonly publications: Repository<ContentPublication>,
@@ -604,17 +606,15 @@ export class ReportingService {
   }
 
   private gscPageWindow(siteId: string, start: string, end: string): Promise<Map<string, { clicks: number; impressions: number; avgPosition: number | null }>> {
-    return this.gscMetrics
+    return this.pageDailyMetrics
       .createQueryBuilder('m')
-      .innerJoin(GscProperty, 'p', 'p.id = m.property_id')
-      .select('m.page', 'page')
+      .select('m.page_url', 'page')
       .addSelect('COALESCE(SUM(m.clicks), 0)', 'clicks')
       .addSelect('COALESCE(SUM(m.impressions), 0)', 'impressions')
       .addSelect('AVG(m.position) FILTER (WHERE m.position > 0)', 'position')
-      .where('p.site_id = :siteId', { siteId })
-      .andWhere('m.metric_date BETWEEN :s AND :e', { s: start, e: end })
-      .andWhere("m.page != ''")
-      .groupBy('m.page')
+      .where('m.site_id = :siteId', { siteId })
+      .andWhere('m.date BETWEEN :s AND :e', { s: start, e: end })
+      .groupBy('m.page_url')
       .orderBy('clicks', 'DESC')
       .limit(100)
       .getRawMany()
@@ -672,14 +672,13 @@ export class ReportingService {
   }
 
   private gscWindow(siteId: string, start: string, end: string): Promise<{ clicks: number; impressions: number; position: number | null }> {
-    return this.gscMetrics
+    return this.siteDailyMetrics
       .createQueryBuilder('m')
-      .innerJoin(GscProperty, 'p', 'p.id = m.property_id')
       .select('COALESCE(SUM(m.clicks), 0)', 'clicks')
       .addSelect('COALESCE(SUM(m.impressions), 0)', 'impressions')
-      .addSelect('AVG(m.position) FILTER (WHERE m.position > 0)', 'position')
-      .where('p.site_id = :siteId', { siteId })
-      .andWhere('m.metric_date BETWEEN :s AND :e', { s: start, e: end })
+      .addSelect('AVG(m.average_position) FILTER (WHERE m.average_position > 0)', 'position')
+      .where('m.site_id = :siteId', { siteId })
+      .andWhere('m.date BETWEEN :s AND :e', { s: start, e: end })
       .getRawOne<{ clicks: string; impressions: string; position: string | null }>()
       .then((row) => ({ clicks: Number(row?.clicks ?? 0), impressions: Number(row?.impressions ?? 0), position: row?.position === null ? null : Number(row?.position ?? 0) }));
   }

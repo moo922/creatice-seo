@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AiCoreModule } from '@creative-seo/ai';
 import { AutomationCoreModule } from '@creative-seo/automation';
 import { ContentCoreModule } from '@creative-seo/content';
+import { MetricsCoreModule } from '@creative-seo/metrics';
 import { OperationsCoreModule } from '@creative-seo/operations';
 import { VisibilityCoreModule } from '@creative-seo/visibility';
 import { ReportingCoreModule } from '@creative-seo/reporting';
@@ -33,6 +34,7 @@ import { AutomationScheduler } from './queue/automation-scheduler';
     }),
     TypeOrmModule.forFeature([Site]),
     AiCoreModule,
+    MetricsCoreModule,
     AutomationCoreModule,
     ContentCoreModule,
     OperationsCoreModule,

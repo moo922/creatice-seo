@@ -9,8 +9,8 @@ import {
   ContentPackage,
   ContentPublication,
   CrawledPage,
-  GscDailyMetric,
   GscProperty,
+  GscSiteDailyMetric,
   Issue,
   Keyword,
   KeywordMetric,
@@ -69,7 +69,7 @@ export class DashboardService {
     @InjectRepository(CrawledPage) private readonly crawledPages: Repository<CrawledPage>,
     @InjectRepository(LinkAnalysis) private readonly analyses: Repository<LinkAnalysis>,
     @InjectRepository(GscProperty) private readonly gscProperties: Repository<GscProperty>,
-    @InjectRepository(GscDailyMetric) private readonly gscMetrics: Repository<GscDailyMetric>,
+    @InjectRepository(GscSiteDailyMetric) private readonly siteDailyMetrics: Repository<GscSiteDailyMetric>,
     @InjectRepository(Keyword) private readonly keywords: Repository<Keyword>,
     @InjectRepository(KeywordMetric) private readonly keywordMetrics: Repository<KeywordMetric>,
     @InjectRepository(WordPressIntegration) private readonly wpIntegrations: Repository<WordPressIntegration>,
@@ -563,16 +563,15 @@ export class DashboardService {
   }
 
   private async gscWindow(ids: string[], start: string, end: string): Promise<GscAggRow[]> {
-    return this.gscMetrics
+    return this.siteDailyMetrics
       .createQueryBuilder('m')
-      .innerJoin(GscProperty, 'p', 'p.id = m.property_id')
-      .select('p.site_id', 'siteId')
+      .select('m.site_id', 'siteId')
       .addSelect('COALESCE(SUM(m.clicks), 0)', 'clicks')
       .addSelect('COALESCE(SUM(m.impressions), 0)', 'impressions')
-      .addSelect('AVG(m.position) FILTER (WHERE m.position > 0)', 'position')
-      .where('p.site_id IN (:...ids)', { ids })
-      .andWhere('m.metric_date BETWEEN :s AND :e', { s: start, e: end })
-      .groupBy('p.site_id')
+      .addSelect('AVG(m.average_position) FILTER (WHERE m.average_position > 0)', 'position')
+      .where('m.site_id IN (:...ids)', { ids })
+      .andWhere('m.date BETWEEN :s AND :e', { s: start, e: end })
+      .groupBy('m.site_id')
       .getRawMany();
   }
 

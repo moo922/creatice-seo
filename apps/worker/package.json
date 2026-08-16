@@ -17,6 +17,7 @@
     "@creative-seo/content": "^0.1.0",
     "@creative-seo/database": "^0.1.0",
     "@creative-seo/links": "^0.1.0",
+    "@creative-seo/metrics": "^0.1.0",
     "@creative-seo/operations": "^0.1.0",
     "@creative-seo/reporting": "^0.1.0",
     "@creative-seo/visibility": "^0.1.0",

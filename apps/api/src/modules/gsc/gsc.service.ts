@@ -470,7 +470,9 @@ export class GscService {
   /**
    * Writes a day of Search Console rows into the canonical per-grain tables in
    * addition to the legacy gsc_daily_metrics table (kept for compatibility).
-   * Upserts are idempotent on (site_id, date, grain, dimension-key).
+   * Rows are aggregated to the target grain first (e.g. a response split by
+   * country is summed into a single SITE_DAILY row) so upserts never overwrite
+   * partial data. Upserts are idempotent on the grain's unique key.
    */
   private async upsertMetricsDay(propertyId: string, siteId: string, date: string, dimensions: GscDimension[], rows: GscSearchAnalyticsRow[]): Promise<number> {
     if (rows.length === 0) {
@@ -484,74 +486,99 @@ export class GscService {
     const hasQuery = dimsSet.has('query');
     const hasPage = dimsSet.has('page');
 
+    // Aggregate rows to the target grain before upserting. `key` uniquely
+    // identifies the row within the grain for this day.
+    const totals = new Map<string, { clicks: number; impressions: number; weightedPosition: number; posImpressions: number; hasPosition: boolean }>();
     for (const row of rows) {
       const dims: Record<string, string> = {};
       row.keys.forEach((value, index) => {
         const dimension = dimensions[index];
         if (dimension) dims[dimension] = value;
       });
-      const clicks = row.clicks;
-      const impressions = row.impressions;
-      const ctr = row.ctr;
-      const position = row.position;
+      const key = hasQuery && hasPage
+        ? `${dims.query ?? ''}\u0001${dims.page ?? ''}`
+        : hasQuery
+          ? (dims.query ?? '')
+          : hasPage
+            ? (dims.page ?? '')
+            : '__SITE__';
+      const entry = totals.get(key) ?? { clicks: 0, impressions: 0, weightedPosition: 0, posImpressions: 0, hasPosition: false };
+      entry.clicks += row.clicks;
+      entry.impressions += row.impressions;
+      if (row.position !== null && row.position > 0) {
+        entry.weightedPosition += row.position * row.impressions;
+        entry.posImpressions += row.impressions;
+        entry.hasPosition = true;
+      }
+      totals.set(key, entry);
+    }
 
-      // QUERY_PAGE_DAILY
+    const entries: Array<{ key: string; clicks: number; impressions: number; ctr: number; position: number | null }> = [];
+    for (const [key, total] of totals) {
+      entries.push({
+        key,
+        clicks: total.clicks,
+        impressions: total.impressions,
+        ctr: total.impressions > 0 ? round2(total.clicks / total.impressions) : 0,
+        position: total.hasPosition && total.posImpressions > 0 ? round2(total.weightedPosition / total.posImpressions) : null,
+      });
+    }
+
+    for (const entry of entries) {
       if (hasQuery && hasPage) {
+        const [query, pageUrl] = entry.key.split('\u0001');
         await this.queryPageDaily.upsert(
           {
             siteId,
             date,
-            query: dims.query ?? '',
-            pageUrl: dims.page ?? '',
-            normalizedQuery: normalizeText(dims.query ?? ''),
-            normalizedUrl: normalizeUrl(dims.page ?? ''),
-            clicks,
-            impressions,
-            ctr,
-            position,
+            query: query ?? '',
+            pageUrl: pageUrl ?? '',
+            normalizedQuery: normalizeText(query ?? ''),
+            normalizedUrl: normalizeUrl(pageUrl ?? ''),
+            clicks: entry.clicks,
+            impressions: entry.impressions,
+            ctr: entry.ctr,
+            position: entry.position,
           },
           ['siteId', 'date', 'query', 'pageUrl'],
         );
       } else if (hasQuery) {
-        // QUERY_DAILY
         await this.queryDaily.upsert(
           {
             siteId,
             date,
-            query: dims.query ?? '',
-            normalizedQuery: normalizeText(dims.query ?? ''),
-            clicks,
-            impressions,
-            ctr,
-            position,
+            query: entry.key,
+            normalizedQuery: normalizeText(entry.key),
+            clicks: entry.clicks,
+            impressions: entry.impressions,
+            ctr: entry.ctr,
+            position: entry.position,
           },
           ['siteId', 'date', 'query'],
         );
       } else if (hasPage) {
-        // PAGE_DAILY
         await this.pageDaily.upsert(
           {
             siteId,
             date,
-            pageUrl: dims.page ?? '',
-            normalizedUrl: normalizeUrl(dims.page ?? ''),
-            clicks,
-            impressions,
-            ctr,
-            position,
+            pageUrl: entry.key,
+            normalizedUrl: normalizeUrl(entry.key),
+            clicks: entry.clicks,
+            impressions: entry.impressions,
+            ctr: entry.ctr,
+            position: entry.position,
           },
           ['siteId', 'date', 'pageUrl'],
         );
       } else {
-        // SITE_DAILY (no query/page split) — aggregate across all rows for the day.
         await this.siteDaily.upsert(
           {
             siteId,
             date,
-            clicks,
-            impressions,
-            ctr,
-            averagePosition: position ?? null,
+            clicks: entry.clicks,
+            impressions: entry.impressions,
+            ctr: entry.ctr,
+            averagePosition: entry.position,
           },
           ['siteId', 'date'],
         );
