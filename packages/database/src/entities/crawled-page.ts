@@ -1,10 +1,14 @@
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
 /**
- * A crawled page: content, headings and the extracted outgoing link graph.
- * Internal-link intelligence consumes these (plus the approved URL map and
- * keyword clusters) to detect orphans, weak targets, broken links, overused
- * anchors, conflicts and relevant link opportunities.
+ * DEPRECATED (compatibility) — the legacy flat "latest page state" model.
+ *
+ * The versioned crawl architecture (crawl_runs / crawl_pages / crawl_links /
+ * crawl_errors) is the source of truth for new crawls. This table is kept for
+ * backward compatibility: versioned crawls still upsert here so existing link
+ * analysis, activation and automation flows keep working, and
+ * `link_analyses` reads it only when no versioned crawl run exists yet.
+ * New features must use the crawl-run tables. Do not extend this model.
  */
 @Entity('crawled_pages')
 @Index('idx_crawled_pages_site_url', ['siteId', 'url'], { unique: true })

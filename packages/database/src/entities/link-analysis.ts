@@ -25,6 +25,10 @@ export class LinkAnalysis {
   @Column({ type: 'uuid', name: 'created_by', nullable: true })
   createdBy: string | null;
 
+  /** The versioned crawl run this analysis consumed (null = legacy crawled_pages). */
+  @Column({ type: 'uuid', name: 'crawl_run_id', nullable: true })
+  crawlRunId: string | null;
+
   @CreateDateColumn({ type: 'timestamptz', name: 'created_at' })
   createdAt: Date;
 

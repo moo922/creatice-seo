@@ -10,7 +10,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "preview": "vite preview",
-    "test": "echo \"@creative-seo/web has no runtime tests in Phase 1\""
+    "test": "jest --runInBand --config jest.config.cjs"
   },
   "dependencies": {
     "@creative-seo/types": "^0.1.0",
@@ -32,11 +32,20 @@
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.0.0",
+    "@testing-library/dom": "^10.4.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.0.0",
+    "@testing-library/user-event": "^14.5.2",
+    "@types/jest": "^29.5.14",
     "@types/node": "^22.9.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.3",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "jsdom": "^25.0.0",
     "tailwindcss": "^4.0.0",
+    "ts-jest": "^29.2.5",
     "typescript": "^5.6.3",
     "vite": "^6.0.0"
   }

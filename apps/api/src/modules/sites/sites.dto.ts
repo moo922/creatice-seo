@@ -11,7 +11,12 @@ import {
 } from 'class-validator';
 import { SITE_ROLES, SITE_STATUSES } from '@creative-seo/types';
 
-const DOMAIN_REGEX = /^(?!-)[a-zA-Z0-9-]{1,63}(\.[a-zA-Z0-9-]{1,63})+$/;
+/**
+ * Site domain: a hostname (dotted labels) or an IPv4 address, with an optional
+ * `:port`. Protocols and paths are rejected. The port is allowed so local
+ * fixture/self-hosted sites (e.g. 127.0.0.1:8443) can be registered.
+ */
+const DOMAIN_REGEX = /^(([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}|(\d{1,3}\.){3}\d{1,3})(:\d{1,5})?$/;
 
 export class CreateSiteDto {
   @IsOptional()

@@ -1351,6 +1351,7 @@ export interface LinkAnalysisDto {
   status: LinkAnalysisStatus;
   stats: LinkStatsDto;
   suggestionsCreated: number;
+  crawlRunId: string | null;
   createdAt: string;
   completedAt: string | null;
 }

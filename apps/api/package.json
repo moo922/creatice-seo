@@ -11,7 +11,7 @@
     "lint": "eslint \"src/**/*.ts\"",
     "test": "jest --runInBand --config jest.unit.json",
     "test:unit": "jest --runInBand --config jest.unit.json",
-    "test:e2e": "jest --runInBand --config jest-e2e.json --passWithNoTests",
+    "test:e2e": "NODE_TLS_REJECT_UNAUTHORIZED=0 jest --runInBand --forceExit --config jest-e2e.json --passWithNoTests",
     "test:scenario": "jest --runInBand --forceExit --config jest-e2e.json --testRegex \"scenario\\.spec\\.ts$\""
   },
   "dependencies": {

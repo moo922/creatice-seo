@@ -279,8 +279,45 @@ export class LinksService {
   // -------------------------------------------------------------------------
 
   async runAnalysis(siteId: string, domain: string, createdBy: string | null): Promise<LinkAnalysisReportDto> {
-    const crawled = await this.crawledPages.find({ where: { siteId } });
-    const targets = await this.loadApprovedTargets(siteId);
+    // Prefer the latest completed crawl run (versioned pages + links). For
+    // installations that still write the legacy flat `crawled_pages` table,
+    // fall back to it so existing link analysis keeps working unchanged.
+    const [crawlRun, targets] = await Promise.all([
+      this.crawlRuns.findOne({ where: { siteId, status: 'COMPLETED' }, order: { startedAt: 'DESC' } }),
+      this.loadApprovedTargets(siteId),
+    ]);
+
+    let crawledData: CrawledPageData[];
+    let crawlRunId: string | null = null;
+    if (crawlRun) {
+      crawlRunId = crawlRun.id;
+      const [pages, links] = await Promise.all([
+        this.crawlPages.find({ where: { crawlRunId: crawlRun.id } }),
+        this.crawlLinks.find({ where: { crawlRunId: crawlRun.id } }),
+      ]);
+      const linksBySource = new Map<string, Array<{ url: string; anchor: string }>>();
+      for (const link of links) {
+        const list = linksBySource.get(link.sourceUrl) ?? [];
+        list.push({ url: link.targetUrl, anchor: link.anchorText });
+        linksBySource.set(link.sourceUrl, list);
+      }
+      crawledData = pages.map((page) => ({
+        url: page.url,
+        text: '',
+        headings: page.headings.map((heading) => heading.text),
+        httpStatus: page.httpStatus,
+        outLinks: linksBySource.get(page.url) ?? [],
+      }));
+    } else {
+      const crawled = await this.crawledPages.find({ where: { siteId } });
+      crawledData = crawled.map((page) => ({
+        url: page.url,
+        text: page.text,
+        headings: page.headings,
+        httpStatus: page.httpStatus,
+        outLinks: page.outLinks,
+      }));
+    }
 
     const analysisRow = this.analyses.create({
       siteId,
@@ -288,16 +325,9 @@ export class LinksService {
       stats: {},
       suggestionsCreated: 0,
       createdBy,
+      crawlRunId,
     });
     const analysis = await this.analyses.save(analysisRow);
-
-    const crawledData: CrawledPageData[] = crawled.map((page) => ({
-      url: page.url,
-      text: page.text,
-      headings: page.headings,
-      httpStatus: page.httpStatus,
-      outLinks: page.outLinks,
-    }));
 
     const result = analyzeLinkGraph({ siteDomain: domain, crawledPages: crawledData, approvedTargets: targets });
 
@@ -538,6 +568,7 @@ export class LinksService {
       status: row.status as LinkAnalysisDto['status'],
       stats: (row.stats ?? {}) as unknown as LinkStatsDto,
       suggestionsCreated: row.suggestionsCreated,
+      crawlRunId: row.crawlRunId,
       createdAt: row.createdAt.toISOString(),
       completedAt: row.completedAt?.toISOString() ?? null,
     };
