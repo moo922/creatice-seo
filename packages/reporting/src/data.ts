@@ -25,6 +25,8 @@ export interface MetricRow {
   current: string;
   delta: string;
   direction: 'improved' | 'declined' | 'flat' | 'n/a';
+  /** Distinguishes measured change from completed work or observation. */
+  basis?: 'measured' | 'work_completed' | 'observation';
 }
 
 export interface WorkItem {
@@ -254,6 +256,7 @@ export function metricRows(comparisons: MetricComparisonDto[]): MetricRow[] {
     current: formatValue(comparison.curr),
     delta: comparison.deltaPct === null ? 'n/a' : `${sign(comparison.deltaPct)}${Math.abs(comparison.deltaPct).toFixed(1)}%`,
     direction: comparison.direction,
+    basis: 'measured' as const,
   }));
 }
 

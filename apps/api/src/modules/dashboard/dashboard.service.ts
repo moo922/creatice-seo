@@ -815,8 +815,6 @@ function baselineProgress(first: BaselineSnapshot, latest: BaselineSnapshot): { 
   const n = (value: number | null | undefined): number => value ?? 0;
   const items: Array<{ key: string; label: string; initial: number; current: number }> = [
     { key: 'seoHealth', label: 'SEO Health', initial: n(initial.seoHealth), current: n(current.seoHealth) },
-    { key: 'aeoReadiness', label: 'AEO Readiness', initial: n(initial.aeoReadiness), current: n(current.aeoReadiness) },
-    { key: 'geoReadiness', label: 'GEO Readiness', initial: n(initial.geoReadiness), current: n(current.geoReadiness) },
     { key: 'criticalIssues', label: 'Critical Issues', initial: n(initial.criticalIssues), current: n(current.criticalIssues) },
     { key: 'highIssues', label: 'High Issues', initial: n(initial.highIssues), current: n(current.highIssues) },
     { key: 'organicClicks', label: 'Organic Clicks', initial: n(initial.gscMetrics.clicks), current: n(current.gscMetrics.clicks) },
@@ -830,6 +828,12 @@ function baselineProgress(first: BaselineSnapshot, latest: BaselineSnapshot): { 
     current: item.current,
     change: round2(item.current - item.initial),
   }));
+
+  metrics.push(
+    { key: 'aeoReadiness', label: 'AEO Readiness', initial: null, current: null, change: null, status: 'not_measured' },
+    { key: 'geoReadiness', label: 'GEO Readiness', initial: null, current: null, change: null, status: 'not_measured' },
+  );
+
   return { exists: true, metrics };
 }
 

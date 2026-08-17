@@ -5,7 +5,7 @@ import type {
 } from '@creative-seo/types';
 
 export interface ComparisonResult<T> {
-  current: T;
+  current: T | null;
   previous: T | null;
   absoluteChange: number | null;
   percentageChange: number | null;
@@ -51,7 +51,7 @@ export class ComparisonService {
     // Handle null cases
     if (current === null && previous === null) {
       return {
-        current: 0,
+        current: null,
         previous: null,
         absoluteChange: null,
         percentageChange: null,
@@ -64,7 +64,7 @@ export class ComparisonService {
 
     if (current === null || previous === null) {
       return {
-        current: current ?? 0,
+        current,
         previous,
         absoluteChange: null,
         percentageChange: null,

@@ -7,6 +7,7 @@ import type {
   BaselineMetricsDto,
   MetricAvailability,
 } from '@creative-seo/types';
+import { observe, ObservabilityEvent } from './observability';
 
 /** Stale thresholds in days (platform defaults, not search-engine rules). */
 const STALE_THRESHOLDS = {
@@ -69,7 +70,13 @@ export class SiteSnapshotService {
       dataQuality: input.dataQuality,
       availability: input.availability as unknown as Record<string, string>,
     });
-    return (await this.snapshots.save(snapshot)) as SiteSnapshot;
+    const saved = (await this.snapshots.save(snapshot)) as SiteSnapshot;
+    observe(ObservabilityEvent.SNAPSHOT_CALCULATED, {
+      snapshotType: input.snapshotType,
+      version: saved.version,
+      effectiveDate: input.effectiveDate,
+    }, input.siteId);
+    return saved;
   }
 
   /**

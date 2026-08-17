@@ -13,6 +13,7 @@ import type {
 } from '@creative-seo/types';
 import { Between, Repository } from 'typeorm';
 import { compareSnapshots, issueProgression, round2 } from './baseline';
+import { observe, ObservabilityEvent } from './observability';
 import { OperationsService } from './operations.service';
 import { SiteSnapshotService } from './site-snapshot.service';
 
@@ -64,6 +65,11 @@ export class BaselineService {
       createdBy,
     });
     const saved = await this.snapshots.save(row);
+    observe(ObservabilityEvent.BASELINE_CREATED, {
+      type: input.type,
+      baselineVersion,
+      isBaseline: input.type === 'BASELINE',
+    }, siteId);
     return this.toDto(saved);
   }
 
@@ -284,7 +290,7 @@ export class BaselineService {
     const rows = await this.dailyMetrics.find({ where: { propertyId, page: pageUrl } });
     const inWindow = rows.filter((row) => row.metricDate >= startDate && row.metricDate <= endDate);
     if (inWindow.length === 0) {
-      return { clicks: 0, impressions: 0, ctr: 0, avgPosition: null };
+      return { clicks: 0, impressions: 0, ctr: null, avgPosition: null };
     }
     const clicks = sum(inWindow.map((row) => Number(row.clicks)));
     const impressions = sum(inWindow.map((row) => Number(row.impressions)));
@@ -292,7 +298,7 @@ export class BaselineService {
     return {
       clicks,
       impressions,
-      ctr: impressions > 0 ? round2(clicks / impressions) : 0,
+      ctr: impressions > 0 ? round2(clicks / impressions) : null,
       avgPosition: positions.length > 0 ? round2(positions.reduce((total, position) => total + position, 0) / positions.length) : null,
     };
   }

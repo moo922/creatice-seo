@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@creative-seo/ai": "^0.1.0",
+    "@creative-seo/audit-rules": "^0.1.0",
     "@creative-seo/database": "^0.1.0",
     "@creative-seo/types": "^0.1.0",
     "@nestjs/common": "^11.0.0",

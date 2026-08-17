@@ -65,6 +65,11 @@ import type {
   AuditRunType,
   MetricGrain,
   MetricAvailability,
+  GscQueryPositionBucket,
+  KeywordMetricSource,
+  DataQualityStatus,
+  TrendClassification,
+  TrendAlgorithm,
 } from './enums';
 import type { PermissionKey } from './permissions';
 
@@ -1173,6 +1178,18 @@ export interface PagePerformanceDto {
   activeDates: number;
 }
 
+export interface QueryPagePerformanceDto {
+  siteId: string;
+  query: string;
+  pageUrl: string;
+  normalizedQuery: string;
+  normalizedUrl: string;
+  periodStart: string;
+  periodEnd: string;
+  totals: PeriodPerformanceDto;
+  activeDates: number;
+}
+
 /** A cannibalization candidate derived from QUERY_PAGE_DAILY evidence. */
 export interface CannibalizationCandidateDto {
   query: string;
@@ -1244,6 +1261,174 @@ export interface SnapshotComparisonDto {
   to: BaselineSnapshotDto;
   metrics: MetricComparisonDto[];
   issueProgression: IssueProgressionDto;
+}
+
+/**
+ * Standard data quality object exposed by every major summary response (Section 28).
+ */
+export interface DataQualityDto {
+  status: DataQualityStatus;
+  latestDataDate: string | null;
+  daysAvailable: number;
+  expectedDays: number;
+  quality: DataQualityStatus;
+  details?: string;
+}
+
+/**
+ * Position bucket counts for query visibility (Section 17).
+ * Separate "All Queries" from "Tracked/Qualified" (min impressions >= threshold).
+ */
+export interface PositionBucketCounts {
+  bucket: GscQueryPositionBucket;
+  allQueries: number;
+  qualifiedQueries: number;
+}
+
+/**
+ * Keyword metrics from a specific source (Section 18).
+ * Never overwrite one source with another.
+ */
+export interface KeywordSourceMetrics {
+  source: KeywordMetricSource;
+  metricDate: string;
+  clicks: number | null;
+  impressions: number | null;
+  ctr: number | null;
+  position: number | null;
+  monthlySearchVolume: number | null;
+  competition: number | null;
+  competitionIndex: number | null;
+}
+
+/**
+ * Content performance metrics for published content (Section 24).
+ */
+export interface ContentPerformanceDto {
+  pageUrl: string;
+  publishedAt: string | null;
+  firstSeenInGsc: string | null;
+  clicks: number | null;
+  impressions: number | null;
+  ctr: number | null;
+  position: number | null;
+  queryCount: number | null;
+  sincePublication: {
+    clicks: number | null;
+    impressions: number | null;
+  } | null;
+}
+
+/**
+ * Content decay detection result (Section 42).
+ * Content age is supporting context, not proof of decay.
+ */
+export interface ContentDecayPageDto {
+  pageUrl: string;
+  currentClicks: number;
+  previousClicks: number;
+  clickDropPct: number;
+  currentImpressions: number;
+  previousImpressions: number;
+  impressionDropPct: number;
+  queryLossCount: number;
+  totalLostQueries: number;
+  evidenceStrength: 'strong' | 'moderate' | 'weak';
+  supportingContext: string[];
+  firstSeenInGsc: string | null;
+  contentAgeDays: number | null;
+}
+
+/**
+ * Page change impact window (Section 25).
+ */
+export interface PageChangeImpactWindow {
+  changeEventId: string;
+  pageUrl: string;
+  changeType: ChangeType;
+  changeDate: string;
+  before: {
+    startDate: string;
+    endDate: string;
+    clicks: number | null;
+    impressions: number | null;
+    ctr: number | null;
+    position: number | null;
+  };
+  after: {
+    startDate: string;
+    endDate: string | null;
+    clicks: number | null;
+    impressions: number | null;
+    ctr: number | null;
+    position: number | null;
+    ready: boolean;
+  } | null;
+  label: 'Observed Performance Change';
+}
+
+/**
+ * Issue progress for a specific period (Section 22).
+ */
+export interface IssuePeriodProgressDto {
+  severity: IssueSeverity;
+  openAtPeriodStart: number;
+  newDuringPeriod: number;
+  resolvedDuringPeriod: number;
+  reopenedDuringPeriod: number;
+  openAtPeriodEnd: number;
+  historyComplete: boolean;
+}
+
+/**
+ * Work completed metrics (Section 23).
+ */
+export interface WorkCompletedMetricsDto {
+  pagesOptimized: number;
+  pagesCreated: number;
+  contentPublished: number;
+  metadataUpdates: number;
+  internalLinksAdded: number;
+  issuesResolved: number;
+  tasksCompleted: number;
+  auditsRun: number;
+  crawlsRun: number;
+  reportsGenerated: number;
+}
+
+/**
+ * Portfolio-level aggregated metrics (Section 26).
+ */
+export interface PortfolioAggregationDto {
+  totalSites: number;
+  activatedSites: number;
+  sitesWithFreshAudits: number;
+  sitesWithStaleAudits: number;
+  sitesGrowing: number;
+  sitesDeclining: number;
+  totalCriticalIssues: number;
+  totalOpenTasks: number;
+  reportsDue: number;
+  organicClicks: number;
+  organicImpressions: number;
+  portfolioCtr: number | null;
+  seoHealthAverage: number | null;
+  seoHealthMeasuredSites: number;
+  seoHealthTotalSites: number;
+}
+
+/**
+ * Site trend classification (Section 27).
+ */
+export interface SiteTrendDto {
+  siteId: string;
+  classification: TrendClassification;
+  organicClicksChange: number | null;
+  organicClicksThreshold: number;
+  impressionsChange: number | null;
+  queryVisibilityChange: number | null;
+  dataPointsUsed: number;
+  algorithmVersion: TrendAlgorithm;
 }
 
 export interface ProgressDashboardDto {
@@ -2164,6 +2349,8 @@ export interface BaselineProgressMetricDto {
   initial: number | null;
   current: number | null;
   change: number | null;
+  /** Present only for metrics that are not yet measured (e.g. AEO/GEO readiness). */
+  status?: 'not_measured';
 }
 
 export interface SiteRecentActivityDto {

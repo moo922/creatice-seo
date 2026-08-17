@@ -2,6 +2,7 @@ export * from './branding';
 export * from './data';
 export * from './pdf';
 export * from './reporting.service';
+export * from './reporting-data.service';
 export * from './reporting-core.module';
 export * from './render/layout';
 export * from './render/sections';

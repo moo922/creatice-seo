@@ -24,6 +24,7 @@ import {
   WordPressPost,
 } from '@creative-seo/database';
 import { ReportingService } from './reporting.service';
+import { ReportingDataService } from './reporting-data.service';
 
 /**
  * Fully self-hosted reporting infrastructure. Depends on the global
@@ -58,7 +59,7 @@ import { ReportingService } from './reporting.service';
       AiVisibilityRun,
     ]),
   ],
-  providers: [ReportingService],
-  exports: [ReportingService],
+  providers: [ReportingService, ReportingDataService],
+  exports: [ReportingService, ReportingDataService],
 })
 export class ReportingCoreModule {}

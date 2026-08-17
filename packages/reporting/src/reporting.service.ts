@@ -849,6 +849,14 @@ function buildHealthBlocks(current: import('@creative-seo/types').BaselineMetric
       direction: row?.direction ?? 'n/a',
     };
   };
+  const notMeasured = (key: string): HealthBlock => ({
+    key,
+    labelKey: key,
+    value: null,
+    previous: null,
+    delta: 'Not yet measured',
+    direction: 'n/a',
+  });
   return {
     seo: [
       block('crawlHealth', current?.crawlHealth ?? null),
@@ -857,8 +865,8 @@ function buildHealthBlocks(current: import('@creative-seo/types').BaselineMetric
       block('keywordVisibility', current?.keywordVisibility ?? null),
       block('internalLinkHealth', current?.internalLinkHealth ?? null),
     ],
-    aeo: [block('aeoReadiness', current?.aeoReadiness ?? null), block('contentHealth', current?.contentHealth ?? null)],
-    geo: [block('geoReadiness', current?.geoReadiness ?? null)],
+    aeo: [current?.aeoReadiness !== null ? block('aeoReadiness', current?.aeoReadiness ?? null) : notMeasured('aeoReadiness'), block('contentHealth', current?.contentHealth ?? null)],
+    geo: [current?.geoReadiness !== null ? block('geoReadiness', current?.geoReadiness ?? null) : notMeasured('geoReadiness')],
   };
 }
 
@@ -867,8 +875,8 @@ function healthBaseline(current: import('@creative-seo/types').BaselineMetricsDt
   return [
     { key: 'crawlHealth', labelKey: 'crawlHealth', value: current.crawlHealth, previous: null, delta: null, direction: 'n/a' },
     { key: 'onPageHealth', labelKey: 'onPageHealth', value: current.onPageHealth, previous: null, delta: null, direction: 'n/a' },
-    { key: 'aeoReadiness', labelKey: 'aeoReadiness', value: current.aeoReadiness, previous: null, delta: null, direction: 'n/a' },
-    { key: 'geoReadiness', labelKey: 'geoReadiness', value: current.geoReadiness, previous: null, delta: null, direction: 'n/a' },
+    { key: 'aeoReadiness', labelKey: 'aeoReadiness', value: current.aeoReadiness, previous: null, delta: current.aeoReadiness === null ? 'Not yet measured' : null, direction: 'n/a' },
+    { key: 'geoReadiness', labelKey: 'geoReadiness', value: current.geoReadiness, previous: null, delta: current.geoReadiness === null ? 'Not yet measured' : null, direction: 'n/a' },
     { key: 'keywordVisibility', labelKey: 'keywordVisibility', value: current.keywordVisibility, previous: null, delta: null, direction: 'n/a' },
   ];
 }
@@ -965,6 +973,7 @@ function buildAeoGaps(
 ): string[] {
   const gaps: string[] = [];
   if (current && current.aeoReadiness !== null && current.aeoReadiness < HEALTH_THRESHOLD) gaps.push('AEO readiness score below the healthy threshold (under 60).');
+  if (current && current.aeoReadiness === null) gaps.push('AEO Readiness: not yet measured. No real audit data is available for this metric.');
   if (avg.aeo !== null && avg.aeo < HEALTH_THRESHOLD) gaps.push(`Average AEO validator score across content packages is ${Math.round(avg.aeo)} — answer-engine questions may be under-covered.`);
   if (visibility && visibility.citationRate < 0.5) gaps.push('Low on-site citation rate in AI observations — pages rarely cited as a source.');
   if (avg.rankMath !== null && avg.rankMath < HEALTH_THRESHOLD) gaps.push('Rank Math schema/structured-data coverage below the healthy threshold.');
@@ -979,6 +988,7 @@ function buildGeoGaps(
 ): string[] {
   const gaps: string[] = [];
   if (current && current.geoReadiness !== null && current.geoReadiness < HEALTH_THRESHOLD) gaps.push('GEO readiness score below the healthy threshold (under 60).');
+  if (current && current.geoReadiness === null) gaps.push('GEO Readiness: not yet measured. No real audit data is available for this metric.');
   if (avg.geo !== null && avg.geo < HEALTH_THRESHOLD) gaps.push(`Average GEO validator score across content packages is ${Math.round(avg.geo)} — entity coverage may be incomplete.`);
   if (visibility && visibility.sourceCoverage < 0.5) gaps.push('Low source coverage in AI observations — the site is rarely cited.');
   if (visibility && visibility.competitorInclusion > 0.7) gaps.push('Competitors are mentioned in most AI answers while the site is absent.');

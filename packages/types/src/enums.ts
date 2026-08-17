@@ -192,6 +192,8 @@ export const ISSUE_KINDS = [
   'WORDPRESS_FAILURE',
   'CONTENT_DECAY',
   'CANNIBALIZATION',
+  'IMPRESSION_DECLINE',
+  'QUERY_VISIBILITY_LOSS',
   'ON_PAGE',
   'ORCHESTRATION',
   'MANUAL',
@@ -274,6 +276,11 @@ export const ALERT_KINDS = [
   'WORDPRESS_FAILURE',
   'CONTENT_DECAY',
   'NEW_CANNIBALIZATION',
+  'IMPRESSION_DECLINE',
+  'QUERY_VISIBILITY_LOSS',
+  'NEW_HIGH_IMPRESSION_QUERY',
+  'POSITION_4_10_OPPORTUNITY',
+  'POSITION_11_20_OPPORTUNITY',
 ] as const;
 export type AlertKind = (typeof ALERT_KINDS)[number];
 
@@ -420,6 +427,107 @@ export const METRIC_AVAILABILITY = [
   'ERROR',
 ] as const;
 export type MetricAvailability = (typeof METRIC_AVAILABILITY)[number];
+
+/**
+ * Explicit direction metadata for each metric. Determines whether an increase
+ * in the numeric value is semantically positive, negative, or context-dependent.
+ * This replaces any generic `positive_change = current > previous` logic.
+ */
+export const METRIC_DIRECTION = {
+  // Higher is better
+  clicks: 'higher_better',
+  impressions: 'higher_better',
+  ctr: 'higher_better',
+  seoHealth: 'higher_better',
+  crawlHealth: 'higher_better',
+  onPageHealth: 'higher_better',
+  contentHealth: 'higher_better',
+  internalLinkHealth: 'higher_better',
+  keywordVisibility: 'higher_better',
+  pagesCrawled: 'higher_better',
+  indexablePages: 'higher_better',
+  rankingQueries: 'higher_better',
+  queriesWithImpressions: 'higher_better',
+  top3QueryCount: 'higher_better',
+  top10QueryCount: 'higher_better',
+  top20QueryCount: 'higher_better',
+
+  // Lower is better
+  avgPosition: 'lower_better',
+  noindexPages: 'lower_better',
+  criticalIssues: 'lower_better',
+  highIssues: 'lower_better',
+  mediumIssues: 'lower_better',
+  lowIssues: 'lower_better',
+  brokenInternalLinks: 'lower_better',
+  orphanPages: 'lower_better',
+  canonicalIssues: 'lower_better',
+  cannibalizationCandidates: 'lower_better',
+  positions11To20: 'lower_better',
+
+  // Context-dependent (not used in direct comparison until real audits exist)
+  aeoReadiness: 'not_measured',
+  geoReadiness: 'not_measured',
+  aiVisibilityObservations: 'context_dependent',
+} as const;
+
+export type MetricDirection = typeof METRIC_DIRECTION[keyof typeof METRIC_DIRECTION];
+export type MetricKey = keyof typeof METRIC_DIRECTION;
+
+/**
+ * Query position buckets for visibility classification (Section 17).
+ * Count distinct queries meeting minimum visibility requirements.
+ * Keep "All Queries" and "Tracked/Qualified Queries" separate.
+ */
+export const GSC_QUERY_POSITION_BUCKETS = [
+  'TOP_3',
+  'TOP_10',
+  'TOP_20',
+  'POSITION_11_20',
+  'POSITION_21_50',
+  'POSITION_51_PLUS',
+] as const;
+export type GscQueryPositionBucket = (typeof GSC_QUERY_POSITION_BUCKETS)[number];
+
+/**
+ * Minimum impressions threshold for a query to be counted as "qualified".
+ * Configurable per site but default is 10 impressions during the period.
+ */
+export const DEFAULT_MIN_IMPRESSIONS_THRESHOLD = 10;
+
+/**
+ * Keyword metric data sources (Section 18).
+ * Never overwrite one source with another.
+ */
+export const KEYWORD_METRIC_SOURCES = ['GSC', 'GOOGLE_ADS', 'MANUAL', 'AI_RESEARCH'] as const;
+export type KeywordMetricSource = (typeof KEYWORD_METRIC_SOURCES)[number];
+
+/**
+ * Trend classification for growing/declining (Section 27).
+ */
+export const TREND_ALGORITHMS = ['CLICK_THRESHOLD_v1'] as const;
+export type TrendAlgorithm = (typeof TREND_ALGORITHMS)[number];
+
+export const TREND_CLASSIFICATIONS = ['GROWING', 'DECLINING', 'STABLE', 'INSUFFICIENT_DATA'] as const;
+export type TrendClassification = (typeof TREND_CLASSIFICATIONS)[number];
+
+/**
+ * Data quality status (Section 28).
+ */
+export const DATA_QUALITY_STATUSES = ['GOOD', 'PARTIAL', 'STALE', 'INSUFFICIENT', 'ERROR'] as const;
+export type DataQualityStatus = (typeof DATA_QUALITY_STATUSES)[number];
+
+/**
+ * Comparison modes for incomplete months (Section 38).
+ */
+export const COMPARISON_MODES = ['SAME_NUMBER_OF_DAYS', 'FULL_PREVIOUS_MONTH'] as const;
+export type ComparisonMode = (typeof COMPARISON_MODES)[number];
+
+/**
+ * Alert rule algorithm versions (Section 41).
+ */
+export const ALERT_ALGORITHM_VERSIONS = ['v1', 'v2'] as const;
+export type AlertAlgorithmVersion = (typeof ALERT_ALGORITHM_VERSIONS)[number];
 
 // ---------------------------------------------------------------------------
 // Self-hosted reporting

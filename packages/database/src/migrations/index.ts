@@ -42,6 +42,8 @@ import { AddLinkAnalysisCrawlRun00411720000000041 } from './0041-add-link-analys
 import { CanonicalMetricGrains00421720000000042 } from './0042-canonical-metric-grains';
 import { CreateSiteSnapshots00431720000000043 } from './0043-create-site-snapshots';
 import { AddBaselineDataQuality00441720000000044 } from './0044-add-baseline-data-quality';
+import { AddKeywordMetricColumns00451720000000045 } from './0045-add-keyword-metric-source';
+import { AddPerformanceIndexes00461720000000046 } from './0046-add-performance-indexes';
 
 export const migrations = [
   CreateIdentity00011720000000001,
@@ -88,6 +90,8 @@ export const migrations = [
   CanonicalMetricGrains00421720000000042,
   CreateSiteSnapshots00431720000000043,
   AddBaselineDataQuality00441720000000044,
+  AddKeywordMetricColumns00451720000000045,
+  AddPerformanceIndexes00461720000000046,
 ];
 
 export {
@@ -135,4 +139,6 @@ export {
   CanonicalMetricGrains00421720000000042,
   CreateSiteSnapshots00431720000000043,
   AddBaselineDataQuality00441720000000044,
+  AddKeywordMetricColumns00451720000000045,
+  AddPerformanceIndexes00461720000000046,
 };

@@ -147,12 +147,20 @@ export class AlertService {
   }
 }
 
-function issueKindFromAlert(kind: DetectedAlert['kind']): 'CANNIBALIZATION' | 'CRITICAL_TECHNICAL' | 'TRAFFIC_DROP' | 'CTR_DROP' | 'POSITION_DECLINE' | 'GSC_FAILURE' | 'WORDPRESS_FAILURE' | 'CONTENT_DECAY' {
+function issueKindFromAlert(kind: DetectedAlert['kind']): 'CANNIBALIZATION' | 'CRITICAL_TECHNICAL' | 'TRAFFIC_DROP' | 'CTR_DROP' | 'POSITION_DECLINE' | 'GSC_FAILURE' | 'WORDPRESS_FAILURE' | 'CONTENT_DECAY' | 'IMPRESSION_DECLINE' | 'QUERY_VISIBILITY_LOSS' | 'ON_PAGE' {
   switch (kind) {
     case 'NEW_CANNIBALIZATION':
       return 'CANNIBALIZATION';
     case 'CRITICAL_TECHNICAL_ISSUE':
       return 'CRITICAL_TECHNICAL';
+    case 'IMPRESSION_DECLINE':
+      return 'IMPRESSION_DECLINE';
+    case 'QUERY_VISIBILITY_LOSS':
+      return 'QUERY_VISIBILITY_LOSS';
+    case 'NEW_HIGH_IMPRESSION_QUERY':
+    case 'POSITION_4_10_OPPORTUNITY':
+    case 'POSITION_11_20_OPPORTUNITY':
+      return 'ON_PAGE';
     default:
       return kind;
   }
@@ -176,6 +184,16 @@ function metricsFromAlert(signal: DetectedAlert): { impact: number; confidence: 
       return { impact: 70, confidence: 95, effort: 20 };
     case 'NEW_CANNIBALIZATION':
       return { impact: 65, confidence: 75, effort: 50 };
+    case 'IMPRESSION_DECLINE':
+      return { impact: clamp(dropPct * 150), confidence: 75, effort: 35 };
+    case 'QUERY_VISIBILITY_LOSS':
+      return { impact: clamp(dropPct * 200), confidence: 80, effort: 45 };
+    case 'NEW_HIGH_IMPRESSION_QUERY':
+      return { impact: 55, confidence: 70, effort: 30 };
+    case 'POSITION_4_10_OPPORTUNITY':
+      return { impact: 50, confidence: 75, effort: 35 };
+    case 'POSITION_11_20_OPPORTUNITY':
+      return { impact: 40, confidence: 70, effort: 30 };
     default:
       return { impact: 50, confidence: 60, effort: 40 };
   }
