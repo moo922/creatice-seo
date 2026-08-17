@@ -63,7 +63,6 @@ import type {
   CrawlErrorType,
   AuditRunStatus,
   AuditRunType,
-  MetricGrain,
   MetricAvailability,
   GscQueryPositionBucket,
   KeywordMetricSource,
