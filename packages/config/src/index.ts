@@ -48,6 +48,20 @@ export const appEnvSchema = z.object({
     .string()
     .url()
     .default('https://www.googleapis.com/webmasters/v3'),
+  /** Google Ads API base (REST). Empty disables Google Ads integration. */
+  GOOGLE_ADS_API_BASE: z.string().url().default('https://googleads.googleapis.com'),
+  /** Google Ads API version, e.g. v18. Used to build REST paths. */
+  GOOGLE_ADS_API_VERSION: z.string().default('v18'),
+  /** Developer token for the Google Ads API (server-side only; never exposed). */
+  GOOGLE_ADS_DEVELOPER_TOKEN: z.string().default(''),
+  /** OAuth2 token endpoint for Google Ads (service accounts use JWT). */
+  GOOGLE_ADS_TOKEN_BASE: z.string().url().default('https://oauth2.googleapis.com'),
+  /** OAuth2 client credentials for Google Ads (installed app / service account). */
+  GOOGLE_ADS_CLIENT_ID: z.string().default(''),
+  GOOGLE_ADS_CLIENT_SECRET: z.string().default(''),
+  GOOGLE_ADS_REFRESH_TOKEN: z.string().default(''),
+  /** Timeout for Google Ads API requests. */
+  GOOGLE_ADS_TIMEOUT_MS: z.coerce.number().int().positive().default(15_000),
   AI_DEFAULT_PROVIDER: z.enum(['OPENAI', 'ANTHROPIC', 'PERPLEXITY']).default('OPENAI'),
   AI_DEFAULT_MODEL: z.string().min(1).default('gpt-4o-mini'),
   /**

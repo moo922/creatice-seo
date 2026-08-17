@@ -44,6 +44,9 @@ import { CreateSiteSnapshots00431720000000043 } from './0043-create-site-snapsho
 import { AddBaselineDataQuality00441720000000044 } from './0044-add-baseline-data-quality';
 import { AddKeywordMetricColumns00451720000000045 } from './0045-add-keyword-metric-source';
 import { AddPerformanceIndexes00461720000000046 } from './0046-add-performance-indexes';
+import { AddPublicationVerificationFields00471720000000047 } from './0047-add-publication-verification-fields';
+import { KeywordIntelligence00481720000000048 } from './0048-keyword-intelligence';
+import { UpdatePromptEnums00491720000000049 } from './0049-update-prompt-enums';
 
 export const migrations = [
   CreateIdentity00011720000000001,
@@ -92,6 +95,9 @@ export const migrations = [
   AddBaselineDataQuality00441720000000044,
   AddKeywordMetricColumns00451720000000045,
   AddPerformanceIndexes00461720000000046,
+  AddPublicationVerificationFields00471720000000047,
+  KeywordIntelligence00481720000000048,
+  UpdatePromptEnums00491720000000049,
 ];
 
 export {
@@ -141,4 +147,7 @@ export {
   AddBaselineDataQuality00441720000000044,
   AddKeywordMetricColumns00451720000000045,
   AddPerformanceIndexes00461720000000046,
+  AddPublicationVerificationFields00471720000000047,
+  KeywordIntelligence00481720000000048,
+  UpdatePromptEnums00491720000000049,
 };

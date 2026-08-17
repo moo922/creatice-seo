@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Check, CheckCircle2, Play, X } from 'lucide-react';
+import { AlertTriangle, Check, CheckCircle2, Play, RotateCcw, X } from 'lucide-react';
 import type { ContentPackageDto, ContentPublicationDto } from '@creative-seo/types';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
@@ -130,7 +130,7 @@ function PublicationsSection({ siteId, packageId, canManage }: { siteId: string;
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['content-publications'] }),
   });
   const transitionMutation = useMutation({
-    mutationFn: ({ id, step }: { id: string; step: 'approve' | 'publish' | 'verify' }) =>
+    mutationFn: ({ id, step }: { id: string; step: 'approve' | 'publish' | 'verify' | 'rollback' }) =>
       api.post<ContentPublicationDto>(`/sites/${siteId}/content/publications/${id}/${step}`, {}),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['content-publications'] }),
   });
@@ -141,7 +141,7 @@ function PublicationsSection({ siteId, packageId, canManage }: { siteId: string;
     <Card>
       <CardHeader>
         <CardTitle>Publications</CardTitle>
-        <CardDescription>WordPress draft → approve → publish → verify</CardDescription>
+        <CardDescription>WordPress draft → approve → publish → verify (Rank Math SEO metadata written during draft creation)</CardDescription>
       </CardHeader>
       <CardContent className="p-0">
         {publications.length === 0 ? (
@@ -153,6 +153,7 @@ function PublicationsSection({ siteId, packageId, canManage }: { siteId: string;
                 <TableHead>Title</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>WP ID</TableHead>
+                <TableHead>Verification</TableHead>
                 <TableHead className="text-end">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -161,9 +162,21 @@ function PublicationsSection({ siteId, packageId, canManage }: { siteId: string;
                 <TableRow key={publication.id}>
                   <TableCell className="font-medium">{publication.title}</TableCell>
                   <TableCell>
-                    <StatusBadge status={publication.status} />
+                    <div className="flex items-center gap-1.5">
+                      <StatusBadge status={publication.status} />
+                      {publication.conflict?.detected ? (
+                        <span title="Conflict detected"><AlertTriangle className="size-3.5 text-destructive" /></span>
+                      ) : null}
+                    </div>
                   </TableCell>
                   <TableCell className="text-muted-foreground">{publication.wpPostId ?? '—'}</TableCell>
+                  <TableCell>
+                    {publication.verification ? (
+                      <VerificationBadges verification={publication.verification} />
+                    ) : (
+                      <span className="text-xs text-muted-foreground">Not verified</span>
+                    )}
+                  </TableCell>
                   <TableCell className="text-end">
                     {canManage ? (
                       <div className="flex justify-end gap-1">
@@ -190,6 +203,12 @@ function PublicationsSection({ siteId, packageId, canManage }: { siteId: string;
                             Retry
                           </Button>
                         ) : null}
+                        {['PUBLISHED', 'VERIFIED', 'FAILED'].includes(publication.status) ? (
+                          <Button size="sm" variant="outline" onClick={() => transitionMutation.mutate({ id: publication.id, step: 'rollback' })}>
+                            <RotateCcw className="size-3.5" />
+                            Rollback
+                          </Button>
+                        ) : null}
                       </div>
                     ) : null}
                   </TableCell>
@@ -200,6 +219,29 @@ function PublicationsSection({ siteId, packageId, canManage }: { siteId: string;
         )}
       </CardContent>
     </Card>
+  );
+}
+
+function VerificationBadges({ verification }: { verification: ContentPublicationDto['verification'] }) {
+  if (!verification) return null;
+  const items = [
+    { label: 'Post', ok: verification.postStatus === 'publish' },
+    { label: 'Title', ok: verification.titleMatch !== false },
+    { label: 'Content', ok: verification.contentHashMatch !== false },
+    { label: 'SEO', ok: verification.seoMetadataWritten !== false },
+    { label: 'Page', ok: verification.renderedPageAccessible !== false },
+  ];
+  return (
+    <div className="flex flex-wrap gap-1">
+      {items.map((item) => (
+        <span
+          key={item.label}
+          className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium ${item.ok ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}
+        >
+          {item.label}
+        </span>
+      ))}
+    </div>
   );
 }
 

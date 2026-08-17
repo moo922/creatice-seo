@@ -27,6 +27,10 @@ export class WordPressIntegration {
   @Column({ type: 'varchar', length: 50, name: 'rank_math_version', nullable: true })
   rankMathVersion: string | null;
 
+  /** Connector plugin version at last check. */
+  @Column({ type: 'varchar', length: 50, name: 'connector_version', nullable: true })
+  connectorVersion: string | null;
+
   @Column({ type: 'jsonb', name: 'active_plugins', default: () => "'[]'" })
   activePlugins: Record<string, unknown>[];
 

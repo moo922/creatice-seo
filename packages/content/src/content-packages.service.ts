@@ -168,7 +168,7 @@ export class ContentPackagesService {
       primaryKeyword: brief.primaryKeyword ?? '',
       secondaryKeywords: brief.secondaryKeywords ?? [],
       intent: brief.intent ?? 'INFORMATIONAL',
-      pageType: brief.pageType ?? 'BLOG',
+      pageType: brief.pageType ?? 'BLOG_ARTICLE',
       recommendedUrl: data.recommendedUrl ?? brief.recommendedUrl ?? '',
       seoTitle,
       metaDescription,

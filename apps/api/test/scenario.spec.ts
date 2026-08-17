@@ -94,7 +94,7 @@ function structuredFor(promptName: string, vars: Record<string, string>): unknow
         intent: 'INFORMATIONAL',
         confidence: 0.8,
         rationale: 'Matches informational queries.',
-        pageType: 'BLOG',
+        pageType: 'BLOG_ARTICLE',
         audience: 'Decision makers',
         buyingStage: 'awareness',
         keyQuestions: [`What is ${kw}?`],
@@ -125,7 +125,7 @@ function structuredFor(promptName: string, vars: Record<string, string>): unknow
       return {
         title: `Guide to ${kw}`,
         intent: 'INFORMATIONAL',
-        pageType: 'BLOG',
+        pageType: 'BLOG_ARTICLE',
         targetAudience: 'Decision makers',
         primaryKeyword: kw,
         secondaryKeywords: ['seo agency', 'best seo services'],

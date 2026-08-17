@@ -18,6 +18,7 @@
     "@creative-seo/content": "*",
     "@creative-seo/crawler": "*",
     "@creative-seo/database": "*",
+    "@creative-seo/keyword-engine": "*",
     "@creative-seo/links": "*",
     "@creative-seo/operations": "*",
     "@creative-seo/reporting": "*",

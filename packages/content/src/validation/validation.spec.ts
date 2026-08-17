@@ -29,7 +29,7 @@ describe('deterministicSeoCheck', () => {
     primaryKeyword: 'seo agency',
     secondaryKeywords: ['seo services', 'best seo agency'],
     intent: 'COMMERCIAL' as const,
-    pageType: 'BLOG' as const,
+    pageType: 'BLOG_ARTICLE' as const,
     internalLinksCount: 2,
   };
 
@@ -165,7 +165,7 @@ describe('computeOverall & buildFinalQa', () => {
           primaryKeyword: 'seo agency',
           secondaryKeywords: [],
           intent: 'COMMERCIAL',
-          pageType: 'BLOG',
+          pageType: 'BLOG_ARTICLE',
           internalLinksCount: 1,
         }), passed: true },
         failed,

@@ -107,4 +107,10 @@ export class SiteContentController {
   verifyPublication(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthPrincipal): Promise<ContentPublicationDto> {
     return this.publish.verify(id, user?.id ?? null);
   }
+
+  @Post('publications/:id/rollback')
+  @RequirePermissions('content:manage')
+  rollbackPublication(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthPrincipal): Promise<ContentPublicationDto> {
+    return this.publish.rollback(id, user?.id ?? null);
+  }
 }

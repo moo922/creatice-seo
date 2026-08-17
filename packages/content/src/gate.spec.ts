@@ -5,7 +5,7 @@ function goodBrief(): ContentBriefDto {
   return {
     title: 'How to choose an SEO agency',
     intent: 'COMMERCIAL',
-    pageType: 'BLOG',
+    pageType: 'BLOG_ARTICLE',
     targetAudience: 'Marketing managers',
     primaryKeyword: 'seo agency',
     secondaryKeywords: ['seo services', 'best seo agency'],

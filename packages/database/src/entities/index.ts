@@ -16,7 +16,13 @@ import { GscSiteDailyMetric, GscQueryDailyMetric, GscPageDailyMetric, GscQueryPa
 import { GscSyncState } from './gsc-sync-state';
 import { GscOpportunity } from './gsc-opportunity';
 import { Keyword } from './keyword';
+import { KeywordSource } from './keyword-source';
 import { KeywordMetric } from './keyword-metric';
+import { KeywordPlannerMetric } from './keyword-planner-metric';
+import { KeywordDiscoveryJob } from './keyword-discovery-job';
+import { KeywordOpportunity } from './keyword-opportunity';
+import { CannibalizationCase } from './cannibalization-case';
+import { GoogleAdsIntegration } from './google-ads-integration';
 import { Cluster } from './cluster';
 import { ClusterKeyword } from './cluster-keyword';
 import { UrlMapping } from './url-mapping';
@@ -77,7 +83,13 @@ export const entities = [
   GscSyncState,
   GscOpportunity,
   Keyword,
+  KeywordSource,
   KeywordMetric,
+  KeywordPlannerMetric,
+  KeywordDiscoveryJob,
+  KeywordOpportunity,
+  CannibalizationCase,
+  GoogleAdsIntegration,
   Cluster,
   ClusterKeyword,
   UrlMapping,
@@ -139,7 +151,13 @@ export {
   GscSyncState,
   GscOpportunity,
   Keyword,
+  KeywordSource,
   KeywordMetric,
+  KeywordPlannerMetric,
+  KeywordDiscoveryJob,
+  KeywordOpportunity,
+  CannibalizationCase,
+  GoogleAdsIntegration,
   Cluster,
   ClusterKeyword,
   UrlMapping,

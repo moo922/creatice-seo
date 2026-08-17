@@ -21,6 +21,10 @@ const INTENT_MIN_WORDS: Partial<Record<KeywordIntent, number>> = {
   COMMERCIAL: 600,
   INFORMATIONAL: 900,
   NAVIGATIONAL: 200,
+  LOCAL: 500,
+  COMPARISON: 700,
+  MIXED: 600,
+  REVIEW_REQUIRED: 400,
 };
 
 const INTENT_LABELS: Record<KeywordIntent, string> = {
@@ -28,6 +32,10 @@ const INTENT_LABELS: Record<KeywordIntent, string> = {
   COMMERCIAL: 'Commercial',
   INFORMATIONAL: 'Informational',
   NAVIGATIONAL: 'Navigational',
+  LOCAL: 'Local',
+  COMPARISON: 'Comparison',
+  MIXED: 'Mixed',
+  REVIEW_REQUIRED: 'Review required',
 };
 
 /**

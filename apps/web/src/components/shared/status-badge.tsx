@@ -1,9 +1,9 @@
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
-const OK_STATUSES = new Set(['ACTIVE', 'CONNECTED', 'RESOLVED', 'DONE', 'SUCCEEDED', 'APPROVED', 'VERIFIED', 'COMPLETE', 'UP', 'READY']);
-const WARN_STATUSES = new Set(['PAUSED', 'PENDING', 'REVIEWED', 'REVIEW', 'IN_PROGRESS', 'VERIFYING', 'RUNNING', 'FIXED', 'DRAFT', 'TIMEOUT', 'PDF_FAILED', 'DOWN', 'NOT_READY']);
-const BAD_STATUSES = new Set(['FAILED', 'REJECTED', 'IGNORED', 'ARCHIVED', 'BLOCKED', 'SUSPENDED']);
+const OK_STATUSES = new Set(['ACTIVE', 'CONNECTED', 'RESOLVED', 'DONE', 'SUCCEEDED', 'APPROVED', 'VERIFIED', 'COMPLETE', 'UP', 'READY', 'MAPPED', 'CLUSTERED', 'QUALIFIED', 'ACTIONED']);
+const WARN_STATUSES = new Set(['PAUSED', 'PENDING', 'REVIEWED', 'REVIEW', 'IN_PROGRESS', 'VERIFYING', 'RUNNING', 'FIXED', 'DRAFT', 'TIMEOUT', 'PDF_FAILED', 'DOWN', 'NOT_READY', 'DISCOVERED', 'SUGGESTED', 'REVIEW_REQUIRED', 'CONFLICT', 'CONFIGURED', 'ACCESS_PENDING', 'MODERATE', 'LOW']);
+const BAD_STATUSES = new Set(['FAILED', 'REJECTED', 'IGNORED', 'ARCHIVED', 'BLOCKED', 'SUSPENDED', 'ERROR', 'HIGH']);
 
 export function StatusBadge({ status }: { status: string }) {
   const upper = String(status ?? '').toUpperCase();

@@ -69,6 +69,19 @@ import type {
   DataQualityStatus,
   TrendClassification,
   TrendAlgorithm,
+  BusinessRelevance,
+  ClusterKeywordRole,
+  UrlMappingType,
+  UrlMappingStatus,
+  KeywordOpportunityType,
+  OpportunityImpactLevel,
+  OpportunityEffortLevel,
+  KeywordOpportunityStatus,
+  CannibalizationClassification,
+  CannibalizationRecommendation,
+  GoogleAdsIntegrationStatus,
+  GoogleAdsErrorCode,
+  KeywordPlannerJobStatus,
 } from './enums';
 import type { PermissionKey } from './permissions';
 
@@ -472,11 +485,15 @@ export interface KeywordDto {
   normalized: string;
   intent: KeywordIntent;
   status: KeywordStatus;
+  language: string | null;
+  businessRelevance: BusinessRelevance | null;
+  sources: string[];
   metrics: {
     clicks: number;
     impressions: number;
     ctr: number;
     avgPosition: number | null;
+    monthlySearchVolume: number | null;
   };
   createdAt: string;
   updatedAt: string;
@@ -491,7 +508,9 @@ export interface SeedKeywordRequest {
 export interface ClusterKeywordDto {
   keywordId: string;
   keyword: string;
-  role: 'primary' | 'secondary';
+  role: ClusterKeywordRole;
+  confidence: number | null;
+  reason: string | null;
   metrics: {
     clicks: number;
     impressions: number;
@@ -505,7 +524,9 @@ export interface ClusterDto {
   siteId: string;
   name: string;
   intent: KeywordIntent;
+  secondaryIntent: KeywordIntent | null;
   pageType: KeywordPageType;
+  businessRelevance: BusinessRelevance | null;
   confidence: number;
   targetUrl: string | null;
   recommendedAction: ClusterAction;
@@ -513,8 +534,10 @@ export interface ClusterDto {
   aiReviewed: boolean;
   note: string | null;
   primaryKeyword: string;
+  primaryKeywordId: string | null;
   secondaryKeywords: string[];
   cannibalization: string[];
+  clusterVersion: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -525,9 +548,15 @@ export interface UrlMappingDto {
   clusterId: string | null;
   keywordId: string | null;
   url: string;
+  wpPostId: number | null;
+  mappingType: UrlMappingType;
+  status: UrlMappingStatus;
   source: string;
+  confidence: number | null;
+  reason: string | null;
   manualOverride: boolean;
   approvedBy: string | null;
+  approvedAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -539,6 +568,95 @@ export interface ApproveClusterRequest {
 
 export interface OverrideMappingRequest {
   url: string;
+  reason?: string;
+}
+
+// ---------------------------------------------------------------------------
+// Keyword intelligence — opportunities, cannibalization, Google Ads
+// ---------------------------------------------------------------------------
+
+export interface KeywordOpportunityDto {
+  id: string;
+  siteId: string;
+  clusterId: string | null;
+  clusterName: string | null;
+  keywordId: string | null;
+  keyword: string | null;
+  type: KeywordOpportunityType;
+  targetUrl: string | null;
+  impact: OpportunityImpactLevel;
+  confidence: number;
+  effort: OpportunityEffortLevel;
+  priorityScore: number;
+  scoreVersion: string;
+  evidence: Record<string, unknown>;
+  status: KeywordOpportunityStatus;
+  reason: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CannibalizationCaseDto {
+  id: string;
+  siteId: string;
+  clusterId: string | null;
+  query: string | null;
+  urls: Array<{
+    url: string;
+    impressions: number;
+    clicks: number;
+    position: number | null;
+    activeDates: number;
+  }>;
+  classification: CannibalizationClassification;
+  score: number;
+  recommendation: CannibalizationRecommendation;
+  reason: string | null;
+  status: string;
+  preferredTarget: string | null;
+  detectedAt: string;
+  updatedAt: string;
+}
+
+export interface GoogleAdsIntegrationDto {
+  id: string;
+  siteId: string;
+  status: GoogleAdsIntegrationStatus;
+  customerId: string | null;
+  languageTarget: string | null;
+  locationTargets: Array<{ id: string; name: string }>;
+  lastKeywordSyncAt: string | null;
+  lastKeywordSyncSummary: Record<string, unknown> | null;
+  lastError: string | null;
+  lastErrorCode: GoogleAdsErrorCode | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface KeywordPlannerJobDto {
+  id: string;
+  siteId: string;
+  jobType: string;
+  status: KeywordPlannerJobStatus;
+  seeds: string[];
+  ideasReceived: number;
+  keywordsCreated: number;
+  startedAt: string | null;
+  finishedAt: string | null;
+  error: string | null;
+  createdAt: string;
+}
+
+export interface KeywordExplorerSummaryDto {
+  totalKeywords: number;
+  gscQueries: number;
+  googleAdsKeywords: number;
+  unclustered: number;
+  clusters: number;
+  mapped: number;
+  unmapped: number;
+  cannibalizationCases: number;
+  contentOpportunities: number;
 }
 
 export interface KeywordPipelineResultDto {
@@ -2206,6 +2324,8 @@ export interface ContentPublicationDto {
   title: string;
   url: string | null;
   meta: Record<string, unknown>;
+  verification: ContentPublicationVerification | null;
+  conflict: ContentPublicationConflict | null;
   createdBy: string | null;
   approvedBy: string | null;
   approvedAt: string | null;
@@ -2214,6 +2334,24 @@ export interface ContentPublicationDto {
   error: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+/** Post-publish verification details. */
+export interface ContentPublicationVerification {
+  postStatus: string | null;
+  titleMatch: boolean | null;
+  contentHashMatch: boolean | null;
+  seoMetadataWritten: boolean | null;
+  renderedPageAccessible: boolean | null;
+  verifiedAt: string | null;
+  error: string | null;
+}
+
+/** Conflict detection result when WordPress was externally modified. */
+export interface ContentPublicationConflict {
+  detected: boolean;
+  details: string | null;
+  detectedAt: string | null;
 }
 
 export interface CreatePublicationRequest {

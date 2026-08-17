@@ -638,7 +638,7 @@ export class ActivationService {
       clientConfigured: false,
     }));
 
-    const gscKeywordCount = keywords.filter((keyword) => keyword.source === 'gsc').length;
+    const gscKeywordCount = keywords.filter((keyword) => keyword.source === 'GSC').length;
 
     let gscMetricRows = 0;
     if (gscStatus.property?.id) {

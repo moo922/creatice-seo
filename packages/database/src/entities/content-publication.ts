@@ -3,8 +3,9 @@ import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, Update
 /**
  * A content package published to WordPress. Lifecycle:
  * DRAFT (created via the connector) -> APPROVED (reviewer) -> PUBLISHED (sent to
- * WordPress) -> VERIFIED (post-publish check). Failures set status FAILED with a
- * sanitized error.
+ * WordPress with Rank Math SEO metadata) -> VERIFIED (post-publish check confirms
+ * all metadata applied). Failures set status FAILED with a sanitized error.
+ * ROLLBACK is set when a pre-change snapshot was applied to undo changes.
  */
 @Entity('content_publications')
 @Index('idx_content_publications_site_created', ['siteId', 'createdAt'])
@@ -38,6 +39,26 @@ export class ContentPublication {
   /** Snapshot of the content + Rank Math fields sent to WordPress. */
   @Column({ type: 'jsonb', default: () => "'{}'" })
   meta: Record<string, unknown>;
+
+  /** Post-publish verification details (title match, SEO metadata written, etc.). */
+  @Column({ type: 'jsonb', nullable: true, name: 'verification' })
+  verification: Record<string, unknown> | null;
+
+  /** Conflict detection result (WordPress was externally modified). */
+  @Column({ type: 'jsonb', nullable: true, name: 'conflict' })
+  conflict: Record<string, unknown> | null;
+
+  /** Pre-change snapshot for rollback (title, slug, content hash, SEO metadata). */
+  @Column({ type: 'jsonb', nullable: true, name: 'pre_change_snapshot' })
+  preChangeSnapshot: Record<string, unknown> | null;
+
+  /** Idempotency key for the publication action. */
+  @Column({ type: 'text', nullable: true, name: 'idempotency_key' })
+  idempotencyKey: string | null;
+
+  /** Connector version at time of publishing. */
+  @Column({ type: 'varchar', length: 50, nullable: true, name: 'connector_version' })
+  connectorVersion: string | null;
 
   @Column({ type: 'uuid', name: 'created_by', nullable: true })
   createdBy: string | null;

@@ -168,6 +168,12 @@ export class WordPressService {
       integration.rankMathDetected = rankMath.detected;
       integration.rankMathVersion = rankMath.version ?? null;
     }
+
+    // Store connector version from info response
+    if (info?.connector?.version) {
+      integration.connectorVersion = info.connector.version;
+    }
+
     const saved = await this.integrations.save(integration);
 
     await this.activities.record({

@@ -53,23 +53,212 @@ export type GscOpportunityKind = (typeof GSC_OPPORTUNITY_KINDS)[number];
 export const GSC_OPPORTUNITY_STATUSES = ['OPEN', 'DISMISSED', 'ACTIONED'] as const;
 export type GscOpportunityStatus = (typeof GSC_OPPORTUNITY_STATUSES)[number];
 
-export const KEYWORD_SOURCES = ['seed', 'gsc', 'ads', 'topic', 'manual'] as const;
+export const KEYWORD_SOURCES = ['MANUAL', 'GSC', 'GOOGLE_ADS', 'SITE_CONTENT', 'AI_RESEARCH', 'IMPORT'] as const;
 export type KeywordSource = (typeof KEYWORD_SOURCES)[number];
 
-export const KEYWORD_INTENTS = ['TRANSACTIONAL', 'COMMERCIAL', 'INFORMATIONAL', 'NAVIGATIONAL'] as const;
+/** A keyword may come from multiple sources; associations live in keyword_sources. */
+export const KEYWORD_SOURCE_ROLES = ['PRIMARY', 'SECONDARY', 'OBSERVED'] as const;
+export type KeywordSourceRole = (typeof KEYWORD_SOURCE_ROLES)[number];
+
+export const KEYWORD_INTENTS = [
+  'INFORMATIONAL',
+  'COMMERCIAL',
+  'TRANSACTIONAL',
+  'NAVIGATIONAL',
+  'LOCAL',
+  'COMPARISON',
+  'MIXED',
+  'REVIEW_REQUIRED',
+] as const;
 export type KeywordIntent = (typeof KEYWORD_INTENTS)[number];
 
-export const KEYWORD_STATUSES = ['CANDIDATE', 'ACTIVE', 'DISMISSED'] as const;
+export const KEYWORD_STATUSES = [
+  'DISCOVERED',
+  'QUALIFIED',
+  'CLUSTERED',
+  'MAPPED',
+  'ACTIVE',
+  'IGNORED',
+  'ARCHIVED',
+  'REVIEW_REQUIRED',
+] as const;
 export type KeywordStatus = (typeof KEYWORD_STATUSES)[number];
 
-export const KEYWORD_PAGE_TYPES = ['SERVICE', 'PRODUCT', 'BLOG', 'LANDING', 'CATEGORY', 'SUPPORT', 'OTHER'] as const;
+/** Business relevance classification (Section 19). */
+export const BUSINESS_RELEVANCE_LEVELS = [
+  'CORE',
+  'RELATED',
+  'INFORMATIONAL_SUPPORT',
+  'LOW_RELEVANCE',
+  'IRRELEVANT',
+  'REVIEW',
+] as const;
+export type BusinessRelevance = (typeof BUSINESS_RELEVANCE_LEVELS)[number];
+
+export const KEYWORD_PAGE_TYPES = [
+  'SERVICE',
+  'PRODUCT',
+  'CATEGORY',
+  'LANDING_PAGE',
+  'BLOG_ARTICLE',
+  'GUIDE',
+  'COMPARISON',
+  'LOCATION_PAGE',
+  'FAQ_SUPPORT',
+  'HOMEPAGE',
+  'EXISTING_OTHER',
+  'REVIEW_REQUIRED',
+] as const;
 export type KeywordPageType = (typeof KEYWORD_PAGE_TYPES)[number];
 
 export const CLUSTER_ACTIONS = ['KEEP', 'UPDATE', 'EXPAND', 'CREATE', 'MERGE', 'REDIRECT', 'REVIEW'] as const;
 export type ClusterAction = (typeof CLUSTER_ACTIONS)[number];
 
-export const CLUSTER_STATUSES = ['DRAFT', 'APPROVED', 'REVIEW'] as const;
+export const CLUSTER_STATUSES = ['DRAFT', 'APPROVED', 'REVIEW', 'ARCHIVED'] as const;
 export type ClusterStatus = (typeof CLUSTER_STATUSES)[number];
+
+/** Roles a keyword can hold inside a cluster (Section 25). */
+export const CLUSTER_KEYWORD_ROLES = [
+  'PRIMARY',
+  'SECONDARY',
+  'SUPPORTING',
+  'QUESTION',
+  'ENTITY',
+  'LOCATION_MODIFIER',
+] as const;
+export type ClusterKeywordRole = (typeof CLUSTER_KEYWORD_ROLES)[number];
+
+/** URL mapping types (Section 31). */
+export const URL_MAPPING_TYPES = ['EXISTING', 'NEW_PLANNED', 'REDIRECT_TARGET', 'MERGE_TARGET'] as const;
+export type UrlMappingType = (typeof URL_MAPPING_TYPES)[number];
+
+/** URL mapping statuses (Section 32). */
+export const URL_MAPPING_STATUSES = ['SUGGESTED', 'APPROVED', 'ACTIVE', 'CONFLICT', 'REVIEW_REQUIRED', 'ARCHIVED'] as const;
+export type UrlMappingStatus = (typeof URL_MAPPING_STATUSES)[number];
+
+/** Query ownership modes (Section 41). */
+export const QUERY_OWNERSHIP_MODES = ['AUTO', 'MANUAL', 'INFERRED', 'GSC_OBSERVED'] as const;
+export type QueryOwnershipMode = (typeof QUERY_OWNERSHIP_MODES)[number];
+
+/** Keyword discovery reasons (Section 16). */
+export const KEYWORD_DISCOVERY_REASONS = [
+  'MANUAL_SEED',
+  'NEW_QUERY',
+  'HIGH_IMPRESSION',
+  'POSITION_4_10',
+  'POSITION_11_20',
+  'RISING_QUERY',
+  'NO_CLUSTER',
+  'UNEXPECTED_PAGE',
+  'SITE_CONTENT',
+  'GOOGLE_ADS',
+  'AI_RESEARCH',
+  'IMPORT',
+] as const;
+export type KeywordDiscoveryReason = (typeof KEYWORD_DISCOVERY_REASONS)[number];
+
+/** Cannibalization classifications (Section 38). */
+export const CANNIBALIZATION_CLASSIFICATIONS = ['NONE', 'LOW', 'MODERATE', 'HIGH', 'REVIEW_REQUIRED'] as const;
+export type CannibalizationClassification = (typeof CANNIBALIZATION_CLASSIFICATIONS)[number];
+
+/** Cannibalization recommendations (Section 39). */
+export const CANNIBALIZATION_RECOMMENDATIONS = [
+  'KEEP_CURRENT_TARGET',
+  'CONSOLIDATE',
+  'MERGE_CONTENT',
+  'REDIRECT',
+  'REWRITE_SUPPORTING_PAGE',
+  'CHANGE_INTERNAL_LINKS',
+  'CHANGE_FOCUS',
+  'REVIEW',
+] as const;
+export type CannibalizationRecommendation = (typeof CANNIBALIZATION_RECOMMENDATIONS)[number];
+
+/** Opportunity types (Section 42). */
+export const KEYWORD_OPPORTUNITY_TYPES = [
+  'NEW_PAGE',
+  'UPDATE_EXISTING',
+  'EXPAND_EXISTING',
+  'CTR_OPTIMIZATION',
+  'POSITION_4_10',
+  'POSITION_11_20',
+  'CONTENT_DECAY',
+  'NEW_QUERY',
+  'CANNIBALIZATION',
+  'INTERNAL_LINKING',
+  'MERGE',
+  'REDIRECT',
+  'LOCAL_GAP',
+  'QUESTION_GAP',
+] as const;
+export type KeywordOpportunityType = (typeof KEYWORD_OPPORTUNITY_TYPES)[number];
+
+/** Opportunity impact levels (Section 44). */
+export const OPPORTUNITY_IMPACT_LEVELS = ['LOW', 'MEDIUM', 'HIGH', 'VERY_HIGH'] as const;
+export type OpportunityImpactLevel = (typeof OPPORTUNITY_IMPACT_LEVELS)[number];
+
+/** Opportunity effort levels (Section 44). */
+export const OPPORTUNITY_EFFORT_LEVELS = ['LOW', 'MEDIUM', 'HIGH'] as const;
+export type OpportunityEffortLevel = (typeof OPPORTUNITY_EFFORT_LEVELS)[number];
+
+/** Opportunity statuses. */
+export const KEYWORD_OPPORTUNITY_STATUSES = ['OPEN', 'APPROVED', 'IGNORED', 'ACTIONED', 'REVIEW'] as const;
+export type KeywordOpportunityStatus = (typeof KEYWORD_OPPORTUNITY_STATUSES)[number];
+
+/** Google Ads integration statuses (Section 9). */
+export const GOOGLE_ADS_INTEGRATION_STATUSES = ['NOT_CONFIGURED', 'CONFIGURED', 'ACCESS_PENDING', 'CONNECTED', 'ERROR'] as const;
+export type GoogleAdsIntegrationStatus = (typeof GOOGLE_ADS_INTEGRATION_STATUSES)[number];
+
+/** Google Ads stable error codes (Section 91). */
+export const GOOGLE_ADS_ERROR_CODES = [
+  'AUTH_FAILURE',
+  'DEVELOPER_TOKEN_ERROR',
+  'CUSTOMER_PERMISSION_DENIED',
+  'KEYWORD_PLANNER_UNAVAILABLE',
+  'RATE_LIMITED',
+  'TEMPORARY_API_ERROR',
+  'INVALID_LOCATION',
+  'INVALID_LANGUAGE',
+  'UNKNOWN',
+] as const;
+export type GoogleAdsErrorCode = (typeof GOOGLE_ADS_ERROR_CODES)[number];
+
+/** Google Ads Keyword Planner job statuses (Section 93). */
+export const KEYWORD_PLANNER_JOB_STATUSES = ['PENDING', 'RUNNING', 'SUCCEEDED', 'FAILED'] as const;
+export type KeywordPlannerJobStatus = (typeof KEYWORD_PLANNER_JOB_STATUSES)[number];
+
+/** Question keyword tags (Section 52). */
+export const QUESTION_TAGS = [
+  'INFORMATIONAL',
+  'COMMERCIAL',
+  'DECISION',
+  'COMPARISON',
+  'PRICE',
+  'HOW_TO',
+  'LOCAL',
+] as const;
+export type QuestionTag = (typeof QUESTION_TAGS)[number];
+
+/** Branded vs non-branded queries (Section 55). */
+export const BRAND_CLASSIFICATIONS = ['BRANDED', 'NON_BRANDED'] as const;
+export type BrandClassification = (typeof BRAND_CLASSIFICATIONS)[number];
+
+/** Competitor query classification (Section 56). */
+export const COMPETITOR_CLASSIFICATIONS = ['COMPETITOR_QUERY', 'NOT_COMPETITOR'] as const;
+export type CompetitorClassification = (typeof COMPETITOR_CLASSIFICATIONS)[number];
+
+/** Data availability state for the opportunity engine (Section 85). */
+export const KEYWORD_DATA_AVAILABILITY = [
+  'GOOGLE_ADS_UNAVAILABLE',
+  'GSC_UNAVAILABLE',
+  'BOTH_AVAILABLE',
+  'NEW_SITE_NO_DATA',
+] as const;
+export type KeywordDataAvailability = (typeof KEYWORD_DATA_AVAILABILITY)[number];
+
+/** Keyword discovery job types (Section 14). */
+export const KEYWORD_DISCOVERY_JOB_TYPES = ['GSC', 'SITE_CONTENT', 'GOOGLE_ADS', 'MANUAL_SEEDS'] as const;
+export type KeywordDiscoveryJobType = (typeof KEYWORD_DISCOVERY_JOB_TYPES)[number];
 
 export const AI_PROVIDER_KINDS = ['OPENAI', 'ANTHROPIC', 'PERPLEXITY'] as const;
 export type AiProviderKind = (typeof AI_PROVIDER_KINDS)[number];
@@ -588,7 +777,7 @@ export type OrchestrationWorkflow = (typeof ORCHESTRATION_WORKFLOWS)[number];
 // ---------------------------------------------------------------------------
 
 /** Lifecycle of a content package publication to WordPress. */
-export const CONTENT_PUBLICATION_STATUSES = ['DRAFT', 'APPROVED', 'PUBLISHED', 'VERIFIED', 'FAILED'] as const;
+export const CONTENT_PUBLICATION_STATUSES = ['DRAFT', 'APPROVED', 'PUBLISHED', 'VERIFIED', 'ROLLBACK', 'FAILED'] as const;
 export type ContentPublicationStatus = (typeof CONTENT_PUBLICATION_STATUSES)[number];
 
 export const ROLE_KEYS = [
@@ -672,6 +861,20 @@ export const ACTIVITY_ACTIONS = [
   'knowledge.fact.create',
   'knowledge.fact.update',
   'knowledge.fact.delete',
+  'google-ads.configure',
+  'google-ads.test',
+  'google-ads.sync',
+  'keywords.seed',
+  'keywords.discover',
+  'keywords.cluster',
+  'keywords.cluster.approve',
+  'keywords.cluster.lock',
+  'keywords.mapping.approve',
+  'keywords.mapping.override',
+  'keywords.cannibalization.detected',
+  'keywords.opportunity.create',
+  'keywords.opportunity.approve',
+  'keywords.opportunity.ignore',
 ] as const;
 export type ActivityAction = (typeof ACTIVITY_ACTIONS)[number];
 

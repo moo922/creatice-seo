@@ -4,7 +4,8 @@ import { Cluster, ClusterKeyword, GscDailyMetric, GscProperty, Keyword, Site, Ur
 import { Repository } from 'typeorm';
 import { AiService } from '@creative-seo/ai';
 import { buildRecommendedUrl, slugify } from '@creative-seo/content';
-import type { KeywordDto } from '@creative-seo/types';
+import { heuristicIntent, heuristicPageType, normalizeKeyword } from '@creative-seo/keyword-engine';
+import type { ClusterKeywordRole, KeywordDto } from '@creative-seo/types';
 import { createHash } from 'crypto';
 
 export interface HeadlessKeywordResult {
@@ -52,7 +53,7 @@ export class HeadlessKeywordsService {
       return deterministicClusters(keywordTexts);
     });
 
-    const created = await this.persistClusters(siteId, site.domain, clusters);
+    const created = await this.persistClusters(siteId, site.domain, site.language, clusters);
 
     return {
       ingested,
@@ -93,7 +94,7 @@ export class HeadlessKeywordsService {
           try {
             const exists = await this.keywords.findOne({ where: { siteId, normalizedHash: hash(normalizeKeyword(row.query)) } });
             if (!exists) {
-              await this.seed(siteId, { keyword: row.query, intent: 'INFORMATIONAL', source: 'gsc' });
+              await this.seed(siteId, { keyword: row.query, intent: 'INFORMATIONAL', source: 'GSC' });
               created += 1;
             }
           } catch (error) {
@@ -110,9 +111,9 @@ export class HeadlessKeywordsService {
     const existing = await this.keywords.findOne({ where: { siteId, normalizedHash: hash(normalized) } });
     const row = existing ?? this.keywords.create({ siteId, normalized, normalizedHash: hash(normalized) });
     row.keyword = input.keyword.trim();
-    row.intent = input.intent ?? 'INFORMATIONAL';
-    row.source = input.source ?? 'manual';
-    row.status = 'CANDIDATE';
+    row.intent = input.intent ?? 'REVIEW_REQUIRED';
+    row.source = input.source ?? 'MANUAL';
+    row.status = 'DISCOVERED';
     return this.keywords.save(row);
   }
 
@@ -137,6 +138,7 @@ export class HeadlessKeywordsService {
   private async persistClusters(
     siteId: string,
     domain: string,
+    siteLanguageName: string,
     clusters: Array<{ name: string; description: string; keywords: string[] }>,
   ): Promise<Array<{ id: string; name: string; url: string }>> {
     const created: Array<{ id: string; name: string; url: string }> = [];
@@ -151,28 +153,34 @@ export class HeadlessKeywordsService {
       if (keywordRows.length === 0) continue;
 
       const primary = keywordRows[0]!;
-      const slug = slugify(primary.keyword, 'en');
+      const siteLanguage = siteLanguageName === 'Arabic' || siteLanguageName === 'ar' ? 'ar' : 'en';
+      const slug = slugify(primary.keyword, siteLanguage);
       const url = buildRecommendedUrl(domain, slug);
+      const intent = heuristicIntent(primary.keyword);
+      const pageType = heuristicPageType(primary.keyword);
 
       const cluster = await this.clusters.save(
         this.clusters.create({
           siteId,
           name: item.name || primary.keyword,
-          intent: primary.intent,
-          pageType: 'BLOG',
-          confidence: 0.8,
+          intent: intent.intent,
+          pageType: pageType.pageType,
+          primaryKeywordId: primary.id,
+          confidence: intent.confidence,
           targetUrl: null,
-          recommendedAction: 'CREATE',
+          recommendedAction: 'REVIEW',
           status: 'DRAFT',
           aiReviewed: false,
+          clusterVersion: 'clustering-v1',
           note: item.description || null,
         }),
       );
 
       for (let index = 0; index < keywordRows.length; index += 1) {
         const row = keywordRows[index]!;
+        const role: ClusterKeywordRole = index === 0 ? 'PRIMARY' : 'SECONDARY';
         await this.clusterKeywords.save(
-          this.clusterKeywords.create({ clusterId: cluster.id, keywordId: row.id, role: index === 0 ? 'PRIMARY' : 'SECONDARY' }),
+          this.clusterKeywords.create({ clusterId: cluster.id, keywordId: row.id, role, source: 'clustering', approved: false }),
         );
       }
 
@@ -184,9 +192,13 @@ export class HeadlessKeywordsService {
             clusterId: cluster.id,
             keywordId: primary.id,
             url,
-            source: 'pipeline',
+            mappingType: 'NEW_PLANNED',
+            status: 'SUGGESTED',
+            source: 'AUTO',
+            confidence: intent.confidence,
             manualOverride: false,
             approvedBy: null,
+            reason: 'Suggested URL for the new cluster; requires approval before activation.',
           }),
         );
       }
@@ -204,21 +216,8 @@ export class HeadlessKeywordsService {
   }
 }
 
-function normalizeKeyword(value: string): string {
-  return value.toLowerCase().replace(/\s+/g, ' ').trim();
-}
-
 function hash(value: string): string {
   return createHash('sha256').update(value).digest('hex');
-}
-
-function firstWord(value: string): string {
-  const words = value.split(' ').filter(Boolean);
-  return words[0] ?? value;
-}
-
-function titleCase(value: string): string {
-  return value.replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 function deterministicClusters(keywords: string[]): Array<{ name: string; description: string; keywords: string[] }> {
@@ -235,4 +234,13 @@ function deterministicClusters(keywords: string[]): Array<{ name: string; descri
     description: `Keywords grouped by "${name}"`,
     keywords: items,
   }));
+}
+
+function firstWord(value: string): string {
+  const words = value.split(' ').filter(Boolean);
+  return words[0] ?? value;
+}
+
+function titleCase(value: string): string {
+  return value.replace(/\b\w/g, (char) => char.toUpperCase());
 }

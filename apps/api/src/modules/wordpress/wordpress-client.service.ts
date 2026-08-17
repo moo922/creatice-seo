@@ -79,6 +79,77 @@ export interface ConnectorPlugin {
   active: boolean;
 }
 
+/** Rank Math SEO metadata read from the connector. */
+export interface ConnectorSeoMetadata {
+  available: boolean;
+  title: string;
+  description: string;
+  canonical: string;
+  robots: string[];
+  focus_keywords: string;
+  schema: unknown;
+}
+
+/** Payload for writing Rank Math SEO metadata to the connector. */
+export interface ConnectorSeoWritePayload {
+  title?: string;
+  description?: string;
+  canonical?: string;
+  robots?: string[];
+  focus_keywords?: string;
+  schema?: unknown;
+}
+
+/** Response from PUT /seo/{id}. */
+export interface ConnectorSeoWriteResult {
+  updated: string[];
+  post_id: number;
+  seo: ConnectorSeoMetadata;
+}
+
+/** Content read from the connector (POST /content/{id}). */
+export interface ConnectorContentRead {
+  id: number;
+  content: string;
+  content_hash: string;
+  excerpt?: string;
+}
+
+/** Content write result from the connector. */
+export interface ConnectorContentWriteResult {
+  id: number;
+  content: string;
+  content_hash: string;
+}
+
+/** Internal link extracted from a post. */
+export interface ConnectorInternalLink {
+  url: string;
+  anchor_text: string;
+}
+
+/** Response from GET /seo/{id}. */
+export interface ConnectorSeoReadResult {
+  id: number;
+  rank_math: ConnectorSeoMetadata;
+}
+
+/** Connector capability discovery result. */
+export interface ConnectorCapabilities {
+  connectorVersion: string;
+  wpVersion: string | null;
+  phpVersion: string | null;
+  rankMathDetected: boolean;
+  rankMathVersion: string | null;
+  canReadPosts: boolean;
+  canWritePosts: boolean;
+  canWriteSeoMetadata: boolean;
+  canWriteSchema: boolean;
+  canReadInternalLinks: boolean;
+  canWriteContent: boolean;
+  postTypes: string[];
+}
+
 export class WordPressClientError extends Error {
   constructor(
     message: string,
@@ -168,6 +239,127 @@ export class WordPressClientService {
     return this.get(creds, `/posts/${postId}?include_content=1`) as Promise<{ id: number; link: string; status: string; title: string; content?: string }>;
   }
 
+  /** Updates a post's title, slug, or content. */
+  async updatePost(
+    creds: WordPressCredentials,
+    postId: number,
+    patch: { title?: string; slug?: string; content?: string; excerpt?: string },
+  ): Promise<{ id: number; link: string; status: string; title: string; content_hash: string }> {
+    return this.patch(creds, `/posts/${postId}`, patch) as Promise<{
+      id: number; link: string; status: string; title: string; content_hash: string;
+    }>;
+  }
+
+  // ---- Rank Math SEO metadata ----
+
+  /** Reads all Rank Math SEO metadata for a post. */
+  async getSeoMetadata(creds: WordPressCredentials, postId: number): Promise<ConnectorSeoReadResult> {
+    return this.get(creds, `/seo/${postId}`) as Promise<ConnectorSeoReadResult>;
+  }
+
+  /** Writes Rank Math SEO metadata to a post. Returns the written state. */
+  async writeSeoMetadata(
+    creds: WordPressCredentials,
+    postId: number,
+    payload: ConnectorSeoWritePayload,
+  ): Promise<ConnectorSeoWriteResult> {
+    return this.put(creds, `/seo/${postId}`, payload as Record<string, unknown>) as Promise<ConnectorSeoWriteResult>;
+  }
+
+  // ---- Content read/write ----
+
+  /** Reads post content and its hash. */
+  async getContent(creds: WordPressCredentials, postId: number): Promise<ConnectorContentRead> {
+    return this.get(creds, `/content/${postId}`) as Promise<ConnectorContentRead>;
+  }
+
+  /** Writes post content (e.g. for internal link insertion). */
+  async writeContent(
+    creds: WordPressCredentials,
+    postId: number,
+    content: string,
+  ): Promise<ConnectorContentWriteResult> {
+    return this.put(creds, `/content/${postId}`, { content }) as Promise<ConnectorContentWriteResult>;
+  }
+
+  /** Extracts internal links from a post's rendered content. */
+  async getInternalLinks(creds: WordPressCredentials, postId: number): Promise<ConnectorInternalLink[]> {
+    return this.get(creds, `/content/${postId}/internal-links`) as Promise<ConnectorInternalLink[]>;
+  }
+
+  // ---- Capability discovery ----
+
+  /**
+   * Probes the connector to determine what operations are supported.
+   * Used before publishing to fail fast if the connector doesn't support
+   * the required operations (e.g. Rank Math SEO writes).
+   */
+  async discoverCapabilities(creds: WordPressCredentials): Promise<ConnectorCapabilities> {
+    let connectorVersion = 'unknown';
+    let wpVersion: string | null = null;
+    let phpVersion: string | null = null;
+    let rankMathDetected = false;
+    let rankMathVersion: string | null = null;
+    let canReadPosts = false;
+    let canWritePosts = false;
+    let canWriteSeoMetadata = false;
+    let canWriteSchema = false;
+    let canReadInternalLinks = false;
+    let canWriteContent = false;
+    let postTypes: string[] = [];
+
+    try {
+      const info = await this.info(creds);
+      connectorVersion = info.connector?.version ?? 'unknown';
+      wpVersion = info.wp_version ?? null;
+      phpVersion = info.php_version ?? null;
+    } catch {
+      // info unavailable
+    }
+
+    try {
+      const rm = await this.rankMath(creds);
+      rankMathDetected = rm.detected;
+      rankMathVersion = rm.version ?? null;
+      canWriteSeoMetadata = rm.detected;
+      canWriteSchema = rm.detected;
+    } catch {
+      // rank math unavailable
+    }
+
+    try {
+      const perms = await this.permissions(creds);
+      canReadPosts = perms.authenticated && perms.can_read;
+      canWritePosts = perms.authenticated && perms.can_write;
+      canWriteContent = canWritePosts;
+      canReadInternalLinks = canReadPosts;
+    } catch {
+      // permissions unavailable
+    }
+
+    try {
+      const types = await this.postTypes(creds);
+      postTypes = types.post_types.map((t) => t.name);
+    } catch {
+      // post types unavailable
+    }
+
+    return {
+      connectorVersion,
+      wpVersion,
+      phpVersion,
+      rankMathDetected,
+      rankMathVersion,
+      canReadPosts,
+      canWritePosts,
+      canWriteSeoMetadata,
+      canWriteSchema,
+      canReadInternalLinks,
+      canWriteContent,
+      postTypes,
+    };
+  }
+
   /**
    * Fetches a page of the connector's response and reads the auth/status via
    * the health endpoint against the site root. Used by the onboarding check.
@@ -202,6 +394,30 @@ export class WordPressClientService {
     const auth = `Basic ${Buffer.from(`${creds.username}:${creds.password}`).toString('base64')}`;
     const res = await this.request(url, {
       method: 'POST',
+      headers: { Authorization: auth, Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return this.parseJson(res);
+  }
+
+  private async put(creds: WordPressCredentials, path: string, body: Record<string, unknown>): Promise<unknown> {
+    const base = this.normalizeBaseUrl(creds.url);
+    const url = `${base}/${CONNECTOR_PATH}${path}`;
+    const auth = `Basic ${Buffer.from(`${creds.username}:${creds.password}`).toString('base64')}`;
+    const res = await this.request(url, {
+      method: 'PUT',
+      headers: { Authorization: auth, Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return this.parseJson(res);
+  }
+
+  private async patch(creds: WordPressCredentials, path: string, body: Record<string, unknown>): Promise<unknown> {
+    const base = this.normalizeBaseUrl(creds.url);
+    const url = `${base}/${CONNECTOR_PATH}${path}`;
+    const auth = `Basic ${Buffer.from(`${creds.username}:${creds.password}`).toString('base64')}`;
+    const res = await this.request(url, {
+      method: 'PATCH',
       headers: { Authorization: auth, Accept: 'application/json', 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });

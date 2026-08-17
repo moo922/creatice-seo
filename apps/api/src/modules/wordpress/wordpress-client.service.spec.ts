@@ -101,4 +101,85 @@ describe('WordPressClientService', () => {
       'WordPress URL must use http(s).',
     );
   });
+
+  it('calls GET /seo/{id} with Basic auth and parses the response', async () => {
+    mockFetch.mockResolvedValue(jsonResponse({
+      id: 42,
+      rank_math: { available: true, title: 'Test', description: 'Desc', canonical: '', robots: [], focus_keywords: 'kw', schema: null },
+    }));
+
+    const result = await makeClient().getSeoMetadata(CREDS, 42);
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    const [url] = mockFetch.mock.calls[0];
+    expect(String(url)).toContain('/seo/42');
+    expect(result.rank_math.title).toBe('Test');
+  });
+
+  it('calls PUT /seo/{id} with the payload and returns the write result', async () => {
+    mockFetch.mockResolvedValue(jsonResponse({
+      updated: ['title', 'description'],
+      post_id: 42,
+      seo: { available: true, title: 'New', description: 'New', canonical: '', robots: [], focus_keywords: 'kw', schema: null },
+    }));
+
+    const result = await makeClient().writeSeoMetadata(CREDS, 42, { title: 'New', description: 'New' });
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    const [url, init] = mockFetch.mock.calls[0];
+    expect(String(url)).toContain('/seo/42');
+    expect(init.method).toBe('PUT');
+    expect(result.updated).toEqual(['title', 'description']);
+  });
+
+  it('calls PUT /content/{id} with content and returns hash', async () => {
+    mockFetch.mockResolvedValue(jsonResponse({
+      id: 42, content: '<p>hi</p>', content_hash: 'abc123',
+    }));
+
+    const result = await makeClient().writeContent(CREDS, 42, '<p>hi</p>');
+
+    const [url, init] = mockFetch.mock.calls[0];
+    expect(String(url)).toContain('/content/42');
+    expect(init.method).toBe('PUT');
+    expect(result.content_hash).toBe('abc123');
+  });
+
+  it('calls PATCH /posts/{id} with update payload', async () => {
+    mockFetch.mockResolvedValue(jsonResponse({
+      id: 42, link: 'https://example.com/new', status: 'draft', title: 'Updated', content_hash: 'xyz',
+    }));
+
+    const result = await makeClient().updatePost(CREDS, 42, { title: 'Updated', slug: 'new' });
+
+    const [url, init] = mockFetch.mock.calls[0];
+    expect(String(url)).toContain('/posts/42');
+    expect(init.method).toBe('PATCH');
+    expect(result.title).toBe('Updated');
+  });
+
+  it('calls GET /content/{id}/internal-links and returns links', async () => {
+    mockFetch.mockResolvedValue(jsonResponse([
+      { url: 'https://example.com/page1', anchor_text: 'Page 1' },
+    ]));
+
+    const result = await makeClient().getInternalLinks(CREDS, 42);
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    const [url] = mockFetch.mock.calls[0];
+    expect(String(url)).toContain('/content/42/internal-links');
+    expect(result).toHaveLength(1);
+  });
+
+  it('calls GET /content/{id} and returns content hash', async () => {
+    mockFetch.mockResolvedValue(jsonResponse({
+      id: 42, content: '<p>Hello</p>', content_hash: 'sha1hash',
+    }));
+
+    const result = await makeClient().getContent(CREDS, 42);
+
+    const [url] = mockFetch.mock.calls[0];
+    expect(String(url)).toContain('/content/42');
+    expect(result.content_hash).toBe('sha1hash');
+  });
 });
