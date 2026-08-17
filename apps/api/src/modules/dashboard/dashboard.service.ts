@@ -817,11 +817,11 @@ function baselineProgress(first: BaselineSnapshot, latest: BaselineSnapshot): { 
     { key: 'seoHealth', label: 'SEO Health', initial: n(initial.seoHealth), current: n(current.seoHealth) },
     { key: 'aeoReadiness', label: 'AEO Readiness', initial: n(initial.aeoReadiness), current: n(current.aeoReadiness) },
     { key: 'geoReadiness', label: 'GEO Readiness', initial: n(initial.geoReadiness), current: n(current.geoReadiness) },
-    { key: 'criticalIssues', label: 'Critical Issues', initial: n(initial.technicalIssues), current: n(current.technicalIssues) },
-    { key: 'highIssues', label: 'High Issues', initial: n(initial.crawlHealth), current: n(current.crawlHealth) },
+    { key: 'criticalIssues', label: 'Critical Issues', initial: n(initial.criticalIssues), current: n(current.criticalIssues) },
+    { key: 'highIssues', label: 'High Issues', initial: n(initial.highIssues), current: n(current.highIssues) },
     { key: 'organicClicks', label: 'Organic Clicks', initial: n(initial.gscMetrics.clicks), current: n(current.gscMetrics.clicks) },
     { key: 'organicImpressions', label: 'Organic Impressions', initial: n(initial.gscMetrics.impressions), current: n(current.gscMetrics.impressions) },
-    { key: 'topKeywords', label: 'Top 10 Keywords', initial: n(initial.keywordVisibility), current: n(current.keywordVisibility) },
+    { key: 'topKeywords', label: 'Top 10 Keywords', initial: n(initial.top10QueryCount), current: n(current.top10QueryCount) },
   ];
   const metrics: BaselineProgressMetricDto[] = items.map((item) => ({
     key: item.key,

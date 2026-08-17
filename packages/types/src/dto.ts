@@ -1018,22 +1018,54 @@ export interface CreateChangeLogRequest {
 }
 
 export interface BaselineMetricsDto {
+  /** Audit-derived scores (0-100 or null). */
   crawlHealth: number | null;
   technicalIssues: number | null;
   onPageHealth: number | null;
   contentHealth: number | null;
   aeoReadiness: number | null;
   geoReadiness: number | null;
+
+  /** GSC period performance (28-day window). */
   gscMetrics: {
     clicks: number | null;
     impressions: number | null;
     ctr: number | null;
     avgPosition: number | null;
   };
+
+  /** Keyword visibility. */
   keywordVisibility: number | null;
   internalLinkHealth: number | null;
-  /** Composite Internal Platform Health Score (versioned). */
   seoHealth: number | null;
+
+  /** Page counts from latest crawl. */
+  pagesCrawled: number | null;
+  indexablePages: number | null;
+  noindexPages: number | null;
+
+  /** Issue breakdown by severity. */
+  criticalIssues: number | null;
+  highIssues: number | null;
+  mediumIssues: number | null;
+  lowIssues: number | null;
+
+  /** GSC query metrics (28-day window). */
+  rankingQueries: number | null;
+  queriesWithImpressions: number | null;
+  top3QueryCount: number | null;
+  top10QueryCount: number | null;
+  top20QueryCount: number | null;
+  positions11To20: number | null;
+  cannibalizationCandidates: number | null;
+
+  /** Internal linking health details. */
+  brokenInternalLinks: number | null;
+  orphanPages: number | null;
+  canonicalIssues: number | null;
+
+  /** AI visibility observations (when available). */
+  aiVisibilityObservations: number | null;
 }
 
 export interface IssueSnapshotEntry {
@@ -1171,6 +1203,7 @@ export interface BaselineSnapshotDto {
   referenceAuditRunId: string | null;
   metrics: BaselineMetricsDto;
   availability: Record<string, MetricAvailability>;
+  dataQuality: Record<string, unknown>;
   issues: IssueSnapshotEntry[];
   note: string | null;
   createdBy: string | null;
@@ -1184,6 +1217,7 @@ export interface CreateBaselineSnapshotRequest {
   dataCutoffDate?: string | null;
   metrics: BaselineMetricsDto;
   availability?: Record<string, MetricAvailability>;
+  dataQuality?: Record<string, unknown>;
   note?: string | null;
 }
 

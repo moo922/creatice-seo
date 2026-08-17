@@ -40,6 +40,8 @@ import { CreateAuditRuns00391720000000039 } from './0039-create-audit-runs';
 import { CreateLighthouseRuns00401720000000040 } from './0040-create-lighthouse-runs';
 import { AddLinkAnalysisCrawlRun00411720000000041 } from './0041-add-link-analysis-crawl-run';
 import { CanonicalMetricGrains00421720000000042 } from './0042-canonical-metric-grains';
+import { CreateSiteSnapshots00431720000000043 } from './0043-create-site-snapshots';
+import { AddBaselineDataQuality00441720000000044 } from './0044-add-baseline-data-quality';
 
 export const migrations = [
   CreateIdentity00011720000000001,
@@ -84,6 +86,8 @@ export const migrations = [
   CreateLighthouseRuns00401720000000040,
   AddLinkAnalysisCrawlRun00411720000000041,
   CanonicalMetricGrains00421720000000042,
+  CreateSiteSnapshots00431720000000043,
+  AddBaselineDataQuality00441720000000044,
 ];
 
 export {
@@ -129,4 +133,6 @@ export {
   CreateLighthouseRuns00401720000000040,
   AddLinkAnalysisCrawlRun00411720000000041,
   CanonicalMetricGrains00421720000000042,
+  CreateSiteSnapshots00431720000000043,
+  AddBaselineDataQuality00441720000000044,
 };

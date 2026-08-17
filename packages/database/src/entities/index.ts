@@ -49,6 +49,7 @@ import { WorkflowJob } from './workflow-job';
 import { ContentPublication } from './content-publication';
 import { SiteActivationStep } from './site-activation-step';
 import { SiteAutomationSettings } from './site-automation-settings';
+import { SiteSnapshot } from './site-snapshot';
 import { AutomationRun } from './automation-run';
 import { WorkItemState } from './work-item-state';
 import { WorkFilter } from './work-filter';
@@ -109,6 +110,7 @@ export const entities = [
   ContentPublication,
   SiteActivationStep,
   SiteAutomationSettings,
+  SiteSnapshot,
   AutomationRun,
   WorkItemState,
   WorkFilter,
@@ -170,6 +172,7 @@ export {
   ContentPublication,
   SiteActivationStep,
   SiteAutomationSettings,
+  SiteSnapshot,
   AutomationRun,
   WorkItemState,
   WorkFilter,

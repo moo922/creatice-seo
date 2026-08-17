@@ -228,7 +228,11 @@ export type ChangeType = (typeof CHANGE_TYPES)[number];
 export const BASELINE_TYPES = ['BASELINE', 'PERIODIC', 'MONTHLY', 'QUARTERLY'] as const;
 export type BaselineType = (typeof BASELINE_TYPES)[number];
 
-/** The nine baseline metric areas. */
+/** Site snapshot types (recalculated from source data). */
+export const SITE_SNAPSHOT_TYPES = ['WEEKLY', 'MONTHLY', 'QUARTERLY', 'MANUAL'] as const;
+export type SiteSnapshotType = (typeof SITE_SNAPSHOT_TYPES)[number];
+
+/** The baseline metric areas. */
 export const BASELINE_METRIC_KEYS = [
   'crawlHealth',
   'technicalIssues',
@@ -240,6 +244,24 @@ export const BASELINE_METRIC_KEYS = [
   'keywordVisibility',
   'internalLinkHealth',
   'seoHealth',
+  'pagesCrawled',
+  'indexablePages',
+  'noindexPages',
+  'criticalIssues',
+  'highIssues',
+  'mediumIssues',
+  'lowIssues',
+  'rankingQueries',
+  'queriesWithImpressions',
+  'top3QueryCount',
+  'top10QueryCount',
+  'top20QueryCount',
+  'positions11To20',
+  'cannibalizationCandidates',
+  'brokenInternalLinks',
+  'orphanPages',
+  'canonicalIssues',
+  'aiVisibilityObservations',
 ] as const;
 export type BaselineMetricKey = (typeof BASELINE_METRIC_KEYS)[number];
 

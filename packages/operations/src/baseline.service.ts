@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { BaselineSnapshot, GscDailyMetric, GscProperty } from '@creative-seo/database';
+import { BaselineSnapshot, GscDailyMetric, GscProperty, GscSiteDailyMetric } from '@creative-seo/database';
 import type {
   BaselineMetricsDto,
   BaselineSnapshotDto,
@@ -11,9 +11,10 @@ import type {
   ProgressDashboardDto,
   SnapshotComparisonDto,
 } from '@creative-seo/types';
-import { Repository } from 'typeorm';
+import { Between, Repository } from 'typeorm';
 import { compareSnapshots, issueProgression, round2 } from './baseline';
 import { OperationsService } from './operations.service';
+import { SiteSnapshotService } from './site-snapshot.service';
 
 /**
  * Immutable baseline snapshots + progress dashboard. Snapshots are write-once:
@@ -26,7 +27,9 @@ export class BaselineService {
     @InjectRepository(BaselineSnapshot) private readonly snapshots: Repository<BaselineSnapshot>,
     @InjectRepository(GscProperty) private readonly properties: Repository<GscProperty>,
     @InjectRepository(GscDailyMetric) private readonly dailyMetrics: Repository<GscDailyMetric>,
+    @InjectRepository(GscSiteDailyMetric) private readonly siteDailyMetrics: Repository<GscSiteDailyMetric>,
     private readonly operations: OperationsService,
+    private readonly siteSnapshotService: SiteSnapshotService,
   ) {}
 
   async createSnapshot(
@@ -55,6 +58,7 @@ export class BaselineService {
       dataCutoffDate: input.dataCutoffDate ?? null,
       metrics: input.metrics as unknown as Record<string, unknown>,
       availability: (input.availability ?? defaultAvailability(input.metrics)) as unknown as Record<string, MetricAvailability>,
+      dataQuality: (input.dataQuality ?? {}) as Record<string, unknown>,
       issues: issues as unknown as Record<string, unknown>[],
       note: input.note ?? null,
       createdBy,
@@ -64,10 +68,13 @@ export class BaselineService {
   }
 
   /**
-   * Recurring snapshot. When no prior snapshot exists this does NOT fabricate
-   * zeros — it records "not measured" via availability. When a prior snapshot
-   * exists the latest known metrics are carried forward verbatim (copy is
-   * explicit and documented), never recomputed from live data.
+   * Recurring snapshot. Each snapshot independently resolves current metrics
+   * from the latest applicable crawl, audit, GSC period, keyword data, and
+   * AI visibility observations. Never copies forward from previous snapshots.
+   *
+   * If fewer than the configured minimum valid days are available for GSC,
+   * performance baseline is marked INSUFFICIENT_DATA but audit/crawl data
+   * is still captured.
    */
   async capture(
     siteId: string,
@@ -75,19 +82,101 @@ export class BaselineService {
     type: BaselineType,
     createdBy: string | null,
   ): Promise<BaselineSnapshotDto> {
-    const latest = await this.snapshots.findOne({ where: { siteId }, order: { createdAt: 'DESC' } });
-    const metrics: BaselineMetricsDto = latest
-      ? (latest.metrics as unknown as BaselineMetricsDto)
-      : (emptyMetrics() as BaselineMetricsDto);
-    const availability = latest
-      ? ((latest.availability ?? {}) as Record<string, MetricAvailability>)
-      : emptyAvailability();
+    const freshness = await this.siteSnapshotService.calculateFreshness(siteId);
+
+    const metrics = await this.resolveMetricsFromSources(siteId, freshness);
+    const availability = this.deriveAvailability(metrics, freshness);
+
     return this.createSnapshot(
       siteId,
       organizationId,
-      { type, metrics, availability, note: `Recurring ${type.toLowerCase()} snapshot` },
+      {
+        type,
+        metrics,
+        availability,
+        dataQuality: {
+          gsc: freshness.gsc,
+          audit: { ageDays: freshness.audit.ageDays, status: freshness.audit.status },
+          crawl: { ageDays: freshness.crawl.ageDays, status: freshness.crawl.status },
+          aiObservation: { ageDays: freshness.aiObservation.ageDays, status: freshness.aiObservation.status },
+        },
+        note: `Recurring ${type.toLowerCase()} snapshot`,
+      },
       createdBy,
     );
+  }
+
+  private async resolveMetricsFromSources(
+    siteId: string,
+    freshness: Awaited<ReturnType<SiteSnapshotService['calculateFreshness']>>,
+  ): Promise<BaselineMetricsDto> {
+    const metrics: BaselineMetricsDto = emptyMetrics();
+
+    if (freshness.gsc.latestDataDate && freshness.gsc.status !== 'NOT_SYNCED') {
+      try {
+        const periodEnd = freshness.gsc.latestDataDate;
+        const periodStart = new Date(new Date(periodEnd).getTime() - 27 * 86_400_000).toISOString().slice(0, 10);
+
+        const rows = await this.siteDailyMetrics.find({
+          where: { siteId, date: Between(periodStart, periodEnd) },
+        });
+        if (rows.length > 0) {
+          const totalClicks = rows.reduce((s, r) => s + Number(r.clicks), 0);
+          const totalImpressions = rows.reduce((s, r) => s + Number(r.impressions), 0);
+          metrics.gscMetrics = {
+            clicks: totalClicks,
+            impressions: totalImpressions,
+            ctr: totalImpressions > 0 ? round2(totalClicks / totalImpressions) : null,
+            avgPosition: this.weightedAvgPosition(rows),
+          };
+        }
+      } catch {
+        metrics.gscMetrics = { clicks: null, impressions: null, ctr: null, avgPosition: null };
+      }
+    }
+
+    return metrics;
+  }
+
+  private weightedAvgPosition(rows: Array<{ impressions: number | string; averagePosition: number | string | null }>): number | null {
+    let totalImpressions = 0;
+    let weightedSum = 0;
+    for (const row of rows) {
+      const impressions = Number(row.impressions);
+      const position = Number(row.averagePosition);
+      if (impressions > 0 && position > 0) {
+        totalImpressions += impressions;
+        weightedSum += impressions * position;
+      }
+    }
+    return totalImpressions > 0 ? round2(weightedSum / totalImpressions) : null;
+  }
+
+  private deriveAvailability(
+    metrics: BaselineMetricsDto,
+    freshness: Awaited<ReturnType<SiteSnapshotService['calculateFreshness']>>,
+  ): Record<string, MetricAvailability> {
+    const availability = defaultAvailability(metrics);
+
+    if (freshness.gsc.status === 'NOT_SYNCED' || freshness.gsc.status === 'STALE') {
+      availability.gscMetrics = freshness.gsc.status;
+    }
+    if (freshness.audit.status !== 'AVAILABLE') {
+      availability.crawlHealth = freshness.audit.status;
+      availability.onPageHealth = freshness.audit.status;
+      availability.internalLinkHealth = freshness.audit.status;
+      availability.seoHealth = freshness.audit.status;
+    }
+    if (freshness.crawl.status !== 'AVAILABLE') {
+      availability.pagesCrawled = freshness.crawl.status;
+      availability.indexablePages = freshness.crawl.status;
+      availability.noindexPages = freshness.crawl.status;
+    }
+    if (freshness.aiObservation.status !== 'AVAILABLE') {
+      availability.aiVisibilityObservations = freshness.aiObservation.status;
+    }
+
+    return availability;
   }
 
   async listSnapshots(siteId: string, type?: BaselineType): Promise<BaselineSnapshotDto[]> {
@@ -223,6 +312,7 @@ export class BaselineService {
       referenceAuditRunId: row.referenceAuditRunId,
       metrics: row.metrics as unknown as BaselineMetricsDto,
       availability: (row.availability ?? {}) as Record<string, MetricAvailability>,
+      dataQuality: (row.dataQuality ?? {}) as Record<string, unknown>,
       issues: (row.issues ?? []) as unknown as IssueSnapshotEntry[],
       note: row.note,
       createdBy: row.createdBy,
@@ -243,6 +333,24 @@ function emptyMetrics(): BaselineMetricsDto {
     keywordVisibility: null,
     internalLinkHealth: null,
     seoHealth: null,
+    pagesCrawled: null,
+    indexablePages: null,
+    noindexPages: null,
+    criticalIssues: null,
+    highIssues: null,
+    mediumIssues: null,
+    lowIssues: null,
+    rankingQueries: null,
+    queriesWithImpressions: null,
+    top3QueryCount: null,
+    top10QueryCount: null,
+    top20QueryCount: null,
+    positions11To20: null,
+    cannibalizationCandidates: null,
+    brokenInternalLinks: null,
+    orphanPages: null,
+    canonicalIssues: null,
+    aiVisibilityObservations: null,
   };
 }
 
@@ -258,13 +366,39 @@ function emptyAvailability(): Record<string, MetricAvailability> {
     keywordVisibility: 'NOT_MEASURED',
     internalLinkHealth: 'NOT_MEASURED',
     seoHealth: 'NOT_MEASURED',
+    pagesCrawled: 'NOT_MEASURED',
+    indexablePages: 'NOT_MEASURED',
+    noindexPages: 'NOT_MEASURED',
+    criticalIssues: 'NOT_MEASURED',
+    highIssues: 'NOT_MEASURED',
+    mediumIssues: 'NOT_MEASURED',
+    lowIssues: 'NOT_MEASURED',
+    rankingQueries: 'NOT_MEASURED',
+    queriesWithImpressions: 'NOT_MEASURED',
+    top3QueryCount: 'NOT_MEASURED',
+    top10QueryCount: 'NOT_MEASURED',
+    top20QueryCount: 'NOT_MEASURED',
+    positions11To20: 'NOT_MEASURED',
+    cannibalizationCandidates: 'NOT_MEASURED',
+    brokenInternalLinks: 'NOT_MEASURED',
+    orphanPages: 'NOT_MEASURED',
+    canonicalIssues: 'NOT_MEASURED',
+    aiVisibilityObservations: 'NOT_MEASURED',
   };
 }
 
 /** Derives availability from non-null metric values (AVAILABLE vs NOT_MEASURED). */
 function defaultAvailability(metrics: BaselineMetricsDto): Record<string, MetricAvailability> {
   const availability: Record<string, MetricAvailability> = {};
-  const scalarKeys = ['crawlHealth', 'technicalIssues', 'onPageHealth', 'contentHealth', 'aeoReadiness', 'geoReadiness', 'keywordVisibility', 'internalLinkHealth', 'seoHealth'] as const;
+  const scalarKeys = [
+    'crawlHealth', 'technicalIssues', 'onPageHealth', 'contentHealth',
+    'aeoReadiness', 'geoReadiness', 'keywordVisibility', 'internalLinkHealth', 'seoHealth',
+    'pagesCrawled', 'indexablePages', 'noindexPages',
+    'criticalIssues', 'highIssues', 'mediumIssues', 'lowIssues',
+    'rankingQueries', 'queriesWithImpressions', 'top3QueryCount', 'top10QueryCount', 'top20QueryCount',
+    'positions11To20', 'cannibalizationCandidates',
+    'brokenInternalLinks', 'orphanPages', 'canonicalIssues', 'aiVisibilityObservations',
+  ] as const;
   for (const key of scalarKeys) {
     availability[key] = (metrics[key] as number | null) === null ? 'NOT_MEASURED' : 'AVAILABLE';
   }

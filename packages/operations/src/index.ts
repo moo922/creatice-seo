@@ -4,4 +4,6 @@ export * from './alerts';
 export * from './operations.service';
 export * from './baseline.service';
 export * from './alert.service';
+export * from './comparison.service';
+export * from './site-snapshot.service';
 export * from './operations-core.module';

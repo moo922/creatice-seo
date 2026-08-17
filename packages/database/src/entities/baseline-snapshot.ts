@@ -51,6 +51,10 @@ export class BaselineSnapshot {
   @Column({ type: 'jsonb', default: () => "'{}'" })
   availability: Record<string, string>;
 
+  /** Data quality/freshness information for each source. */
+  @Column({ type: 'jsonb', name: 'data_quality', default: () => "'{}'" })
+  dataQuality: Record<string, unknown>;
+
   /** Issue id+status snapshot used to compute initial/new/resolved/remaining/regressed. */
   @Column({ type: 'jsonb', default: () => "'[]'" })
   issues: Record<string, unknown>[];
