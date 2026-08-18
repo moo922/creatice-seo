@@ -18,6 +18,7 @@ import { QueueManager } from './queue/queue-manager';
 import { QueueProcessor } from './queue/queue-processor';
 import { ScheduledJobsService } from './queue/scheduler';
 import { AutomationScheduler } from './queue/automation-scheduler';
+import { Gc06SchedulerService } from './queue/gc06-scheduler';
 
 @Module({
   imports: [
@@ -42,6 +43,6 @@ import { AutomationScheduler } from './queue/automation-scheduler';
     ReportingCoreModule,
     LinksCoreModule,
   ],
-  providers: [QueueManager, HealthServer, QueueProcessor, ScheduledJobsService, AutomationScheduler],
+  providers: [QueueManager, HealthServer, QueueProcessor, ScheduledJobsService, AutomationScheduler, Gc06SchedulerService],
 })
 export class AppModule {}
