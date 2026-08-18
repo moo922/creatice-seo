@@ -92,6 +92,7 @@ export interface ProviderOptions {
 export interface ProviderWithResearch {
   provider: AIProvider;
   research: ResearchProvider | null;
+  capabilities: ProviderCapabilities;
 }
 
 /** Global provider runtime config (from environment). */
@@ -158,6 +159,68 @@ export interface ResolvedRoute {
 // ---------------------------------------------------------------------------
 
 export type AiJobKind = 'TEXT' | 'STRUCTURED' | 'RESEARCH';
+
+// ---------------------------------------------------------------------------
+// Provider capabilities (GC06)
+// ---------------------------------------------------------------------------
+
+export const AI_PROVIDER_CAPABILITIES = [
+  'TEXT_GENERATION',
+  'STRUCTURED_OUTPUT',
+  'WEB_SEARCH',
+  'SOURCE_PROVENANCE',
+  'CITATIONS',
+  'SEARCH_RESULT_METADATA',
+  'LOCATION_CONTEXT',
+  'MODEL_VERSION',
+  'REQUEST_SEED',
+  'TEMPERATURE_CONTROL',
+] as const;
+export type AiProviderCapability = (typeof AI_PROVIDER_CAPABILITIES)[number];
+
+export interface ProviderCapabilities {
+  provider: AiProviderKind;
+  capabilities: AiProviderCapability[];
+  defaultModel: string;
+  maxOutputTokens: number | null;
+  supportsTemperature: boolean;
+  supportsSeed: boolean;
+  supportsLocationContext: boolean;
+  supportsSearch: boolean;
+  supportsCitations: boolean;
+  supportsSourceProvenance: boolean;
+  rateLimitRpm: number | null;
+}
+
+/** Normalized output from a provider observation run. */
+export interface ProviderObservationResult {
+  responseText: string;
+  provider: AiProviderKind;
+  model: string;
+  providerRequestId: string | null;
+  sources: ProviderSource[];
+  provenanceQuality: ProvenanceQuality;
+  usage: UsageEstimate;
+  latencyMs: number;
+  rawMetadata: Record<string, unknown> | null;
+}
+
+export interface ProviderSource {
+  title: string | null;
+  url: string | null;
+  domain: string | null;
+  providerSourceId: string | null;
+  citationIndex: number | null;
+  rawMetadata: Record<string, unknown> | null;
+}
+
+export const PROVENANCE_QUALITY_VALUES = [
+  'VERIFIED_PROVIDER_SOURCE',
+  'UNVERIFIED_GENERATED_REFERENCE',
+  'INFERRED_DOMAIN',
+  'UNKNOWN',
+] as const;
+export type ProvenanceQuality = (typeof PROVENANCE_QUALITY_VALUES)[number];
 
 export interface NewAiJob {
   siteId: string | null;

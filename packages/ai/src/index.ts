@@ -8,6 +8,7 @@ export * from './router';
 export * from './encryption';
 export * from './provider/http';
 export * from './provider/factory';
+export { ProviderCapabilityRegistryService } from './provider/capabilities';
 export { OpenAiProvider } from './provider/openai';
 export { AnthropicProvider } from './provider/anthropic';
 export { PerplexityProvider } from './provider/perplexity';

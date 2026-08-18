@@ -17,13 +17,14 @@ type ProcessedQueue = (typeof PROCESSED_QUEUES)[number];
 interface JobData {
   siteId?: string;
   organizationId?: string | null;
-  kind?: 'snapshot' | 'report';
+  kind?: 'snapshot' | 'report' | 'gc06-run' | 'gc06-snapshot' | 'gc06-baseline';
   type?: string;
   periodStart?: string | null;
   periodEnd?: string | null;
   createdBy?: string | null;
   runId?: string;
   operation?: string;
+  priorityPromptOnly?: boolean;
 }
 
 /**
@@ -122,6 +123,14 @@ export class QueueProcessor implements OnModuleInit, OnApplicationShutdown {
       location: site.country ?? '',
       problem: settings.problem ?? '',
     };
+
+    if (data.kind === 'gc06-run') {
+      const run = await this.visibility.run(siteId, data.organizationId ?? null, target, {
+        categories: data.priorityPromptOnly ? ['BRAND', 'COMMERCIAL', 'DECISION'] : undefined,
+      }, null);
+      return { status: 'ok', id: run.id };
+    }
+
     const run = await this.visibility.run(siteId, data.organizationId ?? null, target, {}, null);
     return { status: 'ok', id: run.id };
   }

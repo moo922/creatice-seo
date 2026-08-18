@@ -68,6 +68,15 @@ import { EntityRelation } from './entity-relation';
 import { FactEvidence } from './fact-evidence';
 import { CrawlerPolicyResult } from './crawler-policy-result';
 import { AiCrawlerRegistry } from './ai-crawler-registry';
+import { AiVisibilityPromptSetV2 } from './ai-visibility-prompt-set-v2';
+import { AiVisibilityPrompt } from './ai-visibility-prompt';
+import { AiVisibilityCompetitor } from './ai-visibility-competitor';
+import { AiVisibilityObservationV2 } from './ai-visibility-observation-v2';
+import { AiVisibilitySourceProvenance } from './ai-visibility-source-provenance';
+import { AiProviderCapability } from './ai-provider-capability';
+import { AiVisibilityBudget } from './ai-visibility-budget';
+import { AiVisibilityBaseline } from './ai-visibility-baseline';
+import { AiVisibilitySnapshot } from './ai-visibility-snapshot';
 
 export const entities = [
   User,
@@ -143,6 +152,15 @@ export const entities = [
   FactEvidence,
   CrawlerPolicyResult,
   AiCrawlerRegistry,
+  AiVisibilityPromptSetV2,
+  AiVisibilityPrompt,
+  AiVisibilityCompetitor,
+  AiVisibilityObservationV2,
+  AiVisibilitySourceProvenance,
+  AiProviderCapability,
+  AiVisibilityBudget,
+  AiVisibilityBaseline,
+  AiVisibilitySnapshot,
 ];
 
 export {
@@ -219,4 +237,13 @@ export {
   FactEvidence,
   CrawlerPolicyResult,
   AiCrawlerRegistry,
+  AiVisibilityPromptSetV2,
+  AiVisibilityPrompt,
+  AiVisibilityCompetitor,
+  AiVisibilityObservationV2,
+  AiVisibilitySourceProvenance,
+  AiProviderCapability,
+  AiVisibilityBudget,
+  AiVisibilityBaseline,
+  AiVisibilitySnapshot,
 };

@@ -1,7 +1,7 @@
 import { type MigrationInterface, type QueryRunner } from 'typeorm';
 
-export class AddAeoGoreuditEntities17000000051 implements MigrationInterface {
-  name = '0051-add-aeo-geo-audit-entities';
+export class AddAeoGoreuditEntities00511720000000051 implements MigrationInterface {
+  name = 'AddAeoGoreuditEntities00511720000000051';
 
   public async up(qr: QueryRunner): Promise<void> {
     // Audit run provenance fields

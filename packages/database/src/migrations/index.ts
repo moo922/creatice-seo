@@ -47,8 +47,12 @@ import { AddPerformanceIndexes00461720000000046 } from './0046-add-performance-i
 import { AddPublicationVerificationFields00471720000000047 } from './0047-add-publication-verification-fields';
 import { KeywordIntelligence00481720000000048 } from './0048-keyword-intelligence';
 import { UpdatePromptEnums00491720000000049 } from './0049-update-prompt-enums';
-import { AddCrawlPageText17000000050 } from './0050-add-crawl-page-text';
-import { AddAeoGoreuditEntities17000000051 } from './0051-add-aeo-geo-audit-entities';
+import { AddCrawlPageText00501720000000050 } from './0050-add-crawl-page-text';
+import { AddAeoGoreuditEntities00511720000000051 } from './0051-add-aeo-geo-audit-entities';
+import { AddGc06PromptSetsCompetitors00521720000000052 } from './0052-add-gc06-prompt-sets-competitors';
+import { AddGc06ObservationsProvenance00531720000000053 } from './0053-add-gc06-observations-provenance';
+import { AddGc06ProviderBudget00541720000000054 } from './0054-add-gc06-provider-budget';
+import { AddGc06BaselinesSnapshots00551720000000055 } from './0055-add-gc06-baselines-snapshots';
 
 export const migrations = [
   CreateIdentity00011720000000001,
@@ -100,8 +104,12 @@ export const migrations = [
   AddPublicationVerificationFields00471720000000047,
   KeywordIntelligence00481720000000048,
   UpdatePromptEnums00491720000000049,
-  AddCrawlPageText17000000050,
-  AddAeoGoreuditEntities17000000051,
+  AddCrawlPageText00501720000000050,
+  AddAeoGoreuditEntities00511720000000051,
+  AddGc06PromptSetsCompetitors00521720000000052,
+  AddGc06ObservationsProvenance00531720000000053,
+  AddGc06ProviderBudget00541720000000054,
+  AddGc06BaselinesSnapshots00551720000000055,
 ];
 
 export {
@@ -154,6 +162,10 @@ export {
   AddPublicationVerificationFields00471720000000047,
   KeywordIntelligence00481720000000048,
   UpdatePromptEnums00491720000000049,
-  AddCrawlPageText17000000050,
-  AddAeoGoreuditEntities17000000051,
+  AddCrawlPageText00501720000000050,
+  AddAeoGoreuditEntities00511720000000051,
+  AddGc06PromptSetsCompetitors00521720000000052,
+  AddGc06ObservationsProvenance00531720000000053,
+  AddGc06ProviderBudget00541720000000054,
+  AddGc06BaselinesSnapshots00551720000000055,
 };
