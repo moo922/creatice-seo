@@ -18,6 +18,8 @@ import { ContentTab } from './tabs/content-tab';
 import { LinksTab } from './tabs/links-tab';
 import { ReportsTab } from './tabs/reports-tab';
 import { SettingsTab } from './tabs/settings-tab';
+import { AeoTab } from './tabs/aeo-tab';
+import { GeoTab } from './tabs/geo-tab';
 
 const STATUS_VARIANT: Record<SiteDto['status'], 'default' | 'secondary' | 'outline'> = {
   ACTIVE: 'default',
@@ -100,6 +102,8 @@ export function SiteDetailPage() {
             <TabsTrigger value="keywords">{t('siteDetail.keywords')}</TabsTrigger>
             <TabsTrigger value="content">{t('siteDetail.content')}</TabsTrigger>
             <TabsTrigger value="links">{t('siteDetail.links')}</TabsTrigger>
+            <TabsTrigger value="aeo">AEO</TabsTrigger>
+            <TabsTrigger value="geo">GEO</TabsTrigger>
             <TabsTrigger value="reports">{t('siteDetail.reports')}</TabsTrigger>
             <TabsTrigger value="settings">{t('nav.settings')}</TabsTrigger>
           </TabsList>
@@ -125,6 +129,12 @@ export function SiteDetailPage() {
           </TabsContent>
           <TabsContent value="links">
             <LinksTab siteId={siteId} />
+          </TabsContent>
+          <TabsContent value="aeo">
+            <AeoTab siteId={siteId} />
+          </TabsContent>
+          <TabsContent value="geo">
+            <GeoTab siteId={siteId} />
           </TabsContent>
           <TabsContent value="reports">
             <ReportsTab siteId={siteId} />

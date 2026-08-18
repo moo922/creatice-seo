@@ -298,6 +298,8 @@ export const AI_WORKFLOWS = [
   'content-qa',
   'operations-recommendation',
   'visibility-observation',
+  'aeo-page-auditor',
+  'geo-page-auditor',
 ] as const;
 export type AiWorkflow = (typeof AI_WORKFLOWS)[number];
 
@@ -386,10 +388,12 @@ export const ISSUE_KINDS = [
   'ON_PAGE',
   'ORCHESTRATION',
   'MANUAL',
+  'AEO_GAP',
+  'GEO_GAP',
 ] as const;
 export type IssueKind = (typeof ISSUE_KINDS)[number];
 
-export const ISSUE_SOURCES = ['ALERT', 'GSC', 'WORDPRESS', 'CRAWLER', 'MANUAL', 'N8N'] as const;
+export const ISSUE_SOURCES = ['ALERT', 'GSC', 'WORDPRESS', 'CRAWLER', 'MANUAL', 'N8N', 'AEO_AUDIT', 'GEO_AUDIT'] as const;
 export type IssueSource = (typeof ISSUE_SOURCES)[number];
 
 export const RECOMMENDATION_PRIORITIES = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] as const;
@@ -921,6 +925,8 @@ export const AUTOMATION_OPERATIONS = [
   'technical-health',
   'full-crawl',
   'seo-audit',
+  'aeo-site-audit',
+  'geo-site-audit',
   'keyword-opportunities',
   'internal-link-audit',
   'content-decay',
@@ -989,6 +995,108 @@ export type WorkSource = (typeof WORK_SOURCES)[number];
  *  intentionally absent — that requires explicit, per-item confirmation. */
 export const WORK_BULK_ACTIONS = ['assign', 'change_priority', 'mark_reviewed', 'create_tasks', 'ignore'] as const;
 export type WorkBulkAction = (typeof WORK_BULK_ACTIONS)[number];
+
+// ---------------------------------------------------------------------------
+// AEO / GEO audit engine
+// ---------------------------------------------------------------------------
+
+/** AEO/GEO score algorithm versions. */
+export const AEO_SCORE_VERSIONS = ['AEO_SCORE_V1'] as const;
+export type AeoScoreVersion = (typeof AEO_SCORE_VERSIONS)[number];
+
+export const GEO_SCORE_VERSIONS = ['GEO_SCORE_V1'] as const;
+export type GeoScoreVersion = (typeof GEO_SCORE_VERSIONS)[number];
+
+/** Data quality status for AEO/GEO audit results. */
+export const AUDIT_DATA_QUALITIES = ['GOOD', 'PARTIAL', 'STALE', 'INSUFFICIENT', 'ERROR'] as const;
+export type AuditDataQuality = (typeof AUDIT_DATA_QUALITIES)[number];
+
+/** AEO finding types (stable rule identifiers). */
+export const AEO_FINDING_TYPES = [
+  'AEO_INTENT_MISMATCH',
+  'AEO_DIRECT_ANSWER_MISSING',
+  'AEO_DIRECT_ANSWER_WEAK',
+  'AEO_PRIMARY_QUESTION_UNANSWERED',
+  'AEO_QUESTION_GAP',
+  'AEO_SEMANTIC_COVERAGE_GAP',
+  'AEO_DECISION_SUPPORT_GAP',
+  'AEO_COMPARISON_GAP',
+  'AEO_COST_CONTEXT_GAP',
+  'AEO_PROCESS_GAP',
+  'AEO_OBJECTION_GAP',
+  'AEO_ENTITY_EXPLANATION_GAP',
+  'AEO_FACT_CONFLICT',
+  'AEO_LOW_INFORMATION_DENSITY',
+] as const;
+export type AeoFindingType = (typeof AEO_FINDING_TYPES)[number];
+
+/** GEO finding types (stable rule identifiers). */
+export const GEO_FINDING_TYPES = [
+  'GEO_ENTITY_UNCLEAR',
+  'GEO_ENTITY_INCONSISTENT',
+  'GEO_BUSINESS_INFORMATION_CONFLICT',
+  'GEO_UNVERIFIED_MAJOR_CLAIM',
+  'GEO_LOW_FACTUAL_SPECIFICITY',
+  'GEO_SOURCE_QUALITY_WEAK',
+  'GEO_EVIDENCE_GAP',
+  'GEO_AUTHOR_ATTRIBUTION_GAP',
+  'GEO_ORIGINAL_INFORMATION_GAP',
+  'GEO_AI_CRAWLER_BLOCKED',
+  'GEO_IMPORTANT_CONTENT_NOT_MACHINE_ACCESSIBLE',
+  'GEO_SCHEMA_ENTITY_CONFLICT',
+  'GEO_CITATION_READINESS_LOW',
+  'GEO_FACT_SOURCE_GAP',
+] as const;
+export type GeoFindingType = (typeof GEO_FINDING_TYPES)[number];
+
+/** Question categories for AEO question maps. */
+export const QUESTION_CATEGORIES = [
+  'PRIMARY',
+  'FOLLOW_UP',
+  'DEFINITION',
+  'HOW_TO',
+  'PRICE',
+  'DECISION',
+  'COMPARISON',
+  'OBJECTION',
+  'PROBLEM',
+  'LOCAL',
+  'ELIGIBILITY',
+  'TIMING',
+] as const;
+export type QuestionCategory = (typeof QUESTION_CATEGORIES)[number];
+
+/** Question coverage status per page. */
+export const QUESTION_COVERAGE_STATUSES = ['ANSWERED', 'PARTIALLY_ANSWERED', 'NOT_ANSWERED', 'NOT_APPLICABLE'] as const;
+export type QuestionCoverageStatus = (typeof QUESTION_COVERAGE_STATUSES)[number];
+
+/** Question source origin. */
+export const QUESTION_SOURCES = ['GSC', 'CLUSTER', 'KEYWORD', 'AI', 'KNOWLEDGE_BASE'] as const;
+export type QuestionSource = (typeof QUESTION_SOURCES)[number];
+
+/** Direct answer quality rating. */
+export const DIRECT_ANSWER_RATINGS = ['STRONG', 'ADEQUATE', 'WEAK', 'MISSING'] as const;
+export type DirectAnswerRating = (typeof DIRECT_ANSWER_RATINGS)[number];
+
+/** Search intent alignment result. */
+export const INTENT_MATCH_RESULTS = ['MATCH', 'PARTIAL_MATCH', 'MISMATCH', 'UNKNOWN'] as const;
+export type IntentMatchResult = (typeof INTENT_MATCH_RESULTS)[number];
+
+/** Claim verification status against Knowledge Base. */
+export const CLAIM_VERIFICATION_STATUSES = ['VERIFIED', 'SUPPORTED_EXTERNAL', 'UNVERIFIED', 'INFERRED', 'CONFLICTING'] as const;
+export type ClaimVerificationStatus = (typeof CLAIM_VERIFICATION_STATUSES)[number];
+
+/** AI crawler purpose classification. */
+export const AI_CRAWLER_PURPOSES = ['SEARCH_DISCOVERY', 'USER_FETCH', 'TRAINING', 'UNKNOWN'] as const;
+export type AiCrawlerPurpose = (typeof AI_CRAWLER_PURPOSES)[number];
+
+/** AI crawler access result from robots.txt analysis. */
+export const CRAWLER_ACCESS_RESULTS = ['ALLOWED', 'BLOCKED', 'PARTIAL', 'UNKNOWN'] as const;
+export type CrawlerAccessResult = (typeof CRAWLER_ACCESS_RESULTS)[number];
+
+/** Evidence source type classification. */
+export const EVIDENCE_SOURCE_TYPES = ['OFFICIAL', 'FIRST_PARTY', 'PRIMARY_EXTERNAL', 'SECONDARY', 'UNKNOWN'] as const;
+export type EvidenceSourceType = (typeof EVIDENCE_SOURCE_TYPES)[number];
 
 // ---------------------------------------------------------------------------
 // Site knowledge base (persistent, verified facts about a client)

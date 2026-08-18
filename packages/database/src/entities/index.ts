@@ -60,6 +60,14 @@ import { AutomationRun } from './automation-run';
 import { WorkItemState } from './work-item-state';
 import { WorkFilter } from './work-filter';
 import { KnowledgeFact } from './knowledge-fact';
+import { AeoPageAudit } from './aeo-page-audit';
+import { GeoPageAudit } from './geo-page-audit';
+import { PageQuestion } from './page-question';
+import { PageEntity } from './page-entity';
+import { EntityRelation } from './entity-relation';
+import { FactEvidence } from './fact-evidence';
+import { CrawlerPolicyResult } from './crawler-policy-result';
+import { AiCrawlerRegistry } from './ai-crawler-registry';
 
 export const entities = [
   User,
@@ -127,6 +135,14 @@ export const entities = [
   WorkItemState,
   WorkFilter,
   KnowledgeFact,
+  AeoPageAudit,
+  GeoPageAudit,
+  PageQuestion,
+  PageEntity,
+  EntityRelation,
+  FactEvidence,
+  CrawlerPolicyResult,
+  AiCrawlerRegistry,
 ];
 
 export {
@@ -195,4 +211,12 @@ export {
   WorkItemState,
   WorkFilter,
   KnowledgeFact,
+  AeoPageAudit,
+  GeoPageAudit,
+  PageQuestion,
+  PageEntity,
+  EntityRelation,
+  FactEvidence,
+  CrawlerPolicyResult,
+  AiCrawlerRegistry,
 };

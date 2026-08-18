@@ -4,4 +4,7 @@ export * from './analysis';
 export * from './links.service';
 export * from './audit.service';
 export * from './lighthouse.service';
+export * from './aeo-audit.service';
+export * from './geo-audit.service';
+export * from './ai-crawler-policy.service';
 export * from './links-core.module';

@@ -9,7 +9,7 @@ import {
   WordPressPost,
 } from '@creative-seo/database';
 import { probeOrigin } from '@creative-seo/crawler';
-import { AuditService, LinksService } from '@creative-seo/links';
+import { AuditService, LinksService, AeoAuditService, GeoAuditService } from '@creative-seo/links';
 import { AlertService, BaselineService, OperationsService } from '@creative-seo/operations';
 import { ReportingService } from '@creative-seo/reporting';
 import { VisibilityService } from '@creative-seo/visibility';
@@ -115,6 +115,8 @@ export class ActivationService {
     private readonly reporting: ReportingService,
     private readonly visibility: VisibilityService,
     private readonly activities: ActivityLogService,
+    private readonly aeoAudit: AeoAuditService,
+    private readonly geoAudit: GeoAuditService,
   ) {}
 
   async getActivation(siteId: string, actor: AuthPrincipal): Promise<SiteActivationDto> {
@@ -346,14 +348,34 @@ export class ActivationService {
       }
 
       case 'run-aeo-audit':
+        try {
+          const aeoResult = await this.aeoAudit.runAeoSiteAudit(data.site.id, actor.id);
+          return {
+            status: 'COMPLETED',
+            message: `AEO audit complete — Readiness: ${aeoResult.score.overall}/100 (${aeoResult.pagesMeasured} pages measured)`,
+            detail: { score: aeoResult.score.overall, pagesMeasured: aeoResult.pagesMeasured, dataQuality: aeoResult.dataQuality },
+          };
+        } catch (error) {
+          if (error instanceof NotFoundException) {
+            return { status: 'FAILED', message: 'Run a site crawl before the AEO audit.', detail: null };
+          }
+          throw error;
+        }
+
       case 'run-geo-readiness':
-        // AEO/GEO site audits are not implemented yet. AI Visibility is a
-        // separate module; observations must not be reported as an audit pass.
-        return {
-          status: 'NOT_IMPLEMENTED',
-          message: 'True AEO/GEO site audit is not implemented yet — planned for a later phase.',
-          detail: { module: 'ai-visibility', note: 'AI Visibility remains available as a separate module.' },
-        };
+        try {
+          const geoResult = await this.geoAudit.runGeoSiteAudit(data.site.id, actor.id);
+          return {
+            status: 'COMPLETED',
+            message: `GEO audit complete — Readiness: ${geoResult.score.overall}/100 (${geoResult.pagesMeasured} pages measured)`,
+            detail: { score: geoResult.score.overall, pagesMeasured: geoResult.pagesMeasured, dataQuality: geoResult.dataQuality },
+          };
+        } catch (error) {
+          if (error instanceof NotFoundException) {
+            return { status: 'FAILED', message: 'Run a site crawl before the GEO audit.', detail: null };
+          }
+          throw error;
+        }
 
       case 'create-baseline': {
         const metrics = await this.buildBaselineMetrics(data);
@@ -529,8 +551,9 @@ export class ActivationService {
       case 'run-seo-audit':
         return hasCompletedAudit(data, ['SEO', 'FULL']) ? 'COMPLETED' : 'NOT_STARTED';
       case 'run-aeo-audit':
+        return hasCompletedAudit(data, ['AEO', 'FULL']) ? 'COMPLETED' : 'NOT_STARTED';
       case 'run-geo-readiness':
-        return 'NOT_IMPLEMENTED';
+        return hasCompletedAudit(data, ['GEO', 'FULL']) ? 'COMPLETED' : 'NOT_STARTED';
       case 'create-baseline':
         return data.baselines.length > 0 ? 'COMPLETED' : 'NOT_STARTED';
       case 'connect-gsc':

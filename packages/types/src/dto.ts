@@ -2096,6 +2096,229 @@ export interface PageInspectionDto {
 }
 
 // ---------------------------------------------------------------------------
+// AEO / GEO Audit Engine
+// ---------------------------------------------------------------------------
+
+export interface AeoComponentScoreDto {
+  id: string;
+  label: string;
+  score: number;
+  weight: number;
+  version: number;
+  evidence: Record<string, unknown>;
+}
+
+export interface GeoComponentScoreDto {
+  id: string;
+  label: string;
+  score: number;
+  weight: number;
+  version: number;
+  evidence: Record<string, unknown>;
+}
+
+export interface AeoScoreDto {
+  overall: number;
+  scoreVersion: string;
+  components: AeoComponentScoreDto[];
+  confidence: number;
+  dataQuality: string;
+  coverageFactor: number;
+  measuredPages: number;
+  totalPages: number;
+  label: string;
+}
+
+export interface GeoScoreDto {
+  overall: number;
+  scoreVersion: string;
+  components: GeoComponentScoreDto[];
+  confidence: number;
+  dataQuality: string;
+  coverageFactor: number;
+  measuredPages: number;
+  totalPages: number;
+  label: string;
+}
+
+export interface PageQuestionDto {
+  id: string;
+  siteId: string;
+  pageUrl: string;
+  question: string;
+  category: string;
+  priority: string;
+  status: string;
+  source: string;
+  impressions: number | null;
+  evidence: string;
+  createdAt: string;
+}
+
+export interface PageEntityDto {
+  id: string;
+  siteId: string;
+  pageUrl: string;
+  entityName: string;
+  entityType: string;
+  clarity: number;
+  mentioned: boolean;
+}
+
+export interface EntityRelationDto {
+  id: string;
+  siteId: string;
+  subjectEntity: string;
+  predicate: string;
+  objectEntity: string;
+  verified: boolean;
+  source: string;
+}
+
+export interface FactEvidenceDto {
+  id: string;
+  siteId: string;
+  fact: string;
+  sourceUrl: string | null;
+  sourceType: string;
+  supportStrength: number;
+  verified: boolean;
+  createdAt: string;
+}
+
+export interface CrawlerPolicyResultDto {
+  id: string;
+  siteId: string;
+  crawlerName: string;
+  crawlerPurpose: string;
+  accessResult: string;
+  robotsTxtAnalysis: Record<string, unknown>;
+  checkedAt: string;
+}
+
+export interface AeoPageAuditDto {
+  id: string;
+  siteId: string;
+  auditRunId: string;
+  crawlPageId: string;
+  url: string;
+  contentHash: string | null;
+  promptVersion: number | null;
+  aiProvider: string | null;
+  aiModel: string | null;
+  intentAlignment: { rating: string; reason: string };
+  directAnswer: { rating: string; evidence: string };
+  decisionSupport: Record<string, unknown>;
+  semanticCompleteness: Record<string, unknown>;
+  structureExtractability: Record<string, unknown>;
+  factualGrounding: Record<string, unknown>;
+  componentScores: AeoComponentScoreDto[];
+  overallScore: number;
+  scoreVersion: string;
+  dataQuality: string;
+  confidence: number;
+  status: string;
+  reusedFromAuditId: string | null;
+  startedAt: string;
+  completedAt: string | null;
+  createdAt: string;
+}
+
+export interface GeoPageAuditDto {
+  id: string;
+  siteId: string;
+  auditRunId: string;
+  crawlPageId: string;
+  url: string;
+  contentHash: string | null;
+  promptVersion: number | null;
+  aiProvider: string | null;
+  aiModel: string | null;
+  entityClarity: Record<string, unknown>;
+  entityConsistency: Record<string, unknown>;
+  factualSpecificity: Record<string, unknown>;
+  claimVerification: Record<string, unknown>;
+  evidenceQuality: Record<string, unknown>;
+  sourceQuality: Record<string, unknown>;
+  originalInformation: Record<string, unknown>;
+  expertAttribution: Record<string, unknown>;
+  machineAccessibility: Record<string, unknown>;
+  structuredFactClarity: Record<string, unknown>;
+  citationReadiness: Record<string, unknown>;
+  componentScores: GeoComponentScoreDto[];
+  overallScore: number;
+  scoreVersion: string;
+  dataQuality: string;
+  confidence: number;
+  status: string;
+  reusedFromAuditId: string | null;
+  startedAt: string;
+  completedAt: string | null;
+  createdAt: string;
+}
+
+export interface AeoSiteAuditDto {
+  auditRun: AuditRunDto;
+  score: AeoScoreDto;
+  dataQuality: string;
+  pagesMeasured: number;
+  pagesExcluded: number;
+  pagesInsufficient: number;
+  questionCoverage: { total: number; answered: number; partial: number; missing: number };
+  topGaps: Array<{ url: string; findingType: string; severity: string; evidence: Record<string, unknown> }>;
+  pages: AeoPageAuditDto[];
+  generatedAt: string;
+}
+
+export interface GeoSiteAuditDto {
+  auditRun: AuditRunDto;
+  score: GeoScoreDto;
+  dataQuality: string;
+  pagesMeasured: number;
+  pagesExcluded: number;
+  pagesInsufficient: number;
+  entitySummary: { brand: string | null; type: string | null; locations: string[]; services: string[]; conflicts: string[] };
+  topGaps: Array<{ url: string; findingType: string; severity: string; evidence: Record<string, unknown> }>;
+  pages: GeoPageAuditDto[];
+  generatedAt: string;
+}
+
+export interface AeoAuditHistoryEntryDto {
+  auditRun: AuditRunDto;
+  score: number | null;
+  pagesMeasured: number;
+  questionCoverage: number;
+  dataQuality: string;
+  scoreVersion: string;
+}
+
+export interface GeoAuditHistoryEntryDto {
+  auditRun: AuditRunDto;
+  score: number | null;
+  pagesMeasured: number;
+  entityClarity: number | null;
+  citationReadiness: number | null;
+  dataQuality: string;
+  scoreVersion: string;
+}
+
+export interface AeoQuestionGapDto {
+  query: string;
+  impressions: number | null;
+  targetPage: string;
+  missingTopic: string;
+  category: string;
+}
+
+export interface GeoGapDto {
+  findingType: string;
+  url: string | null;
+  severity: string;
+  evidence: Record<string, unknown>;
+  recommendation: string;
+}
+
+// ---------------------------------------------------------------------------
 // Lighthouse (independent, local browser audit)
 // ---------------------------------------------------------------------------
 

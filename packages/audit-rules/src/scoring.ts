@@ -17,6 +17,8 @@ export interface HealthScores {
   onPageHealth: number | null;
   internalLinkingHealth: number | null;
   seoHealth: number | null;
+  aeoReadiness: number | null;
+  geoReadiness: number | null;
   scoreVersion: number;
   label: string;
   coverage: { evaluatedUrls: number; pagesCrawled: number };
@@ -33,7 +35,7 @@ const SEVERITY_WEIGHT: Record<ScoreResultInput['severity'], number> = {
 // A single critical finding per evaluated URL saturates the penalty.
 const WEIGHT_BASE = 100;
 
-function groupKey(category: string): 'technical' | 'on-page' | 'internal-linking' | null {
+function groupKey(category: string): 'technical' | 'on-page' | 'internal-linking' | 'aeo' | 'geo' | null {
   switch (category) {
     case 'technical':
       return 'technical';
@@ -44,8 +46,11 @@ function groupKey(category: string): 'technical' | 'on-page' | 'internal-linking
       return 'on-page';
     case 'internal-linking':
       return 'internal-linking';
+    case 'aeo':
+      return 'aeo';
+    case 'geo':
+      return 'geo';
     default:
-      // aeo / geo / search-performance are not implemented yet.
       return null;
   }
 }
@@ -58,10 +63,12 @@ function groupKey(category: string): 'technical' | 'on-page' | 'internal-linking
  * from the audit_results rows and is explicitly not a Google score.
  */
 export function computeHealthScores(results: ScoreResultInput[], context: HealthScoreContext): HealthScores {
-  const grouped: Record<'technical' | 'on-page' | 'internal-linking', ScoreResultInput[]> = {
+  const grouped: Record<'technical' | 'on-page' | 'internal-linking' | 'aeo' | 'geo', ScoreResultInput[]> = {
     technical: [],
     'on-page': [],
     'internal-linking': [],
+    aeo: [],
+    geo: [],
   };
 
   for (const result of results) {
@@ -90,6 +97,11 @@ export function computeHealthScores(results: ScoreResultInput[], context: Health
   const onPageHealth = evaluate(grouped['on-page']);
   const internalLinkingHealth = evaluate(grouped['internal-linking']);
 
+  // AEO/GEO readiness are computed by their dedicated audit services,
+  // not from the general audit results. Null here means "not yet audited".
+  const aeoReadiness: number | null = null;
+  const geoReadiness: number | null = null;
+
   const available = [technicalHealth, onPageHealth, internalLinkingHealth].filter(
     (score): score is number => score !== null,
   );
@@ -105,6 +117,8 @@ export function computeHealthScores(results: ScoreResultInput[], context: Health
     onPageHealth,
     internalLinkingHealth,
     seoHealth,
+    aeoReadiness,
+    geoReadiness,
     scoreVersion: AUDIT_HEALTH_SCORE_VERSION,
     label: 'Internal Platform Health Score',
     coverage: { evaluatedUrls: evaluatedUrls.size, pagesCrawled: context.pagesCrawled },

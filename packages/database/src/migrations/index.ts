@@ -47,6 +47,8 @@ import { AddPerformanceIndexes00461720000000046 } from './0046-add-performance-i
 import { AddPublicationVerificationFields00471720000000047 } from './0047-add-publication-verification-fields';
 import { KeywordIntelligence00481720000000048 } from './0048-keyword-intelligence';
 import { UpdatePromptEnums00491720000000049 } from './0049-update-prompt-enums';
+import { AddCrawlPageText17000000050 } from './0050-add-crawl-page-text';
+import { AddAeoGoreuditEntities17000000051 } from './0051-add-aeo-geo-audit-entities';
 
 export const migrations = [
   CreateIdentity00011720000000001,
@@ -98,6 +100,8 @@ export const migrations = [
   AddPublicationVerificationFields00471720000000047,
   KeywordIntelligence00481720000000048,
   UpdatePromptEnums00491720000000049,
+  AddCrawlPageText17000000050,
+  AddAeoGoreuditEntities17000000051,
 ];
 
 export {
@@ -150,4 +154,6 @@ export {
   AddPublicationVerificationFields00471720000000047,
   KeywordIntelligence00481720000000048,
   UpdatePromptEnums00491720000000049,
+  AddCrawlPageText17000000050,
+  AddAeoGoreuditEntities17000000051,
 };

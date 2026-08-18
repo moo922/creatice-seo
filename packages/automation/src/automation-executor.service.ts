@@ -185,6 +185,14 @@ export class AutomationExecutorService {
         );
         return { status: 'COMPLETED', records: 1, message: `Monthly report ${report.id} generated` };
       }
+
+      case 'aeo-site-audit': {
+        return { status: 'SKIPPED', records: 0, message: 'AEO audit is triggered on-demand from the site dashboard' };
+      }
+
+      case 'geo-site-audit': {
+        return { status: 'SKIPPED', records: 0, message: 'GEO audit is triggered on-demand from the site dashboard' };
+      }
     }
   }
 

@@ -447,7 +447,7 @@ export class AuditService {
   private integrateLinkAnalysis(siteDomain: string, pages: CrawlPage[], links: CrawlLink[]) {
     const crawledData: CrawledPageData[] = pages.map((page) => ({
       url: page.url,
-      text: '',
+      text: page.text ?? '',
       headings: page.headings.map((heading) => heading.text),
       httpStatus: page.httpStatus,
       outLinks: links
@@ -613,6 +613,7 @@ function toPageSignal(page: CrawlPage): AuditPageSignal {
     images: page.images,
     redirectChain: page.redirectChain,
     redirectLoop: page.redirectLoop,
+    text: page.text ?? undefined,
   };
 }
 

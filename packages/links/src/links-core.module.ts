@@ -15,10 +15,22 @@ import {
   LinkAnalysis,
   LinkSuggestion,
   UrlMapping,
+  AeoPageAudit,
+  GeoPageAudit,
+  KnowledgeFact,
+  PageQuestion,
+  EntityRelation,
+  CrawlerPolicyResult,
+  AiCrawlerRegistry,
+  Site,
 } from '@creative-seo/database';
 import { LinksService } from './links.service';
 import { AuditService } from './audit.service';
 import { LighthouseService } from './lighthouse.service';
+import { AeoAuditService } from './aeo-audit.service';
+import { GeoAuditService } from './geo-audit.service';
+import { AiCrawlerPolicyService } from './ai-crawler-policy.service';
+import { AiCoreModule } from '@creative-seo/ai';
 
 /**
  * Internal-link intelligence + deterministic audit infrastructure for the API
@@ -44,9 +56,18 @@ import { LighthouseService } from './lighthouse.service';
       Cluster,
       ClusterKeyword,
       Keyword,
+      AeoPageAudit,
+      GeoPageAudit,
+      KnowledgeFact,
+      PageQuestion,
+      EntityRelation,
+      CrawlerPolicyResult,
+      AiCrawlerRegistry,
+      Site,
     ]),
+    AiCoreModule,
   ],
-  providers: [LinksService, AuditService, LighthouseService],
-  exports: [LinksService, AuditService, LighthouseService],
+  providers: [LinksService, AuditService, LighthouseService, AeoAuditService, GeoAuditService, AiCrawlerPolicyService],
+  exports: [LinksService, AuditService, LighthouseService, AeoAuditService, GeoAuditService, AiCrawlerPolicyService],
 })
 export class LinksCoreModule {}

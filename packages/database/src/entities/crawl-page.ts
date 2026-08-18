@@ -100,6 +100,10 @@ export class CrawlPage {
   @Column({ type: 'boolean', name: 'redirect_loop', default: false })
   redirectLoop: boolean;
 
+  /** Page text content (HTML, capped at ~100KB). Used by AEO/GEO audits. */
+  @Column({ type: 'text', nullable: true })
+  text: string | null;
+
   @CreateDateColumn({ type: 'timestamptz', name: 'created_at' })
   createdAt: Date;
 }

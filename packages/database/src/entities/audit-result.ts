@@ -41,6 +41,14 @@ export class AuditResult {
   @Column({ type: 'boolean', default: true })
   passed: boolean;
 
+  /** Component ID for AEO/GEO component-level results (e.g., 'intent_alignment'). */
+  @Column({ type: 'varchar', length: 100, name: 'component_id', nullable: true })
+  componentId: string | null;
+
+  /** Human-readable component label. */
+  @Column({ type: 'varchar', length: 200, name: 'component_label', nullable: true })
+  componentLabel: string | null;
+
   @Column({ type: 'jsonb', default: () => "'{}'" })
   evidence: Record<string, unknown>;
 

@@ -20,6 +20,8 @@ export interface AuditPageSignal {
   images: Array<{ src: string; alt: string | null }>;
   redirectChain: string[];
   redirectLoop: boolean;
+  /** Page text content (HTML, capped at ~100KB). Used by AEO/GEO audits. */
+  text?: string;
 }
 
 export interface AuditLinkSignal {

@@ -165,6 +165,7 @@ export class LinksService {
           images: page.images,
           redirectChain: page.redirectChain,
           redirectLoop: page.redirectLoop,
+          text: page.text,
         }),
       );
       const savedPages = await this.crawlPages.save(pageRows);

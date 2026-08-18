@@ -33,6 +33,22 @@ export class AuditRun {
   @Column({ type: 'int', name: 'score_version', default: 1 })
   scoreVersion: number;
 
+  /** Prompt version used for AI semantic analysis (null for deterministic-only). */
+  @Column({ type: 'int', name: 'prompt_version', nullable: true })
+  promptVersion: number | null;
+
+  /** AI provider used (e.g., OPENAI, ANTHROPIC). Null if no AI used. */
+  @Column({ type: 'varchar', length: 50, name: 'ai_provider', nullable: true })
+  aiProvider: string | null;
+
+  /** AI model used (e.g., gpt-4o). Null if no AI used. */
+  @Column({ type: 'varchar', length: 100, name: 'ai_model', nullable: true })
+  aiModel: string | null;
+
+  /** Data quality status for this audit run. */
+  @Column({ type: 'jsonb', name: 'data_quality', default: () => "'{}'" })
+  dataQuality: Record<string, unknown>;
+
   @Column({ type: 'uuid', name: 'created_by', nullable: true })
   createdBy: string | null;
 
