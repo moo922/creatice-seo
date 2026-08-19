@@ -4,8 +4,9 @@ import type { Repository } from 'typeorm';
 
 type Repo = Repository<any>;
 
-function makeRepo(overrides: Record<string, unknown> = {}) {
-  const repo: Repo = {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function makeRepo(overrides: Record<string, any> = {}): any {
+  const repo = {
     findOne: jest.fn().mockResolvedValue(overrides.findOneResult ?? null),
     find: jest.fn().mockResolvedValue(overrides.findResult ?? []),
     findOneBy: jest.fn().mockResolvedValue(overrides.findOneResult ?? null),
@@ -30,7 +31,8 @@ function makeRepo(overrides: Record<string, unknown> = {}) {
   return repo;
 }
 
-function makeService(overrides: Record<string, unknown> = {}) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function makeService(overrides: Record<string, any> = {}) {
   const repos = {
     keywords: makeRepo(overrides.keywords),
     keywordSources: makeRepo(overrides.keywordSources),
