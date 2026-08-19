@@ -9,11 +9,14 @@ import { OperationsCoreModule } from '@creative-seo/operations';
 import { VisibilityCoreModule } from '@creative-seo/visibility';
 import { ReportingCoreModule } from '@creative-seo/reporting';
 import { LinksCoreModule } from '@creative-seo/links';
+import { InfraCoreModule } from '@creative-seo/infra';
 import { Site } from '@creative-seo/database';
 import { createDataSourceOptions } from '@creative-seo/database';
 import { WorkerConfig } from './config/worker-config';
 import { WorkerConfigModule } from './config/worker-config.module';
 import { HealthServer } from './health/health-server';
+import { ObservabilityService } from './health/observability.service';
+import { MissedScheduleRecovery } from './health/missed-schedule-recovery';
 import { QueueManager } from './queue/queue-manager';
 import { QueueProcessor } from './queue/queue-processor';
 import { ScheduledJobsService } from './queue/scheduler';
@@ -42,7 +45,8 @@ import { Gc06SchedulerService } from './queue/gc06-scheduler';
     VisibilityCoreModule,
     ReportingCoreModule,
     LinksCoreModule,
+    InfraCoreModule,
   ],
-  providers: [QueueManager, HealthServer, QueueProcessor, ScheduledJobsService, AutomationScheduler, Gc06SchedulerService],
+  providers: [QueueManager, HealthServer, ObservabilityService, MissedScheduleRecovery, QueueProcessor, ScheduledJobsService, AutomationScheduler, Gc06SchedulerService],
 })
 export class AppModule {}
