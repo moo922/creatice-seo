@@ -1,4 +1,5 @@
-import { isArabic, normalizeArabic } from '@creative-seo/content';
+import { normalizeArabic } from '@creative-seo/content';
+import { createHash } from 'crypto';
 
 /**
  * Keyword normalization (Sections 3-4).
@@ -77,6 +78,5 @@ export function keywordHash(value: string): string {
 }
 
 function sha256Hex(value: string): string {
-  const { createHash } = require('crypto') as typeof import('crypto');
   return createHash('sha256').update(value).digest('hex');
 }
