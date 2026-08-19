@@ -10,6 +10,7 @@ import type { BaselineType, GenerateReportRequest, ReportType } from '@creative-
 import { Repository } from 'typeorm';
 import { Worker } from 'bullmq';
 import { QueueManager } from './queue-manager';
+import { WorkerConfig } from '../config/worker-config';
 
 const PROCESSED_QUEUES = ['content', 'reports', 'ai-visibility', 'automation'] as const;
 type ProcessedQueue = (typeof PROCESSED_QUEUES)[number];
@@ -41,6 +42,7 @@ export class QueueProcessor implements OnModuleInit, OnApplicationShutdown {
   private workers: Worker[] = [];
 
   constructor(
+    private readonly config: WorkerConfig,
     private readonly queues: QueueManager,
     private readonly content: ContentPipelineService,
     private readonly baselines: BaselineService,
@@ -52,16 +54,22 @@ export class QueueProcessor implements OnModuleInit, OnApplicationShutdown {
   ) {}
 
   onModuleInit(): void {
+    const concurrencyMap: Record<ProcessedQueue, number> = {
+      content: this.config.concurrency.content,
+      reports: this.config.concurrency.reports,
+      'ai-visibility': this.config.concurrency.aiVisibility,
+      automation: this.config.concurrency.automation,
+    };
     for (const name of PROCESSED_QUEUES) {
       const worker = new Worker(name, (job) => this.handle(name, job), {
         connection: this.queues.connection,
-        concurrency: 1,
+        concurrency: concurrencyMap[name] ?? 1,
       });
       worker.on('failed', (job, error) => this.logger.error(`queue=${name} job=${job?.id} failed: ${error.message}`));
       worker.on('error', (error) => this.logger.error(`queue=${name} worker error: ${error.message}`));
       this.workers.push(worker);
     }
-    this.logger.log(`Queue processors started: ${PROCESSED_QUEUES.join(', ')}`);
+    this.logger.log(`Queue processors started: ${PROCESSED_QUEUES.join(', ')} (concurrency: ${JSON.stringify(concurrencyMap)})`);
   }
 
   async onApplicationShutdown(): Promise<void> {
