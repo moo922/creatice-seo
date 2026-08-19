@@ -48,6 +48,7 @@ export const ar: TranslationSchema = {
     monitoring: 'المراقبة',
     visibility: 'الرؤية في الذكاء الاصطناعي',
     work: 'قائمة العمل',
+    contentStudio: 'استوديو المحتوى',
     client: 'بوابة العميل',
     settings: 'الإعدادات',
   },
@@ -494,5 +495,9 @@ export const ar: TranslationSchema = {
     taskDeadline: 'الموعد النهائي',
     createTasksConfirm: 'إنشاء مهام من العناصر المحددة',
     pageOf: 'من',
+  },
+  contentStudio: {
+    title: 'استوديو المحتوى',
+    subtitle: 'سير العمل التحريري — من الفرصة إلى النشر',
   },
 };

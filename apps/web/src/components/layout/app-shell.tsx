@@ -5,6 +5,7 @@ import {
   BookOpen,
   Bot,
   Building2,
+  FileText,
   FolderKanban,
   Globe,
   Languages,
@@ -19,6 +20,7 @@ import { useState } from 'react';
 import { useAuth } from '@/lib/auth';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { NotificationBell } from '@/components/shared/notifications';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,6 +39,7 @@ const NAV_ITEMS = [
   { to: '/tasks', label: 'nav.tasks', icon: Users, end: false, permission: 'operations:read' },
   { to: '/monitoring', label: 'nav.monitoring', icon: BarChart3, end: false, permission: 'operations:read' },
   { to: '/work', label: 'nav.work', icon: ListChecks, end: false, permission: 'workqueue:read' },
+  { to: '/content-studio', label: 'nav.contentStudio', icon: FileText, end: false, permission: 'content:read' },
   { to: '/visibility', label: 'nav.visibility', icon: Sparkles, end: false, permission: 'visibility:read' },
   { to: '/reports', label: 'nav.reports', icon: BarChart3, end: false, permission: 'reports:read' },
   { to: '/automation', label: 'nav.automation', icon: Bot, end: false, permission: 'orchestration:read' },
@@ -118,6 +121,7 @@ export function AppShell() {
           </div>
           <div className="flex items-center gap-1">
             <LanguageSwitch />
+            <NotificationBell />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" aria-label="Account">

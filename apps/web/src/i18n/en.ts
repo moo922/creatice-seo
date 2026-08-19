@@ -46,6 +46,7 @@ export const en = {
     monitoring: 'Monitoring',
     visibility: 'AI Visibility',
     work: 'Work Queue',
+    contentStudio: 'Content Studio',
     client: 'Client Portal',
     settings: 'Settings',
   },
@@ -492,6 +493,10 @@ export const en = {
     taskDeadline: 'Deadline',
     createTasksConfirm: 'Create tasks from selected items',
     pageOf: 'of',
+  },
+  contentStudio: {
+    title: 'Content Studio',
+    subtitle: 'Editorial workflow — from opportunity to published content',
   },
 };
 
