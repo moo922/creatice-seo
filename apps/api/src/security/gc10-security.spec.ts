@@ -1,6 +1,8 @@
 import { SiteAccessService } from '../common/guards/site-access.service';
 import { SiteAccessGuard } from '../common/guards/site-access.guard';
 import type { AuthPrincipal } from '../common/auth.types';
+import { isPublicAddress } from '@creative-seo/crawler';
+import { EncryptionService } from './encryption.service';
 
 /**
  * GC10 — Security Acceptance Tests
@@ -33,8 +35,6 @@ function principal(overrides: Partial<AuthPrincipal> = {}): AuthPrincipal {
 // ---------------------------------------------------------------------------
 
 describe('GC10 — SSRF Protection', () => {
-  const { isPublicAddress } = require('@creative-seo/crawler');
-
   it.each([
     ['127.0.0.1', false, 'loopback'],
     ['10.0.0.1', false, 'private 10/8'],
@@ -89,8 +89,6 @@ describe('GC10 — SSRF Protection', () => {
 // ---------------------------------------------------------------------------
 
 describe('GC10 -- Encryption (AES-256-GCM)', () => {
-  const { EncryptionService } = require('./encryption.service');
-
   it('encrypts and decrypts correctly', () => {
     const svc = new EncryptionService({ env: { ENCRYPTION_KEY: SECRET_KEY } } as any);
     const plaintext = 'my-super-secret-api-key-12345';

@@ -1,8 +1,5 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { KeywordsService } from './keywords.service';
-import type { Repository } from 'typeorm';
-
-type Repo = Repository<any>;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function makeRepo(overrides: Record<string, any> = {}): any {

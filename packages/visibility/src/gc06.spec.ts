@@ -5,15 +5,15 @@
  * domain normalization, and reporting.
  */
 
-import { resolveEntity, resolveAllEntities, type EntityAlias } from './alias-normalizer';
-import { detectEntities, type EntityDetectionResult } from './entity-detector';
+import { resolveEntity, type EntityAlias } from './alias-normalizer';
+import { detectEntities } from './entity-detector';
 import {
   extractProviderSources,
   extractGeneratedReferences,
   mergeProvenance,
   classifyTargetDomainCitation,
 } from './source-provenance';
-import { normalizeUrl, extractHost, extractRegisteredDomain, domainsMatch } from './domain-normalizer';
+import { normalizeUrl, extractRegisteredDomain, domainsMatch } from './domain-normalizer';
 import { applyContaminationProtection } from './contamination-protection';
 import { computeCompetitiveShareOfVoice, type ObservationShareInput } from './competitive-share';
 import { computePromptCoverage } from './prompt-coverage';

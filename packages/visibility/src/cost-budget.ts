@@ -63,7 +63,7 @@ export class CostBudgetService {
     if (config.enabledProviders !== undefined) row.enabledProviders = config.enabledProviders;
     if (config.priorityPromptOnly !== undefined) row.priorityPromptOnly = config.priorityPromptOnly;
     if (config.hardBudget !== undefined) row.hardBudget = config.hardBudget;
-    const saved = await this.budgets.save(row);
+    await this.budgets.save(row);
     return this.getBudget(siteId) as Promise<BudgetConfig>;
   }
 

@@ -46,7 +46,7 @@ function finding(
  * Check if page content serves the identified search intent.
  */
 export function checkIntentAlignment(ctx: AeoRuleContext): AuditFinding {
-  const { page, clusterIntent, gscQuestions } = ctx;
+  const { page, clusterIntent } = ctx;
   const text = (page.text ?? '').toLowerCase();
   const hasContent = page.wordCount >= 100;
 

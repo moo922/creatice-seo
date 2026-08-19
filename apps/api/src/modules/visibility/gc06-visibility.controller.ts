@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, NotFoundException, Param, ParseUUIDPipe, Post, Put, Query, UseGuards } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Site, AiVisibilityCompetitor, AiVisibilityPromptSetV2, AiVisibilityPrompt, AiVisibilitySourceProvenance, AiVisibilityBudget, AiProviderCapability } from '@creative-seo/database';
+import { AiVisibilityCompetitor, AiVisibilityPromptSetV2, AiVisibilityPrompt, AiVisibilitySourceProvenance, AiVisibilityBudget } from '@creative-seo/database';
 import { Repository } from 'typeorm';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
 import { SiteAccessGuard } from '../../common/guards/site-access.guard';

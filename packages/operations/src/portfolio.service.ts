@@ -74,7 +74,6 @@ export class PortfolioService {
       organicClicks += latestClicks;
 
       const latestImpressions = Number(latest?.impressions ?? 0);
-      const prevImpressions = Number(prev?.impressions ?? 0);
       organicImpressions += latestImpressions;
 
       if (latestImpressions > 0) {

@@ -279,7 +279,6 @@ export function checkMachineAccessibility(ctx: GeoRuleContext): AuditFinding {
 
   const isAccessible = page.httpStatus === 200;
   const isIndexable = page.indexable;
-  const hasNoBlocking = !page.metaRobots.includes('nofollow') || page.metaRobots.includes('noindex');
   const hasContent = page.wordCount >= 50;
 
   const passed = isAccessible && isIndexable && hasContent;

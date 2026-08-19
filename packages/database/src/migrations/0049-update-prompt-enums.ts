@@ -31,7 +31,7 @@ export class UpdatePromptEnums00491720000000049 implements MigrationInterface {
     await qr.query(sql, [JSON.stringify(pageType), JSON.stringify(intent), name]);
   }
 
-  async down(qr: QueryRunner): Promise<void> {
+  async down(_qr: QueryRunner): Promise<void> {
     // Down intentionally no-ops: prompts are versioned and re-seeded; we never
     // rewrite strategic history in reverse.
   }

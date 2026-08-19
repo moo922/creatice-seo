@@ -80,7 +80,7 @@ describe('ContentPublishService', () => {
       const publications = makeRepo();
 
       const service = new ContentPublishService(publications, packages, sites, wordpress, client, makeOps(), makeActivities());
-      const result = await service.createDraft('site-1', 'org-1', { packageId: 'pkg-1' }, 'user-1');
+      const _result = await service.createDraft('site-1', 'org-1', { packageId: 'pkg-1' }, 'user-1');
 
       expect(client.createDraft).toHaveBeenCalledWith(
         expect.any(Object),

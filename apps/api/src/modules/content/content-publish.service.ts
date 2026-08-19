@@ -14,7 +14,6 @@ import { WordPressClientService, type ConnectorSeoWritePayload, type WordPressCr
 import { WordPressService } from '../wordpress/wordpress.service';
 
 const CONNECTOR_VERSION = '1.0.0';
-const ROLLBACK_SNAPSHOT_KEYS = ['title', 'slug', 'contentHash', 'seoMetadata'] as const;
 
 /**
  * Content publishing flow for a content package:
@@ -90,7 +89,7 @@ export class ContentPublishService {
     const slug = input.slug ?? data.slug ?? '';
     const focusKeyword = brief.primaryKeyword ?? '';
 
-    const { creds, integration } = await this.wordpress.publishConnection(siteId);
+    const { creds, integration: _integration } = await this.wordpress.publishConnection(siteId);
 
     // Capability discovery: fail fast if connector doesn't support required operations
     let capabilities;

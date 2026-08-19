@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Issue } from '@creative-seo/database';
 import type { IssuePeriodProgressDto, IssueSeverity } from '@creative-seo/types';
-import { LessThanOrEqual, Not, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 
 const SEVERITIES: readonly IssueSeverity[] = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] as const;
 

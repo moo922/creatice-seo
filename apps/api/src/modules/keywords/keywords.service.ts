@@ -22,8 +22,6 @@ import { AiService } from '@creative-seo/ai';
 import { buildRecommendedUrl, slugify } from '@creative-seo/content';
 import {
   classifyCannibalization,
-  clusterCannibalization,
-  deduplicateKeywords,
   heuristicIntent,
   heuristicPageType,
   normalizeKeyword,
@@ -49,8 +47,6 @@ import type {
 import { Repository, In } from 'typeorm';
 import { GoogleAdsService } from './google-ads.service';
 import { ActivityLogService } from '../activity-log/activity-log.service';
-
-const DEFAULT_LANGUAGE = 'ar';
 
 /**
  * Keyword Intelligence engine (Gap Closure 04).
@@ -373,7 +369,7 @@ export class KeywordsService {
       return { clusters: await this.listClusters(siteId), errors };
     }
 
-    const created = await this.persistClusters(siteId, site.domain, aiClusters, errors);
+    const _created = await this.persistClusters(siteId, site.domain, aiClusters, errors);
     const all = await this.listClusters(siteId);
     return { clusters: all, errors };
   }
@@ -403,7 +399,7 @@ export class KeywordsService {
     siteId: string,
     domain: string,
     aiClusters: Array<{ name: string; primary_keyword: string; keywords: string[] }>,
-    errors: string[],
+    _errors: string[],
   ): Promise<Array<{ id: string; name: string; url: string }>> {
     const created: Array<{ id: string; name: string; url: string }> = [];
     const site = await this.requireSite(siteId);
@@ -492,7 +488,7 @@ export class KeywordsService {
   // Cannibalization (Sections 35-39) — FIXED: query-page evidence, no cluster-id counting
   // -------------------------------------------------------------------------
 
-  async runCannibalizationAnalysis(siteId: string, organizationId: string | null): Promise<CannibalizationCaseDto[]> {
+  async runCannibalizationAnalysis(siteId: string, _organizationId: string | null): Promise<CannibalizationCaseDto[]> {
     // Pull query-page evidence from the canonical QUERY_PAGE_DAILY grain.
     const rows = await this.queryPageMetrics
       .createQueryBuilder('qp')
@@ -573,7 +569,7 @@ export class KeywordsService {
   // Opportunity engine (Sections 42-50)
   // -------------------------------------------------------------------------
 
-  async runOpportunityScoring(siteId: string, organizationId: string | null): Promise<KeywordOpportunityDto[]> {
+  async runOpportunityScoring(siteId: string, _organizationId: string | null): Promise<KeywordOpportunityDto[]> {
     const clusters = await this.clusters.find({ where: { siteId }, order: { createdAt: 'DESC' } });
     const [gscAvailable, googleAdsAvailable] = await Promise.all([
       this.properties.exists({ where: { siteId, selected: true } }),
@@ -1153,8 +1149,9 @@ function opportunityTypeToAction(type: string): string {
   }
 }
 
+import { createHash } from 'node:crypto';
+
 function hash(value: string): string {
-  const { createHash } = require('crypto') as typeof import('crypto');
   return createHash('sha256').update(value).digest('hex');
 }
 

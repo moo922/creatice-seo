@@ -6,7 +6,7 @@ import { Repository } from 'typeorm';
 
 const DECAY_CLICK_DROP_PCT = 0.3;
 const DECAY_IMPRESSION_DROP_PCT = 0.25;
-const MIN_CURRENT_CLICKS = 10;
+const _MIN_CURRENT_CLICKS = 10;
 const MIN_PREVIOUS_CLICKS = 10;
 const MIN_DATA_DAYS = 14;
 

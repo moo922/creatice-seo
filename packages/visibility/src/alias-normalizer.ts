@@ -35,11 +35,7 @@ function normalizeArabic(text: string): string {
     .trim();
 }
 
-function extractRegisteredDomain(host: string): string | null {
-  const parts = host.split('.');
-  if (parts.length <= 2) return host;
-  return `${parts[parts.length - 2]}.${parts[parts.length - 1]}`;
-}
+
 
 function hostMatchesDomain(host: string, domain: string): boolean {
   const normHost = host.replace(/^www\./, '').toLowerCase();

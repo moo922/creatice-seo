@@ -360,39 +360,6 @@ function emptyMetrics(): BaselineMetricsDto {
   };
 }
 
-function emptyAvailability(): Record<string, MetricAvailability> {
-  return {
-    crawlHealth: 'NOT_MEASURED',
-    technicalIssues: 'NOT_MEASURED',
-    onPageHealth: 'NOT_MEASURED',
-    contentHealth: 'NOT_MEASURED',
-    aeoReadiness: 'NOT_MEASURED',
-    geoReadiness: 'NOT_MEASURED',
-    gscMetrics: 'NOT_SYNCED',
-    keywordVisibility: 'NOT_MEASURED',
-    internalLinkHealth: 'NOT_MEASURED',
-    seoHealth: 'NOT_MEASURED',
-    pagesCrawled: 'NOT_MEASURED',
-    indexablePages: 'NOT_MEASURED',
-    noindexPages: 'NOT_MEASURED',
-    criticalIssues: 'NOT_MEASURED',
-    highIssues: 'NOT_MEASURED',
-    mediumIssues: 'NOT_MEASURED',
-    lowIssues: 'NOT_MEASURED',
-    rankingQueries: 'NOT_MEASURED',
-    queriesWithImpressions: 'NOT_MEASURED',
-    top3QueryCount: 'NOT_MEASURED',
-    top10QueryCount: 'NOT_MEASURED',
-    top20QueryCount: 'NOT_MEASURED',
-    positions11To20: 'NOT_MEASURED',
-    cannibalizationCandidates: 'NOT_MEASURED',
-    brokenInternalLinks: 'NOT_MEASURED',
-    orphanPages: 'NOT_MEASURED',
-    canonicalIssues: 'NOT_MEASURED',
-    aiVisibilityObservations: 'NOT_MEASURED',
-  };
-}
-
 /** Derives availability from non-null metric values (AVAILABLE vs NOT_MEASURED). */
 function defaultAvailability(metrics: BaselineMetricsDto): Record<string, MetricAvailability> {
   const availability: Record<string, MetricAvailability> = {};

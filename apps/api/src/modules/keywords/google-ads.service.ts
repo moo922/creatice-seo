@@ -15,7 +15,6 @@ import { EncryptionService } from '../../security/encryption.service';
 import { ActivityLogService } from '../activity-log/activity-log.service';
 import {
   GoogleAdsClientService,
-  GoogleAdsClientError,
   isGoogleAdsClientError,
   type GoogleAdsCredentials,
 } from './google-ads-client.service';

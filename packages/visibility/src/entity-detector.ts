@@ -5,7 +5,7 @@
  */
 
 import type { AiVisibilityCompetitor } from '@creative-seo/database';
-import { resolveAllEntities, type EntityAlias, type NormalizedEntityMatch } from './alias-normalizer';
+import { resolveAllEntities, type EntityAlias } from './alias-normalizer';
 import { extractHost, domainsMatch } from './domain-normalizer';
 
 export type MentionContext = 'recommended' | 'compared' | 'criticized' | 'cited_as_source' | 'example' | 'alternative' | 'neutral_mention';
@@ -97,8 +97,6 @@ export function detectEntities(
   targetDomain: string,
   competitors: AiVisibilityCompetitor[],
 ): EntityDetectionResult {
-  const normalizedText = responseText.toLowerCase().replace(/[\s\u200B-\u200D\uFEFF]+/g, ' ');
-
   const allEntities: EntityAlias[] = [
     { canonicalId: 'target', canonicalName: targetBrand, aliases: [], domain: targetDomain },
     ...competitors.map((c) => ({

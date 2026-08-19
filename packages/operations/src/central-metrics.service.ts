@@ -32,8 +32,6 @@ function weightedAvgPosition(rows: Array<{ impressions: number; position: number
   return totalImpressions > 0 ? round2(weightedSum / totalImpressions) : null;
 }
 
-type AggregateRow = { clicks: number | string; impressions: number | string; ctr: number | string; position: number | string | null };
-
 @Injectable()
 export class CentralMetricsService {
   constructor(
@@ -292,7 +290,6 @@ export class CentralMetricsService {
         const qualified = q.impressions >= minImpressions;
 
         const key = p <= 3 ? 'TOP_3' : p <= 10 ? 'TOP_10' : p <= 20 ? 'TOP_20' : p <= 50 ? 'POSITION_21_50' : 'POSITION_51_PLUS';
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const entry = counts[key]!;
         entry.all++;
         if (qualified) entry.qualified++;

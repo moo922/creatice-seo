@@ -122,7 +122,7 @@ export class AeoAuditService {
       });
 
       // Build question gaps
-      const questionGaps = await this.buildQuestionGaps(siteId, pageResults);
+      const _questionGaps = await this.buildQuestionGaps(siteId, pageResults);
 
       return {
         auditRun: { ...savedAuditRun, status: 'COMPLETED', finishedAt: new Date().toISOString() } as any,
@@ -132,7 +132,7 @@ export class AeoAuditService {
         pagesExcluded: crawlPages.length - eligiblePages.length,
         pagesInsufficient: eligiblePages.length - pageResults.length,
         questionCoverage: this.summarizeQuestionCoverage(pageResults),
-        topGaps: allFindings.sort((a, b) => (a.severity === 'HIGH' ? -1 : 1)).slice(0, 10),
+        topGaps: allFindings.sort((a, _b) => (a.severity === 'HIGH' ? -1 : 1)).slice(0, 10),
         pages: pageResults,
         generatedAt: new Date().toISOString(),
       };
@@ -276,7 +276,7 @@ export class AeoAuditService {
   /** Map AEO findings to weighted component scores. */
   private mapFindingsToComponents(
     findings: Awaited<ReturnType<typeof runAeoDeterministicRules>>,
-    ctx: AeoRuleContext,
+    _ctx: AeoRuleContext,
   ): Record<AeoComponentId, { score: number; evidence: Record<string, unknown> }> {
     const find = (key: string) => findings.find((f) => f.ruleKey === key);
     const scoreFrom = (f: ReturnType<typeof find>, passScore = 90, failScore = 30) =>
@@ -353,7 +353,8 @@ export class AeoAuditService {
   }
 
   private summarizeQuestionCoverage(pages: AeoPageAuditDto[]): { total: number; answered: number; partial: number; missing: number } {
-    let total = 0, answered = 0, partial = 0, missing = 0;
+    let total = 0, answered = 0;
+    const partial = 0;
     for (const page of pages) {
       const evidence = page.intentAlignment as any;
       if (evidence?.questionCount) {
@@ -364,7 +365,7 @@ export class AeoAuditService {
     return { total, answered, partial, missing: total - answered - partial };
   }
 
-  private async buildQuestionGaps(siteId: string, pages: AeoPageAuditDto[]): Promise<AeoQuestionGapDto[]> {
+  private async buildQuestionGaps(siteId: string, _pages: AeoPageAuditDto[]): Promise<AeoQuestionGapDto[]> {
     const gaps: AeoQuestionGapDto[] = [];
     const questions = await this.pageQuestions.find({ where: { siteId, status: 'NOT_ANSWERED' } });
     for (const q of questions) {
@@ -399,7 +400,7 @@ export class AeoAuditService {
       order: { overallScore: 'ASC' },
     });
 
-    const crawlRun = await this.crawlRuns.findOne({ where: { id: auditRun.crawlRunId } });
+    const _crawlRun = await this.crawlRuns.findOne({ where: { id: auditRun.crawlRunId } });
     const totalPages = await this.crawlPages.count({ where: { crawlRunId: auditRun.crawlRunId, siteId } });
 
     return {

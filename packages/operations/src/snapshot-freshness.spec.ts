@@ -13,8 +13,6 @@ const STALE_THRESHOLDS = {
   aiObservation: 30,
 } as const;
 
-type SourceKey = keyof typeof STALE_THRESHOLDS;
-
 function determineAvailability(
   ageDays: number | null,
   threshold: number,

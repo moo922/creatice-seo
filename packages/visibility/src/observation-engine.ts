@@ -12,7 +12,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { AiVisibilityObservationV2, AiVisibilityPrompt, AiVisibilityCompetitor, AiVisibilityPromptSetV2, AiVisibilitySourceProvenance } from '@creative-seo/database';
+import { AiVisibilityObservationV2, AiVisibilityPrompt, AiVisibilityCompetitor, AiVisibilitySourceProvenance } from '@creative-seo/database';
 import type { AiProviderKind } from '@creative-seo/types';
 import { AiService, type ProviderObservationResult } from '@creative-seo/ai';
 import { detectEntities, type EntityDetectionResult } from './entity-detector';

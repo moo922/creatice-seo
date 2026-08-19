@@ -222,7 +222,7 @@ export class GeoAuditService {
     });
 
     // Optionally run AI semantic analysis
-    let aiComponents: Record<string, unknown> = {};
+    let _aiComponents: Record<string, unknown> = {};
     let aiProvider: string | null = null;
     let aiModel: string | null = null;
     let promptVersion: number | null = null;
@@ -238,7 +238,7 @@ export class GeoAuditService {
         language: page.language ?? 'en',
       }, { siteId, workflow: 'geo-page-auditor' });
 
-      aiComponents = (aiResult.data as Record<string, unknown>) ?? {};
+      _aiComponents = (aiResult.data as Record<string, unknown>) ?? {};
       aiProvider = aiResult.result.provider;
       aiModel = aiResult.result.model;
       promptVersion = 1;
