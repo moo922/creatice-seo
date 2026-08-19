@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { BaselineSnapshot, GscDailyMetric, GscProperty, GscSiteDailyMetric } from '@creative-seo/database';
+import { BaselineSnapshot, CrawlPage, CrawlRun, GscDailyMetric, GscProperty, GscSiteDailyMetric, Issue, KeywordSource } from '@creative-seo/database';
 import type {
   BaselineMetricsDto,
   BaselineSnapshotDto,
@@ -29,6 +29,10 @@ export class BaselineService {
     @InjectRepository(GscProperty) private readonly properties: Repository<GscProperty>,
     @InjectRepository(GscDailyMetric) private readonly dailyMetrics: Repository<GscDailyMetric>,
     @InjectRepository(GscSiteDailyMetric) private readonly siteDailyMetrics: Repository<GscSiteDailyMetric>,
+    @InjectRepository(CrawlRun) private readonly crawlRuns: Repository<CrawlRun>,
+    @InjectRepository(CrawlPage) private readonly crawlPages: Repository<CrawlPage>,
+    @InjectRepository(Issue) private readonly issues: Repository<Issue>,
+    @InjectRepository(KeywordSource) private readonly keywordSources: Repository<KeywordSource>,
     private readonly operations: OperationsService,
     private readonly siteSnapshotService: SiteSnapshotService,
   ) {}
@@ -48,6 +52,7 @@ export class BaselineService {
       baselineVersion = (await this.snapshots.count({ where: { siteId, isBaseline: true } })) + 1;
     }
 
+    const metrics = input.metrics ?? emptyMetrics();
     const row = this.snapshots.create({
       siteId,
       organizationId,
@@ -57,8 +62,8 @@ export class BaselineService {
       periodStart: input.periodStart ?? null,
       periodEnd: input.periodEnd ?? null,
       dataCutoffDate: input.dataCutoffDate ?? null,
-      metrics: input.metrics as unknown as Record<string, unknown>,
-      availability: (input.availability ?? defaultAvailability(input.metrics)) as unknown as Record<string, MetricAvailability>,
+      metrics: metrics as unknown as Record<string, unknown>,
+      availability: (input.availability ?? defaultAvailability(metrics)) as unknown as Record<string, MetricAvailability>,
       dataQuality: (input.dataQuality ?? {}) as Record<string, unknown>,
       issues: issues as unknown as Record<string, unknown>[],
       note: input.note ?? null,
@@ -118,6 +123,7 @@ export class BaselineService {
   ): Promise<BaselineMetricsDto> {
     const metrics: BaselineMetricsDto = emptyMetrics();
 
+    // 1. GSC metrics
     if (freshness.gsc.latestDataDate && freshness.gsc.status !== 'NOT_SYNCED') {
       try {
         const periodEnd = freshness.gsc.latestDataDate;
@@ -140,6 +146,36 @@ export class BaselineService {
         metrics.gscMetrics = { clicks: null, impressions: null, ctr: null, avgPosition: null };
       }
     }
+
+    // 2. Crawl metrics from latest completed crawl
+    if (freshness.crawl.status === 'AVAILABLE') {
+      try {
+        const latestCrawl = await this.crawlRuns.findOne({
+          where: { siteId, status: 'COMPLETED' as any },
+          order: { createdAt: 'DESC' },
+        });
+        if (latestCrawl) {
+          metrics.pagesCrawled = latestCrawl.pagesCrawled;
+          metrics.indexablePages = latestCrawl.pagesCrawled - ((latestCrawl as any).pagesFailed ?? 0);
+        }
+      } catch { /* entity may not exist */ }
+    }
+
+    // 3. Issue counts from latest issues
+    try {
+      const issueRows = await this.issues.find({ where: { siteId } });
+      metrics.criticalIssues = issueRows.filter((i) => i.severity === 'CRITICAL' && i.status !== 'RESOLVED').length;
+      metrics.highIssues = issueRows.filter((i) => i.severity === 'HIGH' && i.status !== 'RESOLVED').length;
+      metrics.mediumIssues = issueRows.filter((i) => i.severity === 'MEDIUM' && i.status !== 'RESOLVED').length;
+      metrics.lowIssues = issueRows.filter((i) => i.severity === 'LOW' && i.status !== 'RESOLVED').length;
+      metrics.technicalIssues = metrics.criticalIssues + metrics.highIssues + metrics.mediumIssues;
+    } catch { /* entity may not exist */ }
+
+    // 4. Keyword metrics from keyword sources
+    try {
+      const gscKeywordCount = await this.keywordSources.count({ where: { siteId, source: 'GSC' as any } });
+      metrics.rankingQueries = gscKeywordCount;
+    } catch { /* entity may not exist */ }
 
     return metrics;
   }

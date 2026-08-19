@@ -157,3 +157,9 @@ export class TestProviderConnectionDto {
   @IsString()
   apiKey?: string;
 }
+
+export class TestSiteProviderDto {
+  @IsString()
+  @IsIn(AI_PROVIDER_KINDS)
+  kind!: AiProviderKind;
+}

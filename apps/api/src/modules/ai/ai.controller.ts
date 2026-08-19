@@ -22,6 +22,7 @@ import {
   AiPromptActivateRequestDto,
   AiPromptCreateRequestDto,
   AiProviderConfigRequestDto,
+  TestSiteProviderDto,
 } from './ai.dto';
 
 /**
@@ -49,6 +50,15 @@ export class SiteAiController {
     @Body() dto: AiProviderConfigRequestDto,
   ) {
     return this.ai.updateSiteConfig(siteId, dto);
+  }
+
+  @Post('test')
+  @RequirePermissions('ai:manage')
+  async testProvider(
+    @Param('siteId', ParseUUIDPipe) siteId: string,
+    @Body() dto: TestSiteProviderDto,
+  ) {
+    return this.ai.testProviderForSite(siteId, dto.kind);
   }
 
   @Post('generate')

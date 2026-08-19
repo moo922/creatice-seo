@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
 import type { GoogleAdsIntegrationDto, KeywordPlannerJobDto } from '@creative-seo/types';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
 import { SiteAccessGuard } from '../../common/guards/site-access.guard';
@@ -36,6 +36,12 @@ export class GoogleAdsController {
   @Get()
   get(@Param('siteId', ParseUUIDPipe) siteId: string): Promise<GoogleAdsIntegrationDto> {
     return this.service.getIntegration(siteId);
+  }
+
+  @Delete()
+  @RequirePermissions('keywords:manage')
+  disconnect(@Param('siteId', ParseUUIDPipe) siteId: string): Promise<GoogleAdsIntegrationDto> {
+    return this.service.disconnect(siteId);
   }
 
   @Post('configure')

@@ -1,6 +1,6 @@
-import { BadGatewayException, ForbiddenException, Injectable, ServiceUnavailableException } from '@nestjs/common';
+import { BadGatewayException, ForbiddenException, Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { AiProviderConfig } from '@creative-seo/database';
+import { AiProviderConfig, GlobalAiProviderCredential } from '@creative-seo/database';
 import { AI_PROVIDER_KINDS } from '@creative-seo/types';
 import type {
   AiGenerationResultDto,
@@ -46,9 +46,13 @@ export interface ResearchOptions {
  */
 @Injectable()
 export class AiService {
+  private readonly logger = new Logger(AiService.name);
+
   constructor(
     @InjectRepository(AiProviderConfig)
     private readonly configs: Repository<AiProviderConfig>,
+    @InjectRepository(GlobalAiProviderCredential)
+    private readonly globalCreds: Repository<GlobalAiProviderCredential>,
     private readonly prompts: PromptRegistryService,
     private readonly router: AiRouter,
     private readonly jobs: AiJobsService,
@@ -120,6 +124,7 @@ export class AiService {
 
   async getSiteConfig(siteId: string): Promise<AiProviderConfigDto> {
     const row = await this.configs.findOne({ where: { siteId } });
+    const effectiveProviders = await this.resolveEffectiveProviders();
     if (!row) {
       return {
         siteId,
@@ -127,7 +132,7 @@ export class AiService {
         inheritsGlobal: true,
         workflowOverrides: {},
         keyOverrides: [],
-        effectiveProviders: this.resolveEffectiveProviders(),
+        effectiveProviders,
         updatedAt: new Date().toISOString(),
       };
     }
@@ -139,7 +144,7 @@ export class AiService {
       keyOverrides: Object.keys(row.apiKeyOverrides).filter((kind) =>
         (AI_PROVIDER_KINDS as readonly string[]).includes(kind),
       ) as AiProviderKind[],
-      effectiveProviders: this.resolveEffectiveProviders(),
+      effectiveProviders,
       updatedAt: row.updatedAt.toISOString(),
     };
   }
@@ -181,6 +186,58 @@ export class AiService {
     };
   }
 
+  async testProviderForSite(
+    siteId: string,
+    providerKind: AiProviderKind,
+  ): Promise<{ ok: boolean; latencyMs: number; error?: string; source: string }> {
+    const siteConfig = await this.siteConfigFor(siteId);
+    const siteKey = siteConfig?.apiKeyOverrides?.[providerKind];
+
+    // Resolve key: site override → global DB → env
+    let apiKey = siteKey ?? null;
+    let source = 'site';
+    if (!apiKey) {
+      const gRow = await this.globalCreds.findOne({ where: { provider: providerKind, enabled: true } });
+      if (gRow?.credentialSource === 'APPLICATION' && gRow.encryptedApiKey) {
+        try {
+          apiKey = this.encryptor.decrypt(gRow.encryptedApiKey);
+          source = 'global';
+        } catch { /* corrupt */ }
+      }
+    }
+    if (!apiKey) {
+      apiKey = (providerKind === 'OPENAI' ? process.env.OPENAI_API_KEY
+        : providerKind === 'ANTHROPIC' ? process.env.ANTHROPIC_API_KEY
+        : process.env.PERPLEXITY_API_KEY) ?? null;
+      source = 'environment';
+    }
+    if (!apiKey) {
+      return { ok: false, latencyMs: 0, error: 'No API key configured', source: 'none' };
+    }
+
+    const start = Date.now();
+    try {
+      const url = providerKind === 'OPENAI' ? 'https://api.openai.com/v1/models'
+        : providerKind === 'ANTHROPIC' ? 'https://api.anthropic.com/v1/messages'
+        : 'https://api.perplexity.ai/chat/completions';
+      const headers: Record<string, string> = providerKind === 'ANTHROPIC'
+        ? { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }
+        : { Authorization: `Bearer ${apiKey}` };
+      const body = providerKind === 'ANTHROPIC'
+        ? JSON.stringify({ model: 'claude-3-haiku-20240307', max_tokens: 1, messages: [{ role: 'user', content: 'hi' }] })
+        : undefined;
+      const res = await fetch(url, { method: body ? 'POST' : 'GET', headers, body, signal: AbortSignal.timeout(15_000) });
+      const latencyMs = Date.now() - start;
+      if (!res.ok) {
+        return { ok: false, latencyMs, error: `HTTP ${res.status}`, source };
+      }
+      return { ok: true, latencyMs, source };
+    } catch (err: unknown) {
+      const latencyMs = Date.now() - start;
+      return { ok: false, latencyMs, error: err instanceof Error ? err.message : 'Connection failed', source };
+    }
+  }
+
   async listJobs(query: AiJobsQuery): Promise<AiJobDto[]> {
     return this.jobs.list(query);
   }
@@ -216,7 +273,24 @@ export class AiService {
     if (!row.enabled) {
       throw new ForbiddenException('AI generation is disabled for this site');
     }
+
+    // Resolution order: site override → global DB credential → env (fallback in router)
     const apiKeyOverrides: Partial<Record<AiProviderKind, string>> = {};
+
+    // 1. Load global DB credentials first (lower priority than site override)
+    const globalCredRows = await this.globalCreds.find({ where: { enabled: true } });
+    for (const gRow of globalCredRows) {
+      if (!(AI_PROVIDER_KINDS as readonly string[]).includes(gRow.provider)) continue;
+      if (gRow.credentialSource === 'APPLICATION' && gRow.encryptedApiKey) {
+        try {
+          apiKeyOverrides[gRow.provider as AiProviderKind] = this.encryptor.decrypt(gRow.encryptedApiKey);
+        } catch {
+          this.logger.warn(`Failed to decrypt global credential for ${gRow.provider}`);
+        }
+      }
+    }
+
+    // 2. Site overrides beat global DB credentials
     for (const [kind, encrypted] of Object.entries(row.apiKeyOverrides)) {
       if (!(AI_PROVIDER_KINDS as readonly string[]).includes(kind)) continue;
       try {
@@ -225,17 +299,34 @@ export class AiService {
         // Corrupted override falls back to the global key rather than failing.
       }
     }
+
     return { enabled: row.enabled, workflowOverrides: toSiteOverrides(row.workflowOverrides), apiKeyOverrides };
   }
 
-  private resolveEffectiveProviders(): Array<{ provider: AiProviderKind; configured: boolean; source: string }> {
-    return (AI_PROVIDER_KINDS as readonly AiProviderKind[]).map((provider) => {
-      const envKey = provider === 'OPENAI' ? process.env.OPENAI_API_KEY
-        : provider === 'ANTHROPIC' ? process.env.ANTHROPIC_API_KEY
-        : process.env.PERPLEXITY_API_KEY;
-      const source = envKey ? 'ENVIRONMENT' : 'NOT_CONFIGURED';
-      return { provider, configured: !!envKey, source };
-    });
+  private async resolveEffectiveProviders(): Promise<Array<{ provider: AiProviderKind; configured: boolean; source: string }>> {
+    const globalRows = await this.globalCreds.find();
+    const globalMap = new Map(globalRows.map((r) => [r.provider, r]));
+
+    return Promise.all(
+      (AI_PROVIDER_KINDS as readonly AiProviderKind[]).map(async (provider) => {
+        const gRow = globalMap.get(provider);
+        const hasAppKey = gRow?.credentialSource === 'APPLICATION' && !!gRow.encryptedApiKey;
+        const envKey = provider === 'OPENAI' ? process.env.OPENAI_API_KEY
+          : provider === 'ANTHROPIC' ? process.env.ANTHROPIC_API_KEY
+          : process.env.PERPLEXITY_API_KEY;
+
+        let configured = false;
+        let source = 'NOT_CONFIGURED';
+        if (hasAppKey) {
+          configured = true;
+          source = 'APPLICATION';
+        } else if (envKey) {
+          configured = true;
+          source = 'ENVIRONMENT';
+        }
+        return { provider, configured, source };
+      }),
+    );
   }
 
   private toResultDto(result: AiExecutionResult): AiGenerationResultDto {

@@ -216,8 +216,19 @@ export class CreateBaselineDto {
   @IsDateString()
   periodEnd?: string | null;
 
+  @IsOptional()
   @IsObject()
-  metrics: BaselineMetricsDto;
+  metrics?: BaselineMetricsDto;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(4000)
+  note?: string | null;
+}
+
+export class CaptureBaselineDto {
+  @IsIn(BASELINE_TYPES)
+  type: BaselineType;
 
   @IsOptional()
   @IsString()

@@ -170,6 +170,31 @@ export class GoogleAdsService {
   }
 
   // ------------------------------------------------------------------
+  // Disconnect
+  // ------------------------------------------------------------------
+
+  async disconnect(siteId: string): Promise<GoogleAdsIntegrationDto> {
+    const integration = await this.getOrCreate(siteId);
+
+    // Remove credentials
+    const secret = await this.secrets.findOne({ where: { siteId, kind: SECRET_KIND } });
+    if (secret) {
+      await this.secrets.remove(secret);
+    }
+
+    // Reset integration state
+    integration.status = 'NOT_CONFIGURED';
+    integration.customerId = null;
+    integration.lastError = null;
+    integration.lastErrorCode = null;
+    integration.lastKeywordSyncAt = null;
+    integration.lastKeywordSyncSummary = null;
+    await this.integrations.save(integration);
+
+    return this.toDto(integration);
+  }
+
+  // ------------------------------------------------------------------
   // Keyword Planner jobs
   // ------------------------------------------------------------------
 

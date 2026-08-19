@@ -355,8 +355,11 @@ function WordPressConnection({ siteId }: { siteId: string }) {
 
   const connectMutation = useMutation({
     mutationFn: (body: { url: string; username: string; password: string }) =>
-      api.post(`/sites/${siteId}/secrets`, { kind: 'WORDPRESS', ...body }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['wordpress', siteId] }),
+      api.post(`/sites/${siteId}/secrets`, { kind: 'WORDPRESS', label: 'WordPress', payload: body }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['wordpress', siteId] });
+      setShowConnect(false);
+    },
   });
 
   const [connectUrl, setConnectUrl] = useState('');
@@ -645,6 +648,11 @@ function GoogleAdsConnection({ siteId }: { siteId: string }) {
     },
   });
 
+  const disconnectMutation = useMutation({
+    mutationFn: () => api.delete<GoogleAdsIntegrationDto>(`/sites/${siteId}/google-ads`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['google-ads', siteId] }),
+  });
+
   return (
     <Card>
       <CardHeader>
@@ -683,14 +691,10 @@ function GoogleAdsConnection({ siteId }: { siteId: string }) {
                   variant="destructive"
                   onClick={() => {
                     if (window.confirm(t('settings.disconnectGoogleAdsConfirm'))) {
-                      configureMutation.mutate({
-                        customerId: '',
-                        developerToken: '',
-                        refreshToken: '',
-                      });
+                      disconnectMutation.mutate();
                     }
                   }}
-                  disabled={configureMutation.isPending}
+                  disabled={disconnectMutation.isPending}
                 >
                   <Unlink className="mr-1 size-4" />
                   {t('settings.disconnect')}
@@ -812,18 +816,20 @@ function AIConfigForm({
 }) {
   const { t } = useTranslation();
   const [enabled, setEnabled] = useState(config.enabled);
-  const [inheritsGlobal, setInheritsGlobal] = useState(config.inheritsGlobal);
   const [keys, setKeys] = useState<Record<string, string>>({
     OPENAI: '',
     ANTHROPIC: '',
     PERPLEXITY: '',
   });
   const [removeKeys, setRemoveKeys] = useState<string[]>([]);
-  const [overrides, setOverrides] = useState<Record<string, string>>(() => {
-    const result: Record<string, string> = {};
-    const overridesMap = config.workflowOverrides as Partial<Record<string, { provider?: string }>>;
+  const [overrides, setOverrides] = useState<Record<string, { provider: string; model: string }>>(() => {
+    const result: Record<string, { provider: string; model: string }> = {};
+    const overridesMap = config.workflowOverrides as Partial<Record<string, { provider?: string; model?: string }>>;
     for (const workflow of AI_WORKFLOWS) {
-      result[workflow] = overridesMap[workflow]?.provider ?? '';
+      result[workflow] = {
+        provider: overridesMap[workflow]?.provider ?? '',
+        model: overridesMap[workflow]?.model ?? '',
+      };
     }
     return result;
   });
@@ -862,16 +868,6 @@ function AIConfigForm({
         {t('settings.aiEnabledForSite')}
       </label>
 
-      <label className="flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          checked={inheritsGlobal}
-          onChange={(e) => setInheritsGlobal(e.target.checked)}
-          disabled={!canManage}
-        />
-        {t('settings.useGlobalCredentials')}
-      </label>
-
       <div className="space-y-3">
         <h4 className="text-sm font-medium">{t('settings.providerOverrides')}</h4>
         <div className="grid gap-3 sm:grid-cols-3">
@@ -896,11 +892,6 @@ function AIConfigForm({
                 />
                 {canManage && (
                   <div className="flex gap-1">
-                    {inheritsGlobal && (
-                      <Button variant="outline" size="sm" onClick={() => setInheritsGlobal(false)}>
-                        {t('settings.setSiteCredential')}
-                      </Button>
-                    )}
                     <Button
                       variant="outline"
                       size="sm"
@@ -929,6 +920,7 @@ function AIConfigForm({
             <TableRow>
               <TableHead>Workflow</TableHead>
               <TableHead>Provider Override</TableHead>
+              <TableHead>Model Override</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -937,9 +929,9 @@ function AIConfigForm({
                 <TableCell className="font-medium text-xs">{workflow}</TableCell>
                 <TableCell>
                   <Select
-                    value={overrides[workflow] ?? ''}
+                    value={overrides[workflow]?.provider ?? ''}
                     disabled={!canManage}
-                    onChange={(e) => setOverrides((prev) => ({ ...prev, [workflow]: e.target.value }))}
+                    onChange={(e) => setOverrides((prev) => ({ ...prev, [workflow]: { ...prev[workflow], provider: e.target.value } }))}
                     className="w-48"
                   >
                     <option value="">Default</option>
@@ -949,6 +941,15 @@ function AIConfigForm({
                       </option>
                     ))}
                   </Select>
+                </TableCell>
+                <TableCell>
+                  <Input
+                    placeholder="e.g. gpt-4o"
+                    value={overrides[workflow]?.model ?? ''}
+                    disabled={!canManage}
+                    onChange={(e) => setOverrides((prev) => ({ ...prev, [workflow]: { ...prev[workflow], model: e.target.value } }))}
+                    className="w-48"
+                  />
                 </TableCell>
               </TableRow>
             ))}
@@ -960,9 +961,14 @@ function AIConfigForm({
         <div className="flex items-end gap-2">
           <Button
             onClick={() => {
-              const workflowOverrides: Record<string, { provider: string }> = {};
+              const workflowOverrides: Record<string, { provider?: string; model?: string }> = {};
               for (const workflow of AI_WORKFLOWS) {
-                if (overrides[workflow]) workflowOverrides[workflow] = { provider: overrides[workflow] };
+                const ov = overrides[workflow];
+                if (ov?.provider || ov?.model) {
+                  workflowOverrides[workflow] = {};
+                  if (ov.provider) workflowOverrides[workflow].provider = ov.provider;
+                  if (ov.model) workflowOverrides[workflow].model = ov.model;
+                }
               }
               const apiKeys: Record<string, string> = {};
               for (const [provider, key] of Object.entries(keys)) {
@@ -970,7 +976,6 @@ function AIConfigForm({
               }
               onSave({
                 enabled,
-                inheritsGlobal,
                 workflowOverrides,
                 apiKeys,
                 removeApiKeys: removeKeys.length > 0 ? removeKeys : undefined,
@@ -998,8 +1003,14 @@ function AutomationSection() {
       <CardHeader>
         <CardTitle>{t('settings.automation')}</CardTitle>
       </CardHeader>
-      <CardContent>
-        <EmptyState message={t('settings.automationComingSoon')} />
+      <CardContent className="space-y-4">
+        <p className="text-sm text-muted-foreground">Automation workflows run via orchestration jobs dispatched by the worker.</p>
+        <Button asChild variant="outline">
+          <Link to={`/automation`}>
+            <Zap className="mr-1 size-4" />
+            Open Automation Dashboard
+          </Link>
+        </Button>
       </CardContent>
     </Card>
   );
@@ -1273,11 +1284,7 @@ function DangerSection({ siteId }: { siteId: string }) {
     mutationFn: async () => {
       await api.delete(`/sites/${siteId}/wordpress`).catch(() => {});
       await api.delete(`/sites/${siteId}/gsc`).catch(() => {});
-      await api.post(`/sites/${siteId}/google-ads/configure`, {
-        customerId: '',
-        developerToken: '',
-        refreshToken: '',
-      }).catch(() => {});
+      await api.delete(`/sites/${siteId}/google-ads`).catch(() => {});
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wordpress', siteId] });

@@ -75,6 +75,15 @@ export class SitesController {
     return this.sites.purge(siteId, confirmDomain, user, { ip: req.ip, userAgent: req.headers['user-agent'] });
   }
 
+  @Post(':siteId/purge/preview')
+  @UseGuards(SiteAccessGuard)
+  @RequirePermissions('sites:purge')
+  async purgePreview(
+    @Param('siteId', ParseUUIDPipe) siteId: string,
+  ) {
+    return this.sites.purgePreview(siteId);
+  }
+
   @Get(':siteId/members')
   @UseGuards(SiteAccessGuard)
   @RequirePermissions('sites:read')

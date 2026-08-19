@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -25,37 +26,20 @@ import {
   Cog,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { AiProviderKind } from '@creative-seo/types';
+import type { AiProviderKind, AiPromptDto, AiHealthDto } from '@creative-seo/types';
 
 type ProviderKey = AiProviderKind;
 
-interface AiProviderDto {
-  provider: ProviderKey;
+interface GlobalProviderDto {
+  provider: string;
   enabled: boolean;
   configured: boolean;
-  credentialSource: string;
-  defaultModel: string;
-  connectionStatus: string;
+  credentialSource: 'APPLICATION' | 'ENVIRONMENT' | 'NOT_CONFIGURED';
+  defaultModel: string | null;
+  connected: boolean;
+  lastHealthCheckAt: string | null;
   latencyMs: number | null;
   lastError: string | null;
-  lastTestedAt: string | null;
-}
-
-interface AiHealthDto {
-  provider: ProviderKey;
-  status: string;
-  latencyMs: number | null;
-  lastCheckedAt: string | null;
-}
-
-interface PromptVersionDto {
-  id: string;
-  workflow: string;
-  name: string;
-  version: number;
-  status: string;
-  createdAt: string;
-  updatedAt: string;
 }
 
 const SECTIONS = [
@@ -129,22 +113,23 @@ function AiProvidersSection() {
 
   const providersQuery = useQuery({
     queryKey: ['ai-providers'],
-    queryFn: () => api.get<AiProviderDto[]>('/ai/providers'),
+    queryFn: () => api.get<GlobalProviderDto[]>('/ai/providers'),
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ provider, body }: { provider: ProviderKey; body: Record<string, unknown> }) =>
-      api.put<AiProviderDto>(`/ai/providers/${provider}`, body),
+      api.put<GlobalProviderDto>(`/ai/providers/${provider}`, body),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['ai-providers'] }),
   });
 
   const testMutation = useMutation({
-    mutationFn: (provider: ProviderKey) => api.post<{ status: string; latencyMs: number | null }>(`/ai/providers/${provider}/test`),
+    mutationFn: (provider: ProviderKey) =>
+      api.post<{ ok: boolean; latencyMs: number; error?: string }>(`/ai/providers/${provider}/test`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['ai-providers'] }),
   });
 
   const disconnectMutation = useMutation({
-    mutationFn: (provider: ProviderKey) => api.post<AiProviderDto>(`/ai/providers/${provider}/disconnect`),
+    mutationFn: (provider: ProviderKey) => api.post<GlobalProviderDto>(`/ai/providers/${provider}/disconnect`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['ai-providers'] }),
   });
 
@@ -170,9 +155,9 @@ function AiProvidersSection() {
               key={provider.provider}
               provider={provider}
               canManage={canManage}
-              onUpdate={(body) => updateMutation.mutate({ provider: provider.provider, body })}
-              onTest={() => testMutation.mutate(provider.provider)}
-              onDisconnect={() => disconnectMutation.mutate(provider.provider)}
+              onUpdate={(body) => updateMutation.mutate({ provider: provider.provider as ProviderKey, body })}
+              onTest={() => testMutation.mutate(provider.provider as ProviderKey)}
+              onDisconnect={() => disconnectMutation.mutate(provider.provider as ProviderKey)}
               isUpdating={updateMutation.isPending}
               isTesting={testMutation.isPending && testMutation.variables === provider.provider}
               isDisconnecting={disconnectMutation.isPending && disconnectMutation.variables === provider.provider}
@@ -194,7 +179,7 @@ function AiProviderCard({
   isTesting,
   isDisconnecting,
 }: {
-  provider: AiProviderDto;
+  provider: GlobalProviderDto;
   canManage: boolean;
   onUpdate: (body: Record<string, unknown>) => void;
   onTest: () => void;
@@ -205,7 +190,7 @@ function AiProviderCard({
 }) {
   const { t } = useTranslation();
   const [apiKey, setApiKey] = useState('');
-  const [defaultModel, setDefaultModel] = useState(provider.defaultModel);
+  const [defaultModel, setDefaultModel] = useState(provider.defaultModel ?? '');
   const [enabled, setEnabled] = useState(provider.enabled);
 
   return (
@@ -231,7 +216,7 @@ function AiProviderCard({
           </div>
           <div className="space-y-1.5">
             <Label>{t('settings.aiProviders.connectionStatus')}</Label>
-            <StatusBadge status={provider.connectionStatus} />
+            <StatusBadge status={provider.connected ? 'CONNECTED' : provider.configured ? 'NOT_TESTED' : 'NOT_READY'} />
           </div>
           <div className="space-y-1.5">
             <Label>{t('settings.aiProviders.latency')}</Label>
@@ -331,10 +316,10 @@ function HealthSection() {
 
   const healthQuery = useQuery({
     queryKey: ['ai-health'],
-    queryFn: () => api.get<AiHealthDto[]>('/ai/health'),
+    queryFn: () => api.get<AiHealthDto>('/ai/health'),
   });
 
-  const health = healthQuery.data ?? [];
+  const health = healthQuery.data?.providers ?? [];
 
   return (
     <div className="space-y-4">
@@ -355,13 +340,11 @@ function HealthSection() {
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <span className="font-medium">{h.provider}</span>
-                  <StatusBadge status={h.status} />
+                  <StatusBadge status={h.ok ? 'CONNECTED' : h.configured ? 'ERROR' : 'NOT_READY'} />
                 </div>
                 <div className="mt-2 space-y-1 text-sm text-muted-foreground">
                   <p>{t('settings.health.latency')}: {h.latencyMs !== null ? `${h.latencyMs}ms` : '—'}</p>
-                  {h.lastCheckedAt && (
-                    <p>{t('settings.health.lastChecked')}: {new Date(h.lastCheckedAt).toLocaleString()}</p>
-                  )}
+                  {h.message && <p>{h.message}</p>}
                 </div>
               </CardContent>
             </Card>
@@ -378,18 +361,18 @@ function PromptsSection() {
 
   const promptsQuery = useQuery({
     queryKey: ['ai-prompts'],
-    queryFn: () => api.get<PromptVersionDto[]>('/ai/prompts'),
+    queryFn: () => api.get<AiPromptDto[]>('/ai/prompts'),
   });
 
   const createMutation = useMutation({
-    mutationFn: (body: { workflow: string; name: string; content: string }) =>
-      api.post<PromptVersionDto>('/ai/prompts', body),
+    mutationFn: (body: { promptName: string; systemPrompt: string; template: string }) =>
+      api.post<AiPromptDto>('/ai/prompts', body),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['ai-prompts'] }),
   });
 
   const [showCreate, setShowCreate] = useState(false);
-  const [workflow, setWorkflow] = useState('');
-  const [name, setName] = useState('');
+  const [promptName, setPromptName] = useState('');
+  const [systemPrompt, setSystemPrompt] = useState('');
 
   const prompts = promptsQuery.data ?? [];
 
@@ -412,25 +395,25 @@ function PromptsSection() {
           </CardHeader>
           <CardContent>
             <form
-              className="grid gap-4 sm:grid-cols-2"
+              className="grid gap-4"
               onSubmit={(e) => {
                 e.preventDefault();
-                if (!workflow.trim() || !name.trim()) return;
-                createMutation.mutate({ workflow: workflow.trim(), name: name.trim(), content: '' });
-                setWorkflow('');
-                setName('');
+                if (!promptName.trim() || !systemPrompt.trim()) return;
+                createMutation.mutate({ promptName: promptName.trim(), systemPrompt: systemPrompt.trim(), template: systemPrompt.trim() });
+                setPromptName('');
+                setSystemPrompt('');
                 setShowCreate(false);
               }}
             >
               <div className="space-y-1.5">
-                <Label>{t('settings.prompts.workflow')}</Label>
-                <Input value={workflow} onChange={(e) => setWorkflow(e.target.value)} required />
+                <Label>{t('settings.prompts.promptName')}</Label>
+                <Input value={promptName} onChange={(e) => setPromptName(e.target.value)} required placeholder="e.g. seo-audit-report" />
               </div>
               <div className="space-y-1.5">
-                <Label>{t('settings.prompts.promptName')}</Label>
-                <Input value={name} onChange={(e) => setName(e.target.value)} required />
+                <Label>{t('settings.prompts.systemPrompt')}</Label>
+                <Textarea value={systemPrompt} onChange={(e) => setSystemPrompt(e.target.value)} required rows={6} placeholder="System prompt content..." />
               </div>
-              <Button type="submit" disabled={createMutation.isPending} className="sm:col-span-2">
+              <Button type="submit" disabled={createMutation.isPending}>
                 {createMutation.isPending ? t('common.loading') : t('common.create')}
               </Button>
             </form>
@@ -448,7 +431,6 @@ function PromptsSection() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t('settings.prompts.workflow')}</TableHead>
                   <TableHead>{t('settings.prompts.promptName')}</TableHead>
                   <TableHead>{t('settings.prompts.version')}</TableHead>
                   <TableHead>{t('common.status')}</TableHead>
@@ -457,9 +439,8 @@ function PromptsSection() {
               </TableHeader>
               <TableBody>
                 {prompts.map((prompt) => (
-                  <TableRow key={prompt.id}>
-                    <TableCell className="font-medium">{prompt.workflow}</TableCell>
-                    <TableCell>{prompt.name}</TableCell>
+                  <TableRow key={prompt.promptName}>
+                    <TableCell className="font-medium">{prompt.promptName}</TableCell>
                     <TableCell>v{prompt.version}</TableCell>
                     <TableCell>
                       <StatusBadge status={prompt.status} />

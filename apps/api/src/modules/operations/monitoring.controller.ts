@@ -12,6 +12,7 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import type { AuthPrincipal } from '../../common/auth.types';
 import {
   CreateBaselineDto,
+  CaptureBaselineDto,
   EvaluateAlertsDto,
   OperationsQueryDto,
   PagePerformanceQueryDto,
@@ -42,6 +43,16 @@ export class SiteMonitoringController {
     @CurrentUser() user: AuthPrincipal,
   ): Promise<BaselineSnapshotDto> {
     return this.baselines.createSnapshot(siteId, user?.organizationId ?? null, dto, user?.id ?? null);
+  }
+
+  @Post('snapshots/capture')
+  @RequirePermissions('operations:manage')
+  captureSnapshot(
+    @Param('siteId', ParseUUIDPipe) siteId: string,
+    @Body() dto: CaptureBaselineDto,
+    @CurrentUser() user: AuthPrincipal,
+  ): Promise<BaselineSnapshotDto> {
+    return this.baselines.capture(siteId, user?.organizationId ?? null, dto.type, user?.id ?? null);
   }
 
   @Get('snapshots')

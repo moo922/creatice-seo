@@ -449,15 +449,15 @@ export class DashboardService {
   private async integrationHealth(siteId: string, wp: WordPressIntegration | null, gscProp: GscProperty | null, wfJobs: WorkflowJob[], aiConfigured: boolean): Promise<SiteIntegrationHealthDto[]> {
     const crawlerFailed = wfJobs.some((job) => job.workflow === 'crawl-audit' && (job.status === 'FAILED' || job.status === 'TIMEOUT'));
     return [
-      { component: 'WordPress', status: wpStatus(wp), detail: wp ? `${wp.status}${wp.rankMathDetected ? ' · Rank Math detected' : ''}` : 'No WordPress secret configured', deepLink: wp ? link(siteId, 'wordpress') : null },
-      { component: 'Search Visibility Connector', status: wp ? (wp.status === 'CONNECTED' ? 'healthy' : wp.status === 'PENDING' ? 'warning' : 'error') : 'not_configured', detail: wp ? wp.wpUrl ?? null : 'Not connected', deepLink: wp ? link(siteId, 'wordpress') : null },
-      { component: 'Rank Math', status: wp ? (wp.rankMathDetected ? 'healthy' : 'warning') : 'not_configured', detail: wp ? (wp.rankMathDetected ? `v${wp.rankMathVersion ?? ''}`.replace('v', 'v') : 'Not detected') : 'Not configured', deepLink: wp ? link(siteId, 'wordpress') : null },
+      { component: 'WordPress', status: wpStatus(wp), detail: wp ? `${wp.status}${wp.rankMathDetected ? ' · Rank Math detected' : ''}` : 'No WordPress secret configured', deepLink: wp ? link(siteId, 'settings') : null },
+      { component: 'Search Visibility Connector', status: wp ? (wp.status === 'CONNECTED' ? 'healthy' : wp.status === 'PENDING' ? 'warning' : 'error') : 'not_configured', detail: wp ? wp.wpUrl ?? null : 'Not connected', deepLink: wp ? link(siteId, 'settings') : null },
+      { component: 'Rank Math', status: wp ? (wp.rankMathDetected ? 'healthy' : 'warning') : 'not_configured', detail: wp ? (wp.rankMathDetected ? `v${wp.rankMathVersion ?? ''}`.replace('v', 'v') : 'Not detected') : 'Not configured', deepLink: wp ? link(siteId, 'settings') : null },
       { component: 'Google Search Console', status: gscProp ? (gscProp.status === 'DISCONNECTED' ? 'disconnected' : gscProp.status === 'EXPIRED' ? 'error' : 'healthy') : 'not_configured', detail: gscProp ? gscProp.siteUrl : 'Connect Google Search Console', deepLink: gscProp ? link(siteId, 'settings') : null },
-      { component: 'Google Ads', status: 'not_configured', detail: 'Not configured', deepLink: null },
+      { component: 'Google Ads', status: 'not_configured', detail: 'Not configured', deepLink: link(siteId, 'settings') },
       { component: 'AI Providers', status: aiConfigured ? 'healthy' : 'not_configured', detail: aiConfigured ? 'Configured' : 'Configure at least one AI provider', deepLink: link(siteId, 'settings') },
-      { component: 'n8n', status: wfJobs.length > 0 ? 'healthy' : 'not_configured', detail: wfJobs.length > 0 ? `${wfJobs.length} job(s)` : 'Not configured', deepLink: link(siteId, 'automation') },
+      { component: 'Automation', status: wfJobs.length > 0 ? 'healthy' : 'not_configured', detail: wfJobs.length > 0 ? `${wfJobs.length} job(s)` : 'Not configured', deepLink: null },
       { component: 'Redis', status: 'healthy', detail: 'Operational', deepLink: null },
-      { component: 'Queue Worker', status: crawlerFailed ? 'warning' : 'healthy', detail: crawlerFailed ? 'Recent crawl failures' : 'Operational', deepLink: link(siteId, 'automation') },
+      { component: 'Queue Worker', status: crawlerFailed ? 'warning' : 'healthy', detail: crawlerFailed ? 'Recent crawl failures' : 'Operational', deepLink: null },
     ];
   }
 

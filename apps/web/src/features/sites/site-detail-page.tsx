@@ -3,7 +3,7 @@ import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Archive, Building2, Globe, Pause, Play, RotateCcw } from 'lucide-react';
-import type { OrganizationDto, SiteDto } from '@creative-seo/types';
+import type { OrganizationDto, SiteActivationDto, SiteDto } from '@creative-seo/types';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { Badge } from '@/components/ui/badge';
@@ -68,6 +68,14 @@ export function SiteDetailPage() {
 
   const canUpdate = hasPermission('sites:update');
   const canDelete = hasPermission('sites:delete');
+
+  const activationQuery = useQuery({
+    queryKey: ['activation', siteId],
+    enabled: Boolean(siteId),
+    queryFn: () => api.get<SiteActivationDto>(`/sites/${siteId}/activation`),
+  });
+
+  const showActivationTab = !activationQuery.data?.ready;
 
   return (
     <div className="space-y-6">
@@ -173,7 +181,7 @@ export function SiteDetailPage() {
             <TabsTrigger value="overview">{t('sites.overview')}</TabsTrigger>
             <TabsTrigger value="crawler">{t('siteDetail.crawler')}</TabsTrigger>
             <TabsTrigger value="audit">{t('siteDetail.audit')}</TabsTrigger>
-            <TabsTrigger value="activation">{t('siteDetail.activation')}</TabsTrigger>
+            {showActivationTab && <TabsTrigger value="activation">{t('siteDetail.activation')}</TabsTrigger>}
             <TabsTrigger value="keywords">{t('siteDetail.keywords')}</TabsTrigger>
             <TabsTrigger value="content">{t('siteDetail.content')}</TabsTrigger>
             <TabsTrigger value="links">{t('siteDetail.links')}</TabsTrigger>
@@ -193,9 +201,11 @@ export function SiteDetailPage() {
           <TabsContent value="audit">
             <AuditTab siteId={siteId} />
           </TabsContent>
-          <TabsContent value="activation">
-            <ActivationTab siteId={siteId} />
-          </TabsContent>
+          {showActivationTab && (
+            <TabsContent value="activation">
+              <ActivationTab siteId={siteId} />
+            </TabsContent>
+          )}
           <TabsContent value="keywords">
             <KeywordsTab siteId={siteId} />
           </TabsContent>

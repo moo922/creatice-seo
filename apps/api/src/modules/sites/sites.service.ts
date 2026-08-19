@@ -193,6 +193,67 @@ export class SitesService {
     });
   }
 
+  async purgePreview(siteId: string) {
+    const site = await this.sites.findOne({ where: { id: siteId } });
+    if (!site) {
+      throw new NotFoundException('Site not found');
+    }
+
+    const TABLES_WITH_SITE_ID = [
+      'activity_logs', 'aeo_page_audits', 'ai_jobs', 'ai_provider_configs',
+      'ai_visibility_baselines', 'ai_visibility_budgets', 'ai_visibility_competitors',
+      'ai_visibility_observations', 'ai_visibility_observations_v2',
+      'ai_visibility_prompts', 'ai_visibility_prompt_sets', 'ai_visibility_prompt_sets_v2',
+      'ai_visibility_runs', 'ai_visibility_snapshots', 'audit_results', 'audit_runs',
+      'automation_runs', 'baseline_snapshots', 'cannibalization_cases', 'change_logs',
+      'clusters', 'content_packages', 'content_publications', 'crawled_pages',
+      'crawler_policy_results', 'crawl_errors', 'crawl_links', 'crawl_pages',
+      'crawl_runs', 'decision_priority_weights', 'decision_recommendations',
+      'decision_recommendation_dependencies', 'decision_recommendation_outcomes',
+      'decision_work_packages', 'entity_relations', 'fact_evidence',
+      'geo_page_audits', 'google_ads_integrations', 'gsc_page_daily_metrics',
+      'gsc_query_daily_metrics', 'gsc_query_page_daily_metrics',
+      'gsc_site_daily_metrics', 'gsc_tokens', 'issues', 'keywords',
+      'keyword_discovery_jobs', 'keyword_opportunities', 'keyword_planner_metrics',
+      'keyword_sources', 'knowledge_facts', 'lighthouse_runs', 'link_analyses',
+      'link_suggestions', 'operations_alerts', 'operations_tasks', 'page_entities',
+      'page_questions', 'recommendations', 'reports', 'report_branding',
+      'site_activation_steps', 'site_automation_settings', 'site_memberships',
+      'site_secrets', 'site_snapshots', 'url_mappings', 'work_item_states',
+      'wp_integrations', 'wp_posts', 'workflow_jobs',
+    ] as const;
+
+    const impact: Record<string, number> = {};
+    for (const table of TABLES_WITH_SITE_ID) {
+      try {
+        const result = await this.sites.manager.query(`SELECT COUNT(*)::int AS count FROM ${table} WHERE site_id = $1`, [siteId]);
+        impact[table] = result[0]?.count ?? 0;
+      } catch {
+        impact[table] = -1;
+      }
+    }
+
+    try {
+      const gscProps = await this.sites.manager.query('SELECT COUNT(*)::int AS count FROM gsc_properties WHERE site_id = $1', [siteId]);
+      impact['gsc_properties'] = gscProps[0]?.count ?? 0;
+      const gscDaily = await this.sites.manager.query(
+        'SELECT COUNT(*)::int AS count FROM gsc_daily_metrics WHERE property_id IN (SELECT id FROM gsc_properties WHERE site_id = $1)',
+        [siteId],
+      );
+      impact['gsc_daily_metrics'] = gscDaily[0]?.count ?? 0;
+    } catch { /* ignore */ }
+
+    const totalRows = Object.values(impact).filter((v) => v > 0).reduce((s, v) => s + v, 0);
+
+    return {
+      siteId,
+      domain: site.domain,
+      impact,
+      totalRows,
+      preserved: [] as string[],
+    };
+  }
+
   async purge(siteId: string, confirmDomain: string, actor: AuthPrincipal, meta: RequestMeta) {
     const site = await this.sites.findOne({ where: { id: siteId } });
     if (!site) {

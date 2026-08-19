@@ -1,6 +1,6 @@
 import { Global, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { AiJob, AiPrompt, AiProviderCapability, AiProviderConfig } from '@creative-seo/database';
+import { AiJob, AiPrompt, AiProviderCapability, AiProviderConfig, GlobalAiProviderCredential } from '@creative-seo/database';
 import { loadAppEnv } from '@creative-seo/config';
 import { globalConfigFromEnv } from '../config';
 import { AesEncryptor } from '../encryption';
@@ -18,7 +18,7 @@ import { ProviderCapabilityRegistryService } from '../provider/capabilities';
  */
 @Global()
 @Module({
-  imports: [TypeOrmModule.forFeature([AiJob, AiPrompt, AiProviderCapability, AiProviderConfig])],
+  imports: [TypeOrmModule.forFeature([AiJob, AiPrompt, AiProviderCapability, AiProviderConfig, GlobalAiProviderCredential])],
   providers: [
     {
       provide: AiProviderRegistry,

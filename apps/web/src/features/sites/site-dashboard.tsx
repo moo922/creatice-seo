@@ -41,7 +41,7 @@ export function SiteDashboard({ siteId }: { siteId: string }) {
   const primaryKeyword = d.main.topKeywords[0]?.keyword;
 
   const quickActions: Array<{ label: string; url: string; payload?: unknown; disabled?: boolean }> = [
-    { label: 'Run Crawl', url: `/sites/${siteId}/orchestration/jobs`, payload: { workflow: 'crawl-audit' } },
+    { label: 'Run Crawl', url: `/sites/${siteId}/links/crawls`, payload: {} },
     { label: 'Run Full Audit', url: `/sites/${siteId}/audit`, payload: {} },
     { label: 'Create Baseline', url: `/sites/${siteId}/baseline`, payload: {} },
     { label: 'Sync Search Console', url: `/sites/${siteId}/gsc/sync`, payload: {} },
@@ -117,7 +117,7 @@ export function SiteDashboard({ siteId }: { siteId: string }) {
             <div className="grid gap-3 sm:grid-cols-3">
               <PerfBlock label="Current (28d)" clicks={d.performance.current.clicks} impressions={d.performance.current.impressions} ctr={d.performance.current.ctr} position={d.performance.current.avgPosition} />
               <PerfBlock label="Previous (28d)" clicks={d.performance.previous.clicks} impressions={d.performance.previous.impressions} ctr={d.performance.previous.ctr} position={d.performance.previous.avgPosition} />
-              <PerfBlock label="Baseline" clicks={d.performance.baseline?.clicks ?? 0} impressions={d.performance.baseline?.impressions ?? 0} ctr={d.performance.baseline?.ctr ?? 0} position={d.performance.baseline?.avgPosition ?? null} />
+              <PerfBlock label="Baseline" clicks={d.performance.baseline?.clicks ?? null} impressions={d.performance.baseline?.impressions ?? null} ctr={d.performance.baseline?.ctr ?? null} position={d.performance.baseline?.avgPosition ?? null} />
             </div>
           )}
           {d.performance.currentVsPrevious.clicksPct !== null ? (
@@ -279,14 +279,14 @@ function InfoCard({ message, detail, action }: { message: string; detail?: strin
   );
 }
 
-function PerfBlock({ label, clicks, impressions, ctr, position }: { label: string; clicks: number; impressions: number; ctr: number; position: number | null }) {
+function PerfBlock({ label, clicks, impressions, ctr, position }: { label: string; clicks: number | null; impressions: number | null; ctr: number | null; position: number | null }) {
   return (
     <div className="rounded-md border p-3">
       <div className="text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
       <div className="mt-2 space-y-1 text-sm">
-        <div>Clicks: <strong>{clicks}</strong></div>
-        <div>Impressions: <strong>{impressions}</strong></div>
-        <div>CTR: <strong>{ctr.toFixed(3)}</strong></div>
+        <div>Clicks: <strong>{clicks !== null ? clicks : '—'}</strong></div>
+        <div>Impressions: <strong>{impressions !== null ? impressions : '—'}</strong></div>
+        <div>CTR: <strong>{ctr !== null ? ctr.toFixed(3) : '—'}</strong></div>
         <div>Avg position: <strong>{position ?? '—'}</strong></div>
       </div>
     </div>

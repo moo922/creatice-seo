@@ -8,6 +8,7 @@ import {
   BaselineSnapshot,
   ChangeLog,
   ContentPublication,
+  CrawlPage,
   CrawlRun,
   GscDailyMetric,
   GscPageDailyMetric,
@@ -17,6 +18,7 @@ import {
   GscSiteDailyMetric,
   GscSyncState,
   Issue,
+  KeywordSource,
   LinkSuggestion,
   OperationsAlert,
   OperationsTask,
@@ -52,6 +54,7 @@ import { WorkCompletedService } from './work-completed.service';
 @Module({
   imports: [TypeOrmModule.forFeature([
     Issue,
+    KeywordSource,
     Recommendation,
     OperationsTask,
     ChangeLog,
@@ -66,6 +69,7 @@ import { WorkCompletedService } from './work-completed.service';
     GscSyncState,
     SiteSnapshot,
     CrawlRun,
+    CrawlPage,
     AuditRun,
     AuditResult,
     AiVisibilityRun,

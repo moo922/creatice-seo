@@ -1351,7 +1351,7 @@ export interface CreateBaselineSnapshotRequest {
   periodStart?: string | null;
   periodEnd?: string | null;
   dataCutoffDate?: string | null;
-  metrics: BaselineMetricsDto;
+  metrics?: BaselineMetricsDto;
   availability?: Record<string, MetricAvailability>;
   dataQuality?: Record<string, unknown>;
   note?: string | null;
