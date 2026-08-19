@@ -5,6 +5,8 @@ const VARIANTS = {
   default: 'border-transparent bg-primary text-primary-foreground',
   secondary: 'border-transparent bg-muted text-muted-foreground',
   outline: 'border border-input',
+  paused: 'border-transparent bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
+  archived: 'border-transparent bg-zinc-100 text-zinc-500 dark:bg-zinc-800/50 dark:text-zinc-400',
 } as const;
 
 type BadgeVariant = keyof typeof VARIANTS;

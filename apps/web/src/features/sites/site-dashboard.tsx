@@ -42,8 +42,8 @@ export function SiteDashboard({ siteId }: { siteId: string }) {
 
   const quickActions: Array<{ label: string; url: string; payload?: unknown; disabled?: boolean }> = [
     { label: 'Run Crawl', url: `/sites/${siteId}/orchestration/jobs`, payload: { workflow: 'crawl-audit' } },
-    { label: 'Run Full Audit', url: `/sites/${siteId}/links/analyses`, payload: {} },
-    { label: 'Create Baseline', url: `/sites/${siteId}/monitoring/snapshots`, payload: { type: 'BASELINE', metrics: defaultMetrics(d) } },
+    { label: 'Run Full Audit', url: `/sites/${siteId}/audit`, payload: {} },
+    { label: 'Create Baseline', url: `/sites/${siteId}/baseline`, payload: {} },
     { label: 'Sync Search Console', url: `/sites/${siteId}/gsc/sync`, payload: {} },
     { label: 'Discover Keywords', url: `/sites/${siteId}/keywords/pipeline`, payload: { discoverFromGsc: true } },
     { label: 'Generate Content', url: `/sites/${siteId}/content/pipeline`, payload: { primaryKeyword: primaryKeyword ?? '' }, disabled: !primaryKeyword },
@@ -138,7 +138,7 @@ export function SiteDashboard({ siteId }: { siteId: string }) {
             <div>
               <EmptyState message="Initial baseline has not been created." />
               {canManage ? (
-                <Button size="sm" variant="outline" onClick={() => run.mutate({ url: `/sites/${siteId}/monitoring/snapshots`, payload: { type: 'BASELINE', metrics: defaultMetrics(d) } })}>
+                <Button size="sm" variant="outline" onClick={() => run.mutate({ url: `/sites/${siteId}/baseline`, payload: {} })}>
                   <Play className="size-3.5" /> Run Initial Audit
                 </Button>
               ) : null}
@@ -326,16 +326,4 @@ function IssueSummaryTable({ summary, siteId }: { summary: SiteDashboardDto['iss
   );
 }
 
-function defaultMetrics(d: SiteDashboardDto): Record<string, unknown> {
-  return {
-    crawlHealth: 60,
-    technicalIssues: 0,
-    onPageHealth: d.main.seoHealth ?? 0,
-    contentHealth: 0,
-    aeoReadiness: d.main.aeoReadiness ?? 0,
-    geoReadiness: d.main.geoReadiness ?? 0,
-    gscMetrics: { clicks: d.main.clicks, impressions: d.main.impressions, ctr: d.main.ctr, avgPosition: d.main.avgPosition },
-    keywordVisibility: 0,
-    internalLinkHealth: 0,
-  };
-}
+

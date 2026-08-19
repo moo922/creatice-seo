@@ -1,14 +1,21 @@
-import { useState, type FormEvent } from 'react';
-import { Link } from 'react-router-dom';
+import { useMemo, useState, type FormEvent } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { ArrowUpRight, Plus } from 'lucide-react';
+import { ExternalLink, MoreHorizontal, Pause, Play, Plus, Power, PowerOff, Trash2, Unlink } from 'lucide-react';
 import type { CreateSiteRequest, OrganizationDto, Paginated, SiteDto } from '@creative-seo/types';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
@@ -22,15 +29,16 @@ import {
   TableRow,
 } from '@/components/ui/table';
 
-const STATUS_VARIANT: Record<SiteDto['status'], 'default' | 'secondary' | 'outline'> = {
+const STATUS_VARIANT: Record<SiteDto['status'], 'default' | 'secondary' | 'outline' | 'paused' | 'archived'> = {
   ACTIVE: 'default',
-  PAUSED: 'secondary',
-  ARCHIVED: 'outline',
+  PAUSED: 'paused',
+  ARCHIVED: 'archived',
 };
 
 export function SitesPage() {
   const { t } = useTranslation();
   const { hasPermission } = useAuth();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const sitesQuery = useQuery({
@@ -43,13 +51,36 @@ export function SitesPage() {
     queryFn: () => api.get<OrganizationDto[]>('/organizations'),
   });
 
+  const orgMap = useMemo(() => {
+    const map = new Map<string, string>();
+    organizationsQuery.data?.forEach((org) => map.set(org.id, org.name));
+    return map;
+  }, [organizationsQuery.data]);
+
+  const invalidateSites = () => queryClient.invalidateQueries({ queryKey: ['sites'] });
+
+  const statusMutation = useMutation({
+    mutationFn: ({ siteId, status }: { siteId: string; status: SiteDto['status'] }) =>
+      api.patch<SiteDto>(`/sites/${siteId}`, { status }),
+    onSuccess: invalidateSites,
+  });
+
+  const purgeMutation = useMutation({
+    mutationFn: ({ siteId, confirmDomain }: { siteId: string; confirmDomain: string }) =>
+      api.post(`/sites/${siteId}/purge`, { confirmDomain }),
+    onSuccess: invalidateSites,
+  });
+
   const createMutation = useMutation({
     mutationFn: (body: CreateSiteRequest) => api.post<SiteDto>('/sites', body),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['sites'] }),
+    onSuccess: invalidateSites,
   });
 
   const sites = sitesQuery.data?.data ?? [];
   const canCreate = hasPermission('sites:create');
+  const canUpdate = hasPermission('sites:update');
+  const canDelete = hasPermission('sites:delete');
+  const canPurge = hasPermission('sites:purge');
 
   return (
     <div className="space-y-6">
@@ -105,17 +136,22 @@ export function SitesPage() {
                   <TableRow key={site.id}>
                     <TableCell className="font-medium">{site.name}</TableCell>
                     <TableCell className="text-muted-foreground">{site.domain}</TableCell>
-                    <TableCell className="text-muted-foreground">{site.organizationId}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {orgMap.get(site.organizationId) ?? site.organizationId}
+                    </TableCell>
                     <TableCell>
                       <Badge variant={STATUS_VARIANT[site.status]}>{site.status}</Badge>
                     </TableCell>
                     <TableCell className="text-end">
-                      <Button asChild variant="ghost" size="sm">
-                        <Link to={`/sites/${site.id}`}>
-                          {t('common.open')}
-                          <ArrowUpRight className="size-3.5" />
-                        </Link>
-                      </Button>
+                      <SiteActionsDropdown
+                        site={site}
+                        canUpdate={canUpdate}
+                        canDelete={canDelete}
+                        canPurge={canPurge}
+                        onStatusChange={(status) => statusMutation.mutate({ siteId: site.id, status })}
+                        onPurge={(confirmDomain) => purgeMutation.mutate({ siteId: site.id, confirmDomain })}
+                        onOpen={() => navigate(`/sites/${site.id}`)}
+                      />
                     </TableCell>
                   </TableRow>
                 ))}
@@ -125,6 +161,129 @@ export function SitesPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function SiteActionsDropdown({
+  site,
+  canUpdate,
+  canDelete,
+  canPurge,
+  onStatusChange,
+  onPurge,
+  onOpen,
+}: {
+  site: SiteDto;
+  canUpdate: boolean;
+  canDelete: boolean;
+  canPurge: boolean;
+  onStatusChange: (status: SiteDto['status']) => void;
+  onPurge: (confirmDomain: string) => void;
+  onOpen: () => void;
+}) {
+  const { t } = useTranslation();
+  const [purgeOpen, setPurgeOpen] = useState(false);
+  const [confirmInput, setConfirmInput] = useState('');
+  const confirmEnabled = confirmInput.trim() === site.domain;
+
+  return (
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" className="size-8">
+            <MoreHorizontal className="size-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={onOpen}>
+            <ExternalLink className="size-4" />
+            {t('common.open')}
+          </DropdownMenuItem>
+          {canUpdate && site.status === 'ACTIVE' && (
+            <DropdownMenuItem onClick={() => onStatusChange('PAUSED')}>
+              <Pause className="size-4" />
+              {t('sites.pause', 'Pause')}
+            </DropdownMenuItem>
+          )}
+          {canUpdate && site.status === 'PAUSED' && (
+            <DropdownMenuItem onClick={() => onStatusChange('ACTIVE')}>
+              <Play className="size-4" />
+              {t('sites.resume', 'Resume')}
+            </DropdownMenuItem>
+          )}
+          {canDelete && site.status !== 'ARCHIVED' && (
+            <DropdownMenuItem onClick={() => onStatusChange('ARCHIVED')}>
+              <PowerOff className="size-4" />
+              {t('sites.archive', 'Archive')}
+            </DropdownMenuItem>
+          )}
+          {canDelete && site.status === 'ARCHIVED' && (
+            <DropdownMenuItem onClick={() => onStatusChange('ACTIVE')}>
+              <Power className="size-4" />
+              {t('sites.restore', 'Restore')}
+            </DropdownMenuItem>
+          )}
+          <DropdownMenuItem asChild>
+            <Link to={`/sites/${site.id}?tab=settings`}>
+              <Unlink className="size-4" />
+              {t('sites.manageConnections', 'Manage Connections')}
+            </Link>
+          </DropdownMenuItem>
+          {canPurge && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="text-destructive focus:text-destructive"
+                onClick={() => {
+                  setConfirmInput('');
+                  setPurgeOpen(true);
+                }}
+              >
+                <Trash2 className="size-4" />
+                {t('sites.delete', 'Delete')}
+              </DropdownMenuItem>
+            </>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {purgeOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+          <Card className="w-full max-w-md mx-4">
+            <CardHeader>
+              <CardTitle>{t('sites.purgeTitle', 'Permanently delete site')}</CardTitle>
+              <CardDescription>
+                {t('sites.purgeDescription', 'This action cannot be undone. Type the domain to confirm:')}{' '}
+                <strong>{site.domain}</strong>
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Input
+                placeholder={site.domain}
+                value={confirmInput}
+                onChange={(e) => setConfirmInput(e.target.value)}
+                autoFocus
+              />
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setPurgeOpen(false)}>
+                  {t('common.cancel')}
+                </Button>
+                <Button
+                  variant="destructive"
+                  disabled={!confirmEnabled}
+                  onClick={() => {
+                    onPurge(site.domain);
+                    setPurgeOpen(false);
+                  }}
+                >
+                  {t('sites.purge', 'Delete permanently')}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+    </>
   );
 }
 

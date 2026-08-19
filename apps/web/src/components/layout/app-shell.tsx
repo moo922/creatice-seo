@@ -43,6 +43,7 @@ const NAV_ITEMS = [
   { to: '/visibility', label: 'nav.visibility', icon: Sparkles, end: false, permission: 'visibility:read' },
   { to: '/reports', label: 'nav.reports', icon: BarChart3, end: false, permission: 'reports:read' },
   { to: '/automation', label: 'nav.automation', icon: Bot, end: false, permission: 'orchestration:read' },
+  { to: '/settings', label: 'nav.settings', icon: Settings, end: false, permission: 'ai:read' },
   { to: '/client', label: 'nav.client', icon: Users, end: false, clientOnly: true },
 ] as const;
 
@@ -133,6 +134,13 @@ export function AppShell() {
                   <div className="font-medium">{user?.fullName}</div>
                   <div className="text-xs text-muted-foreground">{user?.email}</div>
                 </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/settings">
+                    <Settings className="size-4" />
+                    {t('nav.settings')}
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={() => void logout()}>
                   <LogOut className="size-4" />

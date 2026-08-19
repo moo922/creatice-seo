@@ -54,6 +54,7 @@ import { AddGc06ObservationsProvenance00531720000000053 } from './0053-add-gc06-
 import { AddGc06ProviderBudget00541720000000054 } from './0054-add-gc06-provider-budget';
 import { AddGc06BaselinesSnapshots00551720000000055 } from './0055-add-gc06-baselines-snapshots';
 import { AddGc07DecisionEngine00561720000000056 } from './0056-add-gc07-decision-engine';
+import { AddGlobalAiProviderCredentials00571720000000057 } from './0057-add-global-ai-provider-credentials';
 
 export const migrations = [
   CreateIdentity00011720000000001,
@@ -112,6 +113,7 @@ export const migrations = [
   AddGc06ProviderBudget00541720000000054,
   AddGc06BaselinesSnapshots00551720000000055,
   AddGc07DecisionEngine00561720000000056,
+  AddGlobalAiProviderCredentials00571720000000057,
 ];
 
 export {
@@ -171,4 +173,5 @@ export {
   AddGc06ProviderBudget00541720000000054,
   AddGc06BaselinesSnapshots00551720000000055,
   AddGc07DecisionEngine00561720000000056,
+  AddGlobalAiProviderCredentials00571720000000057,
 };

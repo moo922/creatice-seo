@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -190,6 +191,117 @@ export class SitesService {
       ip: meta.ip,
       userAgent: meta.userAgent,
     });
+  }
+
+  async purge(siteId: string, confirmDomain: string, actor: AuthPrincipal, meta: RequestMeta) {
+    const site = await this.sites.findOne({ where: { id: siteId } });
+    if (!site) {
+      throw new NotFoundException('Site not found');
+    }
+
+    if (confirmDomain.toLowerCase() !== site.domain.toLowerCase()) {
+      throw new BadRequestException(
+        `Domain confirmation does not match. Expected: ${site.domain}`,
+      );
+    }
+
+    await this.activities.record({
+      action: 'site.purge',
+      userId: actor.id,
+      organizationId: site.organizationId,
+      siteId,
+      entityType: 'site',
+      entityId: siteId,
+      meta: { domain: site.domain },
+      ip: meta.ip,
+      userAgent: meta.userAgent,
+    });
+
+    const TABLES_WITH_SITE_ID = [
+      'activity_logs',
+      'aeo_page_audits',
+      'ai_jobs',
+      'ai_provider_configs',
+      'ai_visibility_baselines',
+      'ai_visibility_budgets',
+      'ai_visibility_competitors',
+      'ai_visibility_observations',
+      'ai_visibility_observations_v2',
+      'ai_visibility_prompts',
+      'ai_visibility_prompt_sets',
+      'ai_visibility_prompt_sets_v2',
+      'ai_visibility_runs',
+      'ai_visibility_snapshots',
+      'audit_results',
+      'audit_runs',
+      'automation_runs',
+      'baseline_snapshots',
+      'cannibalization_cases',
+      'change_logs',
+      'clusters',
+      'content_packages',
+      'content_publications',
+      'crawled_pages',
+      'crawler_policy_results',
+      'crawl_errors',
+      'crawl_links',
+      'crawl_pages',
+      'crawl_runs',
+      'decision_priority_weights',
+      'decision_recommendations',
+      'decision_recommendation_dependencies',
+      'decision_recommendation_outcomes',
+      'decision_work_packages',
+      'entity_relations',
+      'fact_evidence',
+      'geo_page_audits',
+      'google_ads_integrations',
+      'gsc_page_daily_metrics',
+      'gsc_query_daily_metrics',
+      'gsc_query_page_daily_metrics',
+      'gsc_site_daily_metrics',
+      'gsc_tokens',
+      'issues',
+      'keywords',
+      'keyword_discovery_jobs',
+      'keyword_opportunities',
+      'keyword_planner_metrics',
+      'keyword_sources',
+      'knowledge_facts',
+      'lighthouse_runs',
+      'link_analyses',
+      'link_suggestions',
+      'operations_alerts',
+      'operations_tasks',
+      'page_entities',
+      'page_questions',
+      'recommendations',
+      'reports',
+      'report_branding',
+      'site_activation_steps',
+      'site_automation_settings',
+      'site_memberships',
+      'site_secrets',
+      'site_snapshots',
+      'url_mappings',
+      'work_item_states',
+      'wp_integrations',
+      'wp_posts',
+      'workflow_jobs',
+    ];
+
+    const childQuery = TABLES_WITH_SITE_ID.map((t) => `DELETE FROM ${t} WHERE site_id = $1`).join('; ');
+    await this.sites.manager.query(childQuery, [siteId]);
+
+    await this.sites.manager.query(
+      'DELETE FROM gsc_daily_metrics WHERE property_id IN (SELECT id FROM gsc_properties WHERE site_id = $1)',
+      [siteId],
+    );
+
+    await this.sites.manager.query('DELETE FROM gsc_properties WHERE site_id = $1', [siteId]);
+    await this.sites.manager.query('DELETE FROM sites WHERE id = $1', [siteId]);
+
+    return { deleted: true, siteId, domain: site.domain };
   }
 
   async addMember(

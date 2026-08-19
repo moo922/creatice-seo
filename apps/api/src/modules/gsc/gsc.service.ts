@@ -413,10 +413,12 @@ export class GscService {
     const property = await this.properties.findOne({ where: { siteId } });
     await this.tokens.delete({ siteId });
     if (property) {
-      await this.metrics.delete({ propertyId: property.id });
-      await this.opportunities.delete({ propertyId: property.id });
       await this.syncStates.delete({ propertyId: property.id });
-      await this.properties.delete({ siteId });
+      property.status = 'DISCONNECTED';
+      property.selected = false;
+      property.lastSyncAt = null;
+      property.lastError = null;
+      await this.properties.save(property);
     }
     await this.activities.record({
       action: 'gsc.disconnect',

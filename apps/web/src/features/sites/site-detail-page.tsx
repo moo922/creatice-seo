@@ -1,12 +1,14 @@
+import { useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Building2, Globe } from 'lucide-react';
+import { ArrowLeft, Archive, Building2, Globe, Pause, Play, RotateCcw } from 'lucide-react';
 import type { OrganizationDto, SiteDto } from '@creative-seo/types';
 import { api } from '@/lib/api';
+import { useAuth } from '@/lib/auth';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SiteDashboard } from './site-dashboard';
@@ -21,17 +23,20 @@ import { SettingsTab } from './tabs/settings-tab';
 import { AeoTab } from './tabs/aeo-tab';
 import { GeoTab } from './tabs/geo-tab';
 
-const STATUS_VARIANT: Record<SiteDto['status'], 'default' | 'secondary' | 'outline'> = {
+const STATUS_VARIANT: Record<SiteDto['status'], 'default' | 'secondary' | 'outline' | 'paused' | 'archived'> = {
   ACTIVE: 'default',
-  PAUSED: 'secondary',
-  ARCHIVED: 'outline',
+  PAUSED: 'paused',
+  ARCHIVED: 'archived',
 };
 
 export function SiteDetailPage() {
   const { siteId = '' } = useParams();
   const { t } = useTranslation();
+  const { hasPermission } = useAuth();
+  const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
   const initialTab = searchParams.get('tab') ?? 'overview';
+  const [archiveConfirmOpen, setArchiveConfirmOpen] = useState(false);
 
   const siteQuery = useQuery({
     queryKey: ['site', siteId],
@@ -40,6 +45,16 @@ export function SiteDetailPage() {
   });
 
   const site = siteQuery.data;
+
+  const invalidateSite = () => queryClient.invalidateQueries({ queryKey: ['site', siteId] });
+
+  const statusMutation = useMutation({
+    mutationFn: (status: SiteDto['status']) => api.patch<SiteDto>(`/sites/${siteId}`, { status }),
+    onSuccess: () => {
+      invalidateSite();
+      queryClient.invalidateQueries({ queryKey: ['sites'] });
+    },
+  });
 
   const organizationsQuery = useQuery({
     queryKey: ['organizations'],
@@ -50,6 +65,9 @@ export function SiteDetailPage() {
   const client = site?.organizationId
     ? organizationsQuery.data?.find((org) => org.id === site.organizationId)
     : undefined;
+
+  const canUpdate = hasPermission('sites:update');
+  const canDelete = hasPermission('sites:delete');
 
   return (
     <div className="space-y-6">
@@ -84,6 +102,63 @@ export function SiteDetailPage() {
             ) : null}
           </div>
         </div>
+        {site && (
+          <div className="flex items-center gap-2">
+            {canUpdate && site.status === 'ACTIVE' && (
+              <Button variant="outline" size="sm" onClick={() => statusMutation.mutate('PAUSED')} disabled={statusMutation.isPending}>
+                <Pause className="size-4" />
+                {t('sites.pause', 'Pause Site')}
+              </Button>
+            )}
+            {canUpdate && site.status === 'PAUSED' && (
+              <Button variant="outline" size="sm" onClick={() => statusMutation.mutate('ACTIVE')} disabled={statusMutation.isPending}>
+                <Play className="size-4" />
+                {t('sites.resume', 'Resume Site')}
+              </Button>
+            )}
+            {canDelete && site.status === 'ARCHIVED' && (
+              <Button variant="outline" size="sm" onClick={() => statusMutation.mutate('ACTIVE')} disabled={statusMutation.isPending}>
+                <RotateCcw className="size-4" />
+                {t('sites.restore', 'Restore Site')}
+              </Button>
+            )}
+            {canDelete && site.status !== 'ARCHIVED' && (
+              <>
+                <Button variant="outline" size="sm" onClick={() => setArchiveConfirmOpen(true)}>
+                  <Archive className="size-4" />
+                  {t('sites.archive', 'Archive')}
+                </Button>
+                {archiveConfirmOpen && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+                    <Card className="w-full max-w-sm mx-4">
+                      <CardHeader>
+                        <CardTitle>{t('sites.archiveConfirmTitle', 'Archive this site?')}</CardTitle>
+                        <CardDescription>
+                          {t('sites.archiveConfirmDescription', 'The site will be deactivated but can be restored later.')}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="flex justify-end gap-2">
+                        <Button variant="outline" onClick={() => setArchiveConfirmOpen(false)}>
+                          {t('common.cancel')}
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          disabled={statusMutation.isPending}
+                          onClick={() => {
+                            statusMutation.mutate('ARCHIVED');
+                            setArchiveConfirmOpen(false);
+                          }}
+                        >
+                          {t('sites.archive', 'Archive')}
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       {siteQuery.isError ? (

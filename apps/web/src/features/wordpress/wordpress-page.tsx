@@ -26,11 +26,12 @@ import {
 
 const STATUS_VARIANT: Record<
   WordPressIntegrationSummaryDto['integration']['status'],
-  'default' | 'secondary' | 'outline'
+  'default' | 'secondary' | 'outline' | 'paused' | 'archived'
 > = {
   CONNECTED: 'default',
   PENDING: 'secondary',
   FAILED: 'outline',
+  DISCONNECTED: 'archived',
 };
 
 export function WordPressPage() {

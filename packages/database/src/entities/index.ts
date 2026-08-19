@@ -82,6 +82,7 @@ import { DecisionRecommendation } from './decision-recommendation';
 import { DecisionWorkPackage } from './decision-work-package';
 import { DecisionRecommendationDependency } from './decision-recommendation-dependency';
 import { DecisionRecommendationOutcome } from './decision-recommendation-outcome';
+import { GlobalAiProviderCredential } from './global-ai-provider-credential';
 
 export const entities = [
   User,
@@ -166,6 +167,12 @@ export const entities = [
   AiVisibilityBudget,
   AiVisibilityBaseline,
   AiVisibilitySnapshot,
+  DecisionPriorityWeight,
+  DecisionRecommendation,
+  DecisionWorkPackage,
+  DecisionRecommendationDependency,
+  DecisionRecommendationOutcome,
+  GlobalAiProviderCredential,
 ];
 
 export {
@@ -256,4 +263,5 @@ export {
   DecisionWorkPackage,
   DecisionRecommendationDependency,
   DecisionRecommendationOutcome,
+  GlobalAiProviderCredential,
 };

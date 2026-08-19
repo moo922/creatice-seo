@@ -10,7 +10,7 @@ export interface RoleDefinition {
 
 export const ROLE_PERMISSIONS: Record<RoleKey, PermissionKey[]> = {
   SUPER_ADMIN: [...ALL_PERMISSIONS],
-  ADMIN: [...ALL_PERMISSIONS.filter((p) => p !== 'roles:manage')],
+  ADMIN: [...ALL_PERMISSIONS.filter((p) => p !== 'roles:manage' && p !== 'sites:purge')],
   SEO_MANAGER: [
     'users:read',
     'roles:read',

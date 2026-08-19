@@ -23,7 +23,7 @@ export const SITE_SECRET_KINDS = [
 ] as const;
 export type SiteSecretKind = (typeof SITE_SECRET_KINDS)[number];
 
-export const WORDPRESS_CONNECTION_STATUSES = ['PENDING', 'CONNECTED', 'FAILED'] as const;
+export const WORDPRESS_CONNECTION_STATUSES = ['PENDING', 'CONNECTED', 'FAILED', 'DISCONNECTED'] as const;
 export type WordPressConnectionStatus = (typeof WORDPRESS_CONNECTION_STATUSES)[number];
 
 export const GSC_CONNECTION_STATUSES = ['DISCONNECTED', 'CONNECTED', 'EXPIRED'] as const;
@@ -808,6 +808,7 @@ export const ACTIVITY_ACTIONS = [
   'site.create',
   'site.update',
   'site.delete',
+  'site.purge',
   'site.membership.create',
   'site.membership.delete',
   'site.secret.create',

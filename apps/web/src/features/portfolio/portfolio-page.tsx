@@ -1,8 +1,9 @@
+import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { ArrowUpRight, Globe } from 'lucide-react';
-import type { Paginated, SiteDto } from '@creative-seo/types';
+import type { OrganizationDto, Paginated, SiteDto } from '@creative-seo/types';
 import { api } from '@/lib/api';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -17,10 +18,10 @@ import {
   TableRow,
 } from '@/components/ui/table';
 
-const STATUS_VARIANT: Record<SiteDto['status'], 'default' | 'secondary' | 'outline'> = {
+const STATUS_VARIANT: Record<SiteDto['status'], 'default' | 'secondary' | 'outline' | 'paused' | 'archived'> = {
   ACTIVE: 'default',
-  PAUSED: 'secondary',
-  ARCHIVED: 'outline',
+  PAUSED: 'paused',
+  ARCHIVED: 'archived',
 };
 
 export function PortfolioPage() {
@@ -29,6 +30,17 @@ export function PortfolioPage() {
     queryKey: ['sites'],
     queryFn: () => api.get<Paginated<SiteDto>>('/sites?perPage=50'),
   });
+
+  const organizationsQuery = useQuery({
+    queryKey: ['organizations'],
+    queryFn: () => api.get<OrganizationDto[]>('/organizations'),
+  });
+
+  const orgMap = useMemo(() => {
+    const map = new Map<string, string>();
+    organizationsQuery.data?.forEach((org) => map.set(org.id, org.name));
+    return map;
+  }, [organizationsQuery.data]);
 
   const sites = sitesQuery.data?.data ?? [];
   const total = sitesQuery.data?.meta.total ?? 0;
@@ -84,7 +96,9 @@ export function PortfolioPage() {
                   <TableRow key={site.id}>
                     <TableCell className="font-medium">{site.name}</TableCell>
                     <TableCell className="text-muted-foreground">{site.domain}</TableCell>
-                    <TableCell className="text-muted-foreground">{site.organizationId}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {orgMap.get(site.organizationId) ?? site.organizationId}
+                    </TableCell>
                     <TableCell>
                       <Badge variant={STATUS_VARIANT[site.status]}>{site.status}</Badge>
                     </TableCell>

@@ -136,3 +136,24 @@ export class AiJobsQueryDto {
   @Max(200)
   limit?: number;
 }
+
+export class UpdateGlobalProviderDto {
+  @IsOptional()
+  @IsString()
+  apiKey?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  defaultModel?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  enabled?: boolean;
+}
+
+export class TestProviderConnectionDto {
+  @IsOptional()
+  @IsString()
+  apiKey?: string;
+}

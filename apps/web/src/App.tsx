@@ -19,6 +19,7 @@ import { WorkQueuePage } from '@/features/workqueue/workqueue-page';
 import { ContentStudioPage } from '@/features/content-studio/content-studio-page';
 import { ClientPortalPage } from '@/features/client/client-portal-page';
 import { ClientSitePage } from '@/features/client/client-site-page';
+import { SettingsPage } from '@/features/settings/settings-page';
 
 export function App() {
   return (
@@ -44,6 +45,7 @@ export function App() {
           <Route path="/visibility" element={<VisibilityPage />} />
           <Route path="/work" element={<WorkQueuePage />} />
           <Route path="/content-studio" element={<ContentStudioPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
           <Route path="/client" element={<ClientPortalPage />} />
           <Route path="/client/sites/:siteId" element={<ClientSitePage />} />
         </Route>

@@ -220,7 +220,7 @@ export interface WordPressCheckStepResult {
 export interface WordPressIntegrationDto {
   id: string;
   siteId: string;
-  status: 'PENDING' | 'CONNECTED' | 'FAILED';
+  status: 'PENDING' | 'CONNECTED' | 'FAILED' | 'DISCONNECTED';
   wpUrl: string;
   wpVersion: string | null;
   phpVersion: string | null;
@@ -259,7 +259,7 @@ export interface WordPressCheckResultDto {
 
 export interface WordPressSyncResultDto {
   siteId: string;
-  status: 'PENDING' | 'CONNECTED' | 'FAILED';
+  status: 'PENDING' | 'CONNECTED' | 'FAILED' | 'DISCONNECTED';
   created: number;
   updated: number;
   unchanged: number;
@@ -683,9 +683,11 @@ export interface AiWorkflowOverrideDto {
 export interface AiProviderConfigDto {
   siteId: string;
   enabled: boolean;
+  inheritsGlobal: boolean;
   workflowOverrides: Partial<Record<AiWorkflow, AiWorkflowOverrideDto>>;
   /** Provider kinds that have a site-level key override (value never exposed). */
   keyOverrides: AiProviderKind[];
+  effectiveProviders: Array<{ provider: AiProviderKind; configured: boolean; source: string }>;
   updatedAt: string;
 }
 

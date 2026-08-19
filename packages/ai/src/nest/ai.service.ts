@@ -118,16 +118,28 @@ export class AiService {
 
   // ---- site configuration ----
 
-  async getSiteConfig(siteId: string): Promise<AiProviderConfigDto | null> {
+  async getSiteConfig(siteId: string): Promise<AiProviderConfigDto> {
     const row = await this.configs.findOne({ where: { siteId } });
-    if (!row) return null;
+    if (!row) {
+      return {
+        siteId,
+        enabled: true,
+        inheritsGlobal: true,
+        workflowOverrides: {},
+        keyOverrides: [],
+        effectiveProviders: this.resolveEffectiveProviders(),
+        updatedAt: new Date().toISOString(),
+      };
+    }
     return {
       siteId: row.siteId,
       enabled: row.enabled,
+      inheritsGlobal: true,
       workflowOverrides: toSiteOverrides(row.workflowOverrides) as AiProviderConfigDto['workflowOverrides'],
       keyOverrides: Object.keys(row.apiKeyOverrides).filter((kind) =>
         (AI_PROVIDER_KINDS as readonly string[]).includes(kind),
       ) as AiProviderKind[],
+      effectiveProviders: this.resolveEffectiveProviders(),
       updatedAt: row.updatedAt.toISOString(),
     };
   }
@@ -200,7 +212,7 @@ export class AiService {
   private async siteConfigFor(siteId: string | null): Promise<SiteAiConfig | null> {
     if (!siteId) return null;
     const row = await this.configs.findOne({ where: { siteId } });
-    if (!row) return null;
+    if (!row) return { enabled: true, workflowOverrides: {}, apiKeyOverrides: {} };
     if (!row.enabled) {
       throw new ForbiddenException('AI generation is disabled for this site');
     }
@@ -214,6 +226,16 @@ export class AiService {
       }
     }
     return { enabled: row.enabled, workflowOverrides: toSiteOverrides(row.workflowOverrides), apiKeyOverrides };
+  }
+
+  private resolveEffectiveProviders(): Array<{ provider: AiProviderKind; configured: boolean; source: string }> {
+    return (AI_PROVIDER_KINDS as readonly AiProviderKind[]).map((provider) => {
+      const envKey = provider === 'OPENAI' ? process.env.OPENAI_API_KEY
+        : provider === 'ANTHROPIC' ? process.env.ANTHROPIC_API_KEY
+        : process.env.PERPLEXITY_API_KEY;
+      const source = envKey ? 'ENVIRONMENT' : 'NOT_CONFIGURED';
+      return { provider, configured: !!envKey, source };
+    });
   }
 
   private toResultDto(result: AiExecutionResult): AiGenerationResultDto {

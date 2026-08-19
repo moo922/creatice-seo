@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Play } from 'lucide-react';
 import type { OrchestrationJobDto } from '@creative-seo/types';
+import { ORCHESTRATION_WORKFLOWS } from '@creative-seo/types';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
@@ -16,24 +17,6 @@ import { PageHeader } from '@/components/shared/page-header';
 import { SiteSelector } from '@/components/shared/site-selector';
 import { StatusBadge } from '@/components/shared/status-badge';
 import { EmptyState } from '@/components/shared/empty-state';
-
-const WORKFLOWS = [
-  'site-sync',
-  'crawl-audit',
-  'gsc-sync',
-  'keyword-discovery',
-  'keyword-clustering',
-  'content-brief',
-  'content-generation',
-  'content-qa',
-  'internal-linking',
-  'wp-draft-publisher',
-  'post-publish-verification',
-  'monitoring-opportunities',
-  'ai-visibility-observation',
-  'monthly-snapshot',
-  'report-generation',
-];
 
 export function AutomationPage() {
   const { t } = useTranslation();
@@ -167,7 +150,7 @@ function DispatchForm({ submitting, error, onSubmit }: { submitting: boolean; er
           <div className="space-y-1.5">
             <Label htmlFor="wf">{t('automation.selectWorkflow')}</Label>
             <Select id="wf" value={workflow} onChange={(e) => setWorkflow(e.target.value)}>
-              {WORKFLOWS.map((item) => (
+              {ORCHESTRATION_WORKFLOWS.map((item) => (
                 <option key={item} value={item}>
                   {item}
                 </option>

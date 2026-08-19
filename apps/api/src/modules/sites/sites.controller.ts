@@ -10,8 +10,10 @@ import {
   Patch,
   Post,
   Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
+import type { Request } from 'express';
 import type { AuthPrincipal } from '../../common/auth.types';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
@@ -59,6 +61,18 @@ export class SitesController {
   @RequirePermissions('sites:delete')
   async archive(@Param('siteId', ParseUUIDPipe) siteId: string, @CurrentUser() user: AuthPrincipal) {
     await this.sites.archive(siteId, user, {});
+  }
+
+  @Post(':siteId/purge')
+  @UseGuards(SiteAccessGuard)
+  @RequirePermissions('sites:purge')
+  purge(
+    @Param('siteId', ParseUUIDPipe) siteId: string,
+    @Body('confirmDomain') confirmDomain: string,
+    @CurrentUser() user: AuthPrincipal,
+    @Req() req: Request,
+  ) {
+    return this.sites.purge(siteId, confirmDomain, user, { ip: req.ip, userAgent: req.headers['user-agent'] });
   }
 
   @Get(':siteId/members')

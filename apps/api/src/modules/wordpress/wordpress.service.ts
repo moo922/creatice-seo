@@ -362,8 +362,12 @@ export class WordPressService {
     if (!integration) {
       throw new NotFoundException('No WordPress integration configured for this site');
     }
-    await this.posts.delete({ siteId });
-    await this.integrations.remove(integration);
+
+    await this.secrets.delete({ siteId, kind: 'WORDPRESS' });
+
+    integration.status = 'DISCONNECTED';
+    integration.lastError = null;
+    await this.integrations.save(integration);
 
     await this.activities.record({
       action: 'wordpress.disconnect',
@@ -530,7 +534,7 @@ export class WordPressService {
 }
 
 function toStatus(value: string): WordPressIntegrationDto['status'] {
-  return value === 'CONNECTED' || value === 'FAILED' ? value : 'PENDING';
+  return value === 'CONNECTED' || value === 'FAILED' || value === 'DISCONNECTED' ? value : 'PENDING';
 }
 
 function num(value: unknown): number {
