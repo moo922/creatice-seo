@@ -1,7 +1,7 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { GlobalAiProviderCredential } from '@creative-seo/database';
-import { AI_PROVIDER_KINDS, type AiProviderKind } from '@creative-seo/types';
+import { AI_PROVIDER_KINDS } from '@creative-seo/types';
 import { Repository } from 'typeorm';
 import { EncryptionService } from '../../security/encryption.service';
 import { AesEncryptor } from '@creative-seo/ai';
