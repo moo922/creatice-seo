@@ -1,6 +1,6 @@
 import { Global, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { AiJob, AiPrompt, AiProviderConfig } from '@creative-seo/database';
+import { AiJob, AiPrompt, AiProviderCapability, AiProviderConfig } from '@creative-seo/database';
 import { loadAppEnv } from '@creative-seo/config';
 import { globalConfigFromEnv } from '../config';
 import { AesEncryptor } from '../encryption';
@@ -9,6 +9,7 @@ import { AiRouter } from '../router';
 import { AiJobsService } from './ai-jobs.service';
 import { AiService } from './ai.service';
 import { PromptRegistryService } from './prompt-registry.service';
+import { ProviderCapabilityRegistryService } from '../provider/capabilities';
 
 /**
  * Provider-independent AI infrastructure for both the API and worker apps.
@@ -17,7 +18,7 @@ import { PromptRegistryService } from './prompt-registry.service';
  */
 @Global()
 @Module({
-  imports: [TypeOrmModule.forFeature([AiJob, AiPrompt, AiProviderConfig])],
+  imports: [TypeOrmModule.forFeature([AiJob, AiPrompt, AiProviderCapability, AiProviderConfig])],
   providers: [
     {
       provide: AiProviderRegistry,
@@ -44,8 +45,9 @@ import { PromptRegistryService } from './prompt-registry.service';
     AiJobsService,
     PromptRegistryService,
     AiService,
+    ProviderCapabilityRegistryService,
   ],
-  exports: [AiService, AiJobsService, PromptRegistryService, AiRouter, AiProviderRegistry, AesEncryptor],
+  exports: [AiService, AiJobsService, PromptRegistryService, AiRouter, AiProviderRegistry, AesEncryptor, ProviderCapabilityRegistryService],
 })
 export class AiCoreModule {}
 
