@@ -27,6 +27,7 @@ import { SiteKeywordsController } from './keywords.controller';
 import { KeywordsService } from './keywords.service';
 import { GoogleAdsController } from './google-ads.controller';
 import { GoogleAdsService } from './google-ads.service';
+import { GoogleAdsClientService } from './google-ads-client.service';
 
 @Module({
   imports: [
@@ -55,7 +56,7 @@ import { GoogleAdsService } from './google-ads.service';
     AiCoreModule,
   ],
   controllers: [SiteKeywordsController, GoogleAdsController],
-  providers: [KeywordsService, GoogleAdsService],
+  providers: [KeywordsService, GoogleAdsService, GoogleAdsClientService],
   exports: [KeywordsService, GoogleAdsService],
 })
 export class KeywordsModule {}
