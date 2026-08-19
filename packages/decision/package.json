@@ -1,0 +1,29 @@
+{
+  "name": "@creative-seo/decision",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch",
+    "test": "jest --runInBand --config jest.unit.json",
+    "test:unit": "jest --runInBand --config jest.unit.json",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@creative-seo/database": "^0.1.0",
+    "@creative-seo/types": "^0.1.0",
+    "@nestjs/common": "^11.0.0",
+    "@nestjs/core": "^11.0.0",
+    "@nestjs/typeorm": "^11.0.0",
+    "typeorm": "^0.3.20"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.2.0",
+    "@types/jest": "^29.5.0",
+    "rimraf": "^6.0.0"
+  }
+}

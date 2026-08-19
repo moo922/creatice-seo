@@ -53,6 +53,7 @@ import { AddGc06PromptSetsCompetitors00521720000000052 } from './0052-add-gc06-p
 import { AddGc06ObservationsProvenance00531720000000053 } from './0053-add-gc06-observations-provenance';
 import { AddGc06ProviderBudget00541720000000054 } from './0054-add-gc06-provider-budget';
 import { AddGc06BaselinesSnapshots00551720000000055 } from './0055-add-gc06-baselines-snapshots';
+import { AddGc07DecisionEngine00561720000000056 } from './0056-add-gc07-decision-engine';
 
 export const migrations = [
   CreateIdentity00011720000000001,
@@ -110,6 +111,7 @@ export const migrations = [
   AddGc06ObservationsProvenance00531720000000053,
   AddGc06ProviderBudget00541720000000054,
   AddGc06BaselinesSnapshots00551720000000055,
+  AddGc07DecisionEngine00561720000000056,
 ];
 
 export {
@@ -168,4 +170,5 @@ export {
   AddGc06ObservationsProvenance00531720000000053,
   AddGc06ProviderBudget00541720000000054,
   AddGc06BaselinesSnapshots00551720000000055,
+  AddGc07DecisionEngine00561720000000056,
 };

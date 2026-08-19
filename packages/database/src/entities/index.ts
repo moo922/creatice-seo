@@ -77,6 +77,11 @@ import { AiProviderCapability } from './ai-provider-capability';
 import { AiVisibilityBudget } from './ai-visibility-budget';
 import { AiVisibilityBaseline } from './ai-visibility-baseline';
 import { AiVisibilitySnapshot } from './ai-visibility-snapshot';
+import { DecisionPriorityWeight } from './decision-priority-weight';
+import { DecisionRecommendation } from './decision-recommendation';
+import { DecisionWorkPackage } from './decision-work-package';
+import { DecisionRecommendationDependency } from './decision-recommendation-dependency';
+import { DecisionRecommendationOutcome } from './decision-recommendation-outcome';
 
 export const entities = [
   User,
@@ -246,4 +251,9 @@ export {
   AiVisibilityBudget,
   AiVisibilityBaseline,
   AiVisibilitySnapshot,
+  DecisionPriorityWeight,
+  DecisionRecommendation,
+  DecisionWorkPackage,
+  DecisionRecommendationDependency,
+  DecisionRecommendationOutcome,
 };
