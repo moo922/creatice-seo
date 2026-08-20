@@ -2722,6 +2722,13 @@ export interface SiteRecentActivityDto {
   createdAt: string;
 }
 
+export interface SiteReadinessItemDto {
+  label: string;
+  status: 'ready' | 'needs_setup' | 'optional' | 'not_available';
+  detail: string | null;
+  deepLink: string | null;
+}
+
 export interface SiteDashboardDto {
   site: {
     id: string;
@@ -2739,6 +2746,13 @@ export interface SiteDashboardDto {
     lastSync: string | null;
     lastCrawl: string | null;
   };
+  nextBestAction: {
+    message: string;
+    detail: string;
+    actionLabel: string;
+    actionUrl: string;
+  } | null;
+  siteReadiness: SiteReadinessItemDto[];
   main: {
     seoHealth: number | null;
     aeoReadiness: number | null;
@@ -2784,6 +2798,8 @@ export interface ActivationStepDto {
   key: ActivationStepKey;
   /** Machine label; the UI localizes it. */
   label: string;
+  /** Group key for UI grouping (e.g., 'setup', 'connect', 'audit'). */
+  group: string;
   status: ActivationStepStatus;
   /** Human-readable diagnostics for FAILED / WARNING steps. */
   message: string | null;
@@ -2817,6 +2833,16 @@ export interface ActivationSummaryDto {
   initialReportExists: boolean;
 }
 
+export interface ActivationStepGroupDto {
+  key: string;
+  label: string;
+  description: string;
+  steps: ActivationStepDto[];
+  completedCount: number;
+  totalCount: number;
+  status: 'completed' | 'in_progress' | 'pending';
+}
+
 export interface SiteActivationDto {
   siteId: string;
   siteName: string;
@@ -2826,6 +2852,7 @@ export interface SiteActivationDto {
   totalSteps: number;
   progress: number;
   steps: ActivationStepDto[];
+  stepGroups: ActivationStepGroupDto[];
   summary: ActivationSummaryDto;
 }
 

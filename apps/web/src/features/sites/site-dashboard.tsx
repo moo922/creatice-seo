@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
-import { Play, RefreshCw } from 'lucide-react';
+import { AlertTriangle, ArrowRight, CheckCircle2, Play, Zap } from 'lucide-react';
 import type { SiteDashboardDto } from '@creative-seo/types';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
@@ -38,91 +38,93 @@ export function SiteDashboard({ siteId }: { siteId: string }) {
     return <Card><CardContent className="py-10"><EmptyState message={t('common.error')} /></CardContent></Card>;
   }
 
-  const primaryKeyword = d.main.topKeywords[0]?.keyword;
-
-  const quickActions: Array<{ label: string; url: string; payload?: unknown; disabled?: boolean }> = [
-    { label: 'Run Crawl', url: `/sites/${siteId}/links/crawls`, payload: {} },
-    { label: 'Run Full Audit', url: `/sites/${siteId}/audit`, payload: {} },
-    { label: 'Create Baseline', url: `/sites/${siteId}/baseline`, payload: {} },
-    { label: 'Sync Search Console', url: `/sites/${siteId}/gsc/sync`, payload: {} },
-    { label: 'Discover Keywords', url: `/sites/${siteId}/keywords/pipeline`, payload: { discoverFromGsc: true } },
-    { label: 'Generate Content', url: `/sites/${siteId}/content/pipeline`, payload: { primaryKeyword: primaryKeyword ?? '' }, disabled: !primaryKeyword },
-    { label: 'Create Report', url: `/sites/${siteId}/reporting/reports`, payload: { type: 'MONTHLY' } },
-  ];
-
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-xl font-semibold">{d.site.name}</h2>
-            <StatusBadge status={d.site.status} />
-          </div>
-          <p className="text-sm text-muted-foreground">
-            {d.site.domain} · {d.header.market ?? '—'} · {d.header.language} · Integration: <StatusBadge status={d.header.integrationHealth} />
-            {d.header.lastSync ? <> · Last sync {new Date(d.header.lastSync).toLocaleDateString()}</> : null}
-          </p>
-        </div>
-        <Button size="sm" variant="outline" onClick={() => void dashboardQuery.refetch()} disabled={dashboardQuery.isFetching}>
-          <RefreshCw className="size-4" /> {t('common.refresh')}
-        </Button>
-      </div>
-
-      {/* Empty states */}
-      {d.emptyStates.needsAi ? (
-        <InfoCard message="Configure at least one AI provider." detail="Add an API key in Settings → AI provider routing." action={{ label: 'Configure AI', to: `/sites/${siteId}?tab=settings` }} />
-      ) : null}
-      {d.emptyStates.needsCrawl ? (
-        <InfoCard message="Run the initial site crawl." detail="The site has no crawled pages yet. Use the crawler tab or Run Crawl." />
-      ) : null}
-
-      {canManage ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-wrap gap-2">
-            {quickActions.map((action) => (
-              <Button key={action.label} size="sm" variant="outline" disabled={action.disabled || run.isPending} onClick={() => run.mutate({ url: action.url, payload: action.payload })}>
-                <Play className="size-3.5" />
-                {action.label}
-              </Button>
-            ))}
+      {/* Next Best Action */}
+      {d.nextBestAction ? (
+        <Card className="border-primary/20 bg-primary/5">
+          <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
+            <div className="flex items-start gap-3">
+              <Zap className="mt-0.5 size-5 text-primary" />
+              <div>
+                <p className="font-medium">{d.nextBestAction.message}</p>
+                <p className="text-sm text-muted-foreground">{d.nextBestAction.detail}</p>
+              </div>
+            </div>
+            <Button asChild size="sm">
+              <Link to={d.nextBestAction.actionUrl}>
+                {d.nextBestAction.actionLabel} <ArrowRight className="ml-1 size-3.5" />
+              </Link>
+            </Button>
           </CardContent>
         </Card>
       ) : null}
 
+      {/* Site readiness */}
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('dashboard.siteReadiness')}</CardTitle>
+          <CardDescription>{t('dashboard.siteReadinessDescription')}</CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          <ul className="divide-y">
+            {d.siteReadiness.map((item) => (
+              <li key={item.label} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
+                <div className="flex items-center gap-2">
+                  {item.status === 'ready' ? (
+                    <CheckCircle2 className="size-4 text-emerald-600" />
+                  ) : item.status === 'optional' ? (
+                    <span className="size-4 rounded-full border border-muted-foreground/30" />
+                  ) : (
+                    <AlertTriangle className="size-4 text-amber-500" />
+                  )}
+                  <span className="font-medium">{item.label}</span>
+                  {item.detail ? <span className="text-muted-foreground">— {item.detail}</span> : null}
+                </div>
+                {item.deepLink ? (
+                  <Link to={item.deepLink} className="text-xs text-muted-foreground underline-offset-2 hover:underline">
+                    {item.status === 'ready' ? t('dashboard.view') : t('dashboard.setup')}
+                  </Link>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </CardContent>
+      </Card>
+
       {/* Main metrics */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <KpiCard label="SEO Health" value={d.main.seoHealth ?? '—'} />
-        <KpiCard label="AEO Readiness" value={d.main.aeoReadiness ?? '—'} />
-        <KpiCard label="GEO Readiness" value={d.main.geoReadiness ?? '—'} />
-        <KpiCard label="Open Issues" value={d.issues.open} />
-        <KpiCard label="Critical Issues" value={d.issues.critical} />
-        <KpiCard label="Recommendations" value={d.issues.recommendations} />
-        <KpiCard label="Open Tasks" value={d.issues.openTasks} />
-        <KpiCard label="Content Published" value={d.content.published} />
+        <KpiCard label={t('dashboard.seoHealth')} value={d.main.seoHealth ?? '—'} />
+        <KpiCard label={t('dashboard.aeoReadiness')} value={d.main.aeoReadiness !== null ? d.main.aeoReadiness : t('dashboard.notMeasured')} />
+        <KpiCard label={t('dashboard.geoReadiness')} value={d.main.geoReadiness !== null ? d.main.geoReadiness : t('dashboard.notMeasured')} />
+        <KpiCard label={t('dashboard.openIssues')} value={d.issues.open} />
+        <KpiCard label={t('dashboard.criticalIssues')} value={d.issues.critical} />
+        <KpiCard label={t('dashboard.recommendations')} value={d.issues.recommendations} />
+        <KpiCard label={t('dashboard.openTasks')} value={d.issues.openTasks} />
+        <KpiCard label={t('dashboard.contentPublished')} value={d.content.published} />
       </div>
 
       {/* Performance */}
       <Card>
         <CardHeader>
-          <CardTitle>Performance</CardTitle>
-          <CardDescription>Current 28 days vs previous 28 days vs baseline</CardDescription>
+          <CardTitle>{t('dashboard.performance')}</CardTitle>
+          <CardDescription>{t('dashboard.performanceDescription')}</CardDescription>
         </CardHeader>
         <CardContent>
           {!d.performance.hasGsc ? (
-            <EmptyState message="Connect Google Search Console to begin performance tracking." />
+            <EmptyState
+              message={t('dashboard.connectGscForPerformance')}
+            />
           ) : (
             <div className="grid gap-3 sm:grid-cols-3">
-              <PerfBlock label="Current (28d)" clicks={d.performance.current.clicks} impressions={d.performance.current.impressions} ctr={d.performance.current.ctr} position={d.performance.current.avgPosition} />
-              <PerfBlock label="Previous (28d)" clicks={d.performance.previous.clicks} impressions={d.performance.previous.impressions} ctr={d.performance.previous.ctr} position={d.performance.previous.avgPosition} />
-              <PerfBlock label="Baseline" clicks={d.performance.baseline?.clicks ?? null} impressions={d.performance.baseline?.impressions ?? null} ctr={d.performance.baseline?.ctr ?? null} position={d.performance.baseline?.avgPosition ?? null} />
+              <PerfBlock label={t('dashboard.current28d')} clicks={d.performance.current.clicks} impressions={d.performance.current.impressions} ctr={d.performance.current.ctr} position={d.performance.current.avgPosition} />
+              <PerfBlock label={t('dashboard.previous28d')} clicks={d.performance.previous.clicks} impressions={d.performance.previous.impressions} ctr={d.performance.previous.ctr} position={d.performance.previous.avgPosition} />
+              <PerfBlock label={t('dashboard.baseline')} clicks={d.performance.baseline?.clicks ?? null} impressions={d.performance.baseline?.impressions ?? null} ctr={d.performance.baseline?.ctr ?? null} position={d.performance.baseline?.avgPosition ?? null} />
             </div>
           )}
           {d.performance.currentVsPrevious.clicksPct !== null ? (
             <p className="mt-3 text-sm text-muted-foreground">
-              Clicks {d.performance.currentVsPrevious.clicksPct > 0 ? '+' : ''}{d.performance.currentVsPrevious.clicksPct}% vs previous period.
+              {t('dashboard.clicksChange', { pct: d.performance.currentVsPrevious.clicksPct })}
             </p>
           ) : null}
         </CardContent>
@@ -131,15 +133,15 @@ export function SiteDashboard({ siteId }: { siteId: string }) {
       {/* Baseline progress */}
       <Card>
         <CardHeader>
-          <CardTitle>Baseline Progress</CardTitle>
+          <CardTitle>{t('dashboard.baselineProgress')}</CardTitle>
         </CardHeader>
         <CardContent>
           {!d.baselineProgress.exists ? (
-            <div>
-              <EmptyState message="Initial baseline has not been created." />
+            <div className="space-y-3">
+              <EmptyState message={t('dashboard.noBaseline')} />
               {canManage ? (
                 <Button size="sm" variant="outline" onClick={() => run.mutate({ url: `/sites/${siteId}/baseline`, payload: {} })}>
-                  <Play className="size-3.5" /> Run Initial Audit
+                  <Play className="size-3.5" /> {t('dashboard.createBaseline')}
                 </Button>
               ) : null}
             </div>
@@ -148,12 +150,18 @@ export function SiteDashboard({ siteId }: { siteId: string }) {
               {d.baselineProgress.metrics.map((metric) => (
                 <div key={metric.key} className="rounded-md border p-3">
                   <div className="text-xs text-muted-foreground">{metric.label}</div>
-                  <div className="text-lg font-semibold">
-                    {metric.initial === null ? '—' : metric.initial} → {metric.current === null ? '—' : metric.current}
-                  </div>
-                  <div className={metric.change !== null && metric.change > 0 ? 'text-emerald-600' : metric.change !== null && metric.change < 0 ? 'text-destructive' : 'text-muted-foreground'}>
-                    {metric.change === null ? '—' : `${metric.change > 0 ? '+' : ''}${metric.change}`}
-                  </div>
+                  {metric.status === 'not_measured' ? (
+                    <div className="text-lg font-semibold text-muted-foreground">{t('dashboard.notMeasured')}</div>
+                  ) : (
+                    <>
+                      <div className="text-lg font-semibold">
+                        {metric.initial ?? '—'} → {metric.current ?? '—'}
+                      </div>
+                      <div className={metric.change !== null && metric.change > 0 ? 'text-emerald-600' : metric.change !== null && metric.change < 0 ? 'text-destructive' : 'text-muted-foreground'}>
+                        {metric.change === null ? '—' : `${metric.change > 0 ? '+' : ''}${metric.change}`}
+                      </div>
+                    </>
+                  )}
                 </div>
               ))}
             </div>
@@ -164,7 +172,7 @@ export function SiteDashboard({ siteId }: { siteId: string }) {
       {/* Issue summary */}
       <Card>
         <CardHeader>
-          <CardTitle>Issue Summary</CardTitle>
+          <CardTitle>{t('dashboard.issueSummary')}</CardTitle>
         </CardHeader>
         <CardContent>
           <IssueSummaryTable summary={d.issueSummary} siteId={siteId} />
@@ -174,11 +182,11 @@ export function SiteDashboard({ siteId }: { siteId: string }) {
       {/* Recommendations */}
       <Card>
         <CardHeader>
-          <CardTitle>Recommendations</CardTitle>
+          <CardTitle>{t('dashboard.recommendations')}</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           {d.recommendations.length === 0 ? (
-            <EmptyState message="No recommendations yet." />
+            <EmptyState message={t('dashboard.noRecommendations')} />
           ) : (
             <ul className="divide-y">
               {d.recommendations.map((rec) => (
@@ -186,7 +194,7 @@ export function SiteDashboard({ siteId }: { siteId: string }) {
                   <div>
                     <div className="font-medium">{rec.title}</div>
                     <div className="text-xs text-muted-foreground">
-                      Impact {rec.impact} · Confidence {rec.confidence} · Effort {rec.effort}
+                      {t('dashboard.impactConfidenceEffort', { impact: rec.impact, confidence: rec.confidence, effort: rec.effort })}
                     </div>
                   </div>
                   <StatusBadge status={rec.priority} />
@@ -200,24 +208,28 @@ export function SiteDashboard({ siteId }: { siteId: string }) {
       {/* Content pipeline */}
       <Card>
         <CardHeader>
-          <CardTitle>Content Pipeline</CardTitle>
+          <CardTitle>{t('dashboard.contentPipeline')}</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          <ul className="divide-y">
-            {d.contentPipeline.map((stage) => (
-              <li key={stage.stage} className="flex items-center justify-between px-4 py-2 text-sm">
-                <span className="font-medium">{stage.stage}</span>
-                <span className="text-muted-foreground">{stage.count}{stage.latestAt ? ` · ${new Date(stage.latestAt).toLocaleDateString()}` : ''}</span>
-              </li>
-            ))}
-          </ul>
+          {d.contentPipeline.length === 0 ? (
+            <EmptyState message={t('dashboard.noContent')} />
+          ) : (
+            <ul className="divide-y">
+              {d.contentPipeline.map((stage) => (
+                <li key={stage.stage} className="flex items-center justify-between px-4 py-2 text-sm">
+                  <span className="font-medium">{stage.stage}</span>
+                  <span className="text-muted-foreground">{stage.count}{stage.latestAt ? ` · ${new Date(stage.latestAt).toLocaleDateString()}` : ''}</span>
+                </li>
+              ))}
+            </ul>
+          )}
         </CardContent>
       </Card>
 
       {/* Integration health */}
       <Card>
         <CardHeader>
-          <CardTitle>Integration Health</CardTitle>
+          <CardTitle>{t('dashboard.integrationHealth')}</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <ul className="divide-y">
@@ -228,7 +240,7 @@ export function SiteDashboard({ siteId }: { siteId: string }) {
                   {item.detail ?? ''}
                   <StatusBadge status={item.status.replace('_', ' ')} />
                   {item.deepLink ? (
-                    <Link to={item.deepLink} className="text-xs underline-offset-2 hover:underline">open</Link>
+                    <Link to={item.deepLink} className="text-xs underline-offset-2 hover:underline">{t('dashboard.open')}</Link>
                   ) : null}
                 </span>
               </li>
@@ -240,11 +252,11 @@ export function SiteDashboard({ siteId }: { siteId: string }) {
       {/* Recent activity */}
       <Card>
         <CardHeader>
-          <CardTitle>Recent Activity</CardTitle>
+          <CardTitle>{t('dashboard.recentActivity')}</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           {d.recentActivity.length === 0 ? (
-            <EmptyState message="No activity yet." />
+            <EmptyState message={t('dashboard.noActivity')} />
           ) : (
             <ul className="divide-y">
               {d.recentActivity.map((activity, index) => (
@@ -261,54 +273,38 @@ export function SiteDashboard({ siteId }: { siteId: string }) {
   );
 }
 
-function InfoCard({ message, detail, action }: { message: string; detail?: string; action?: { label: string; to: string } }) {
-  return (
-    <Card>
-      <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
-        <div>
-          <p className="font-medium">{message}</p>
-          {detail ? <p className="text-sm text-muted-foreground">{detail}</p> : null}
-        </div>
-        {action ? (
-          <Button asChild size="sm" variant="outline">
-            <Link to={action.to}>{action.label}</Link>
-          </Button>
-        ) : null}
-      </CardContent>
-    </Card>
-  );
-}
-
 function PerfBlock({ label, clicks, impressions, ctr, position }: { label: string; clicks: number | null; impressions: number | null; ctr: number | null; position: number | null }) {
+  const { t } = useTranslation();
   return (
     <div className="rounded-md border p-3">
       <div className="text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
       <div className="mt-2 space-y-1 text-sm">
-        <div>Clicks: <strong>{clicks !== null ? clicks : '—'}</strong></div>
-        <div>Impressions: <strong>{impressions !== null ? impressions : '—'}</strong></div>
-        <div>CTR: <strong>{ctr !== null ? ctr.toFixed(3) : '—'}</strong></div>
-        <div>Avg position: <strong>{position ?? '—'}</strong></div>
+        <div>{t('dashboard.clicks')}: <strong>{clicks !== null ? clicks : '—'}</strong></div>
+        <div>{t('dashboard.impressions')}: <strong>{impressions !== null ? impressions : '—'}</strong></div>
+        <div>{t('dashboard.ctr')}: <strong>{ctr !== null ? ctr.toFixed(3) : '—'}</strong></div>
+        <div>{t('dashboard.avgPosition')}: <strong>{position ?? '—'}</strong></div>
       </div>
     </div>
   );
 }
 
 function IssueSummaryTable({ summary, siteId }: { summary: SiteDashboardDto['issueSummary']; siteId: string }) {
+  const { t } = useTranslation();
   const rows = [
-    { key: 'critical', label: 'Critical' },
-    { key: 'high', label: 'High' },
-    { key: 'medium', label: 'Medium' },
-    { key: 'low', label: 'Low' },
+    { key: 'critical', label: t('issues.severity.critical') },
+    { key: 'high', label: t('issues.severity.high') },
+    { key: 'medium', label: t('issues.severity.medium') },
+    { key: 'low', label: t('issues.severity.low') },
   ] as const;
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
           <tr className="text-left text-xs uppercase text-muted-foreground">
-            <th className="py-2">Severity</th>
-            <th>Open</th>
-            <th>In Progress</th>
-            <th>Resolved This Month</th>
+            <th className="py-2">{t('dashboard.severity')}</th>
+            <th>{t('dashboard.open')}</th>
+            <th>{t('dashboard.inProgress')}</th>
+            <th>{t('dashboard.resolvedThisMonth')}</th>
           </tr>
         </thead>
         <tbody>
@@ -325,5 +321,3 @@ function IssueSummaryTable({ summary, siteId }: { summary: SiteDashboardDto['iss
     </div>
   );
 }
-
-

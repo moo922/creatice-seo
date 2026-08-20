@@ -31,6 +31,7 @@ import { WordPressService } from '../wordpress/wordpress.service';
 interface ActivationStepDef {
   key: ActivationStepKey;
   label: string;
+  group: string;
   expensive?: boolean;
   requiresManualAction?: boolean;
 }
@@ -63,29 +64,41 @@ interface SiteData {
 }
 
 const STEPS: ActivationStepDef[] = [
-  { key: 'add-site', label: 'Add Site' },
-  { key: 'verify-domain', label: 'Verify Domain' },
-  { key: 'connect-wordpress', label: 'Connect WordPress' },
-  { key: 'verify-connector', label: 'Verify Search Visibility Connector' },
-  { key: 'verify-rank-math', label: 'Verify Rank Math' },
-  { key: 'import-wordpress-pages', label: 'Import WordPress Pages' },
-  { key: 'crawl-website', label: 'Crawl Website' },
-  { key: 'run-technical-audit', label: 'Run Technical Audit' },
-  { key: 'run-seo-audit', label: 'Run SEO Audit' },
-  { key: 'run-aeo-audit', label: 'Run AEO Audit' },
-  { key: 'run-geo-readiness', label: 'Run GEO Readiness Audit' },
-  { key: 'create-baseline', label: 'Create Immutable Baseline', expensive: true },
-  { key: 'connect-gsc', label: 'Connect Search Console', requiresManualAction: true },
-  { key: 'import-historical-performance', label: 'Import Historical Search Performance' },
-  { key: 'import-existing-queries', label: 'Import Existing Queries' },
-  { key: 'build-url-inventory', label: 'Build Existing URL Inventory' },
-  { key: 'build-keyword-url-mapping', label: 'Build Initial Keyword/URL Mapping' },
-  { key: 'detect-cannibalization', label: 'Detect Cannibalization' },
-  { key: 'detect-issues', label: 'Detect Issues' },
-  { key: 'generate-recommendations', label: 'Generate Recommendations' },
-  { key: 'populate-dashboard', label: 'Populate Dashboard' },
-  { key: 'generate-initial-report', label: 'Generate Initial Client Audit Report', expensive: true },
+  { key: 'add-site', label: 'Add Site', group: 'setup' },
+  { key: 'verify-domain', label: 'Verify Domain', group: 'setup' },
+  { key: 'connect-wordpress', label: 'Connect WordPress', group: 'connect' },
+  { key: 'verify-connector', label: 'Verify Search Visibility Connector', group: 'connect' },
+  { key: 'verify-rank-math', label: 'Verify Rank Math', group: 'connect' },
+  { key: 'import-wordpress-pages', label: 'Import WordPress Pages', group: 'connect' },
+  { key: 'crawl-website', label: 'Crawl Website', group: 'crawl' },
+  { key: 'run-technical-audit', label: 'Run Technical Audit', group: 'audit' },
+  { key: 'run-seo-audit', label: 'Run SEO Audit', group: 'audit' },
+  { key: 'run-aeo-audit', label: 'Run AEO Audit', group: 'audit' },
+  { key: 'run-geo-readiness', label: 'Run GEO Readiness Audit', group: 'audit' },
+  { key: 'create-baseline', label: 'Create Immutable Baseline', expensive: true, group: 'baseline' },
+  { key: 'connect-gsc', label: 'Connect Search Console', requiresManualAction: true, group: 'search' },
+  { key: 'import-historical-performance', label: 'Import Historical Search Performance', group: 'search' },
+  { key: 'import-existing-queries', label: 'Import Existing Queries', group: 'search' },
+  { key: 'build-url-inventory', label: 'Build Existing URL Inventory', group: 'keywords' },
+  { key: 'build-keyword-url-mapping', label: 'Build Initial Keyword/URL Mapping', group: 'keywords' },
+  { key: 'detect-cannibalization', label: 'Detect Cannibalization', group: 'keywords' },
+  { key: 'detect-issues', label: 'Detect Issues', group: 'analyze' },
+  { key: 'generate-recommendations', label: 'Generate Recommendations', group: 'analyze' },
+  { key: 'populate-dashboard', label: 'Populate Dashboard', group: 'finalize' },
+  { key: 'generate-initial-report', label: 'Generate Initial Client Audit Report', expensive: true, group: 'finalize' },
 ];
+
+const STEP_GROUPS: Record<string, { label: string; description: string }> = {
+  setup: { label: 'Site Setup', description: 'Register your website' },
+  connect: { label: 'Website Connection', description: 'Connect WordPress and verify the plugin' },
+  crawl: { label: 'Crawl', description: 'Crawl your website to discover all pages' },
+  audit: { label: 'Audits', description: 'Run technical, SEO, AEO and GEO audits' },
+  baseline: { label: 'Baseline', description: 'Capture current metrics for comparison' },
+  search: { label: 'Search Console', description: 'Connect Google Search Console for real search data' },
+  keywords: { label: 'Keywords & URLs', description: 'Build keyword and URL inventory' },
+  analyze: { label: 'Analysis', description: 'Detect issues and generate recommendations' },
+  finalize: { label: 'Finalize', description: 'Populate dashboard and generate report' },
+};
 
 const STALE_RUNNING_MS = 10 * 60 * 1000;
 
@@ -137,6 +150,8 @@ export class ActivationService {
     const completed = steps.filter((step) => step.status === 'COMPLETED').length;
     const ready = completed === STEPS.length;
 
+    const stepGroups = this.buildStepGroups(steps);
+
     return {
       siteId,
       siteName: data.site.name,
@@ -146,6 +161,7 @@ export class ActivationService {
       totalSteps: STEPS.length,
       progress: Math.round((completed / STEPS.length) * 100),
       steps,
+      stepGroups,
       summary: this.buildSummary(data),
     };
   }
@@ -226,13 +242,18 @@ export class ActivationService {
 
       case 'verify-domain': {
         const probe = await probeOrigin(data.site.domain);
-        return probe.reachable
-          ? {
-              status: 'COMPLETED',
-              message: probe.message,
-              detail: { status: probe.status, robotsFound: probe.robotsFound },
-            }
-          : { status: 'FAILED', message: probe.message, detail: { status: probe.status, robotsFound: probe.robotsFound } };
+        if (probe.reachable) {
+          return {
+            status: 'COMPLETED',
+            message: probe.message,
+            detail: { status: probe.status, robotsFound: probe.robotsFound },
+          };
+        }
+        return {
+          status: 'COMPLETED',
+          message: `${probe.message} (non-blocking — domain verification is optional)`,
+          detail: { status: probe.status, robotsFound: probe.robotsFound, optional: true },
+        };
       }
 
       case 'connect-wordpress': {
@@ -844,6 +865,7 @@ export class ActivationService {
     return {
       key: def.key,
       label: def.label,
+      group: def.group,
       status,
       message,
       detail: row?.detail ?? null,
@@ -856,7 +878,36 @@ export class ActivationService {
       updatedAt: row?.updatedAt ? row.updatedAt.toISOString() : null,
     };
   }
+
+  private buildStepGroups(steps: ActivationStepDto[]): Array<{ key: string; label: string; description: string; steps: ActivationStepDto[]; completedCount: number; totalCount: number; status: 'completed' | 'in_progress' | 'pending' }> {
+    const groups = new Map<string, ActivationStepDto[]>();
+    for (const step of steps) {
+      const arr = groups.get(step.group) ?? [];
+      arr.push(step);
+      groups.set(step.group, arr);
+    }
+    return STEP_GROUPS_ORDER.map((groupKey) => {
+      const meta = STEP_GROUPS[groupKey] ?? { label: groupKey, description: '' };
+      const groupSteps = groups.get(groupKey) ?? [];
+      const completedCount = groupSteps.filter((s) => s.status === 'COMPLETED').length;
+      const totalCount = groupSteps.length;
+      const hasRunning = groupSteps.some((s) => s.status === 'RUNNING');
+      const hasFailed = groupSteps.some((s) => s.status === 'FAILED' || s.status === 'WARNING');
+      const status = completedCount === totalCount ? 'completed' as const : hasRunning ? 'in_progress' as const : hasFailed ? 'in_progress' as const : 'pending' as const;
+      return {
+        key: groupKey,
+        label: meta.label,
+        description: meta.description,
+        steps: groupSteps,
+        completedCount,
+        totalCount,
+        status,
+      };
+    });
+  }
 }
+
+const STEP_GROUPS_ORDER = ['setup', 'connect', 'crawl', 'audit', 'baseline', 'search', 'keywords', 'analyze', 'finalize'];
 
 function cannibalizationCount(data: SiteData): number {
   const clusterCases = data.clusters.reduce((total, cluster) => total + (cluster.cannibalization?.length ?? 0), 0);

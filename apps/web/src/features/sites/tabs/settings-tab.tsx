@@ -441,6 +441,14 @@ function WordPressConnection({ siteId }: { siteId: string }) {
             <Field label="Application Password">
               <Input type="password" value={connectPassword} onChange={(e) => setConnectPassword(e.target.value)} required />
             </Field>
+            <div className="rounded-md bg-muted/50 p-3 text-xs text-muted-foreground space-y-1">
+              <p className="font-medium text-foreground">{t('settings.howToGetAppPassword')}</p>
+              <ol className="list-decimal list-inside space-y-0.5">
+                <li>{t('settings.wpAppPasswordStep1')}</li>
+                <li>{t('settings.wpAppPasswordStep2')}</li>
+                <li>{t('settings.wpAppPasswordStep3')}</li>
+              </ol>
+            </div>
             <div className="flex gap-2">
               <Button type="submit" disabled={connectMutation.isPending}>
                 {connectMutation.isPending ? <Spinner /> : t('settings.connect')}
@@ -592,6 +600,14 @@ function GscConnection({ siteId }: { siteId: string }) {
         ) : (
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">{t('settings.gscNotConnected')}</p>
+            <div className="rounded-md bg-muted/50 p-3 text-xs text-muted-foreground space-y-1">
+              <p className="font-medium text-foreground">{t('settings.gscWhatItProvides')}</p>
+              <ul className="list-disc list-inside space-y-0.5">
+                <li>{t('settings.gscBenefit1')}</li>
+                <li>{t('settings.gscBenefit2')}</li>
+                <li>{t('settings.gscBenefit3')}</li>
+              </ul>
+            </div>
             {canManage && (
               <Button onClick={handleConnect} disabled={authorizeMutation.isPending}>
                 <ExternalLink className="mr-1 size-4" />

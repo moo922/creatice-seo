@@ -10,6 +10,7 @@ import {
   CrawledPage,
   GscProperty,
   GscSiteDailyMetric,
+  GoogleAdsIntegration,
   Issue,
   Keyword,
   KeywordMetric,
@@ -27,7 +28,7 @@ import { PortfolioDashboardController, SiteDashboardController } from './dashboa
 import { DashboardService } from './dashboard.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Site, SiteMembership, Issue, Recommendation, OperationsTask, AiJob, WorkflowJob, ContentPackage, ContentPublication, BaselineSnapshot, CrawledPage, LinkAnalysis, GscProperty, GscSiteDailyMetric, Keyword, KeywordMetric, WordPressIntegration, Report, ActivityLog, AiProviderConfig, Organization])],
+  imports: [TypeOrmModule.forFeature([Site, SiteMembership, Issue, Recommendation, OperationsTask, AiJob, WorkflowJob, ContentPackage, ContentPublication, BaselineSnapshot, CrawledPage, LinkAnalysis, GscProperty, GscSiteDailyMetric, GoogleAdsIntegration, Keyword, KeywordMetric, WordPressIntegration, Report, ActivityLog, AiProviderConfig, Organization])],
   controllers: [PortfolioDashboardController, SiteDashboardController],
   providers: [DashboardService],
 })

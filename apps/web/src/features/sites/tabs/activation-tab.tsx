@@ -9,7 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
 import { KpiCard } from '@/components/shared/kpi-card';
-import { AlertTriangle, CheckCircle2, CircleDashed, ExternalLink, Play, RefreshCw, Rocket } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, ChevronDown, ChevronRight, CircleDashed, ExternalLink, Play, RefreshCw, Rocket } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 type StepStatus = ActivationStepDto['status'];
 
@@ -28,6 +29,7 @@ export function ActivationTab({ siteId }: { siteId: string }) {
   const queryClient = useQueryClient();
   const { hasPermission } = useAuth();
   const [actionError, setActionError] = useState<string | null>(null);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
   const { data, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ['activation', siteId],
@@ -52,6 +54,18 @@ export function ActivationTab({ siteId }: { siteId: string }) {
 
   const canManage = hasPermission('operations:manage');
   const canReport = hasPermission('reporting:manage');
+
+  const toggleGroup = (key: string) => {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  };
 
   if (isLoading) {
     return (
@@ -152,31 +166,61 @@ export function ActivationTab({ siteId }: { siteId: string }) {
         </Card>
       ) : null}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('activation.stages')}</CardTitle>
-          {running ? (
-            <CardDescription className="flex items-center gap-2">
-              <Spinner />
-              {t('activation.runningHint', { step: running.label })}
-            </CardDescription>
-          ) : null}
-        </CardHeader>
-        <CardContent>
-          <ol className="space-y-2">
-            {data.steps.map((step, index) => (
-              <StepRow
-                key={step.key}
-                index={index}
-                step={step}
-                canManage={canManage}
-                running={runStep.isPending}
-                onRun={() => runStep.mutate(step.key)}
-              />
-            ))}
-          </ol>
-        </CardContent>
-      </Card>
+      <div className="space-y-3">
+        {running ? (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Spinner />
+            {t('activation.runningHint', { step: running.label })}
+          </div>
+        ) : null}
+
+        {data.stepGroups.map((group) => {
+          const isExpanded = expandedGroups.has(group.key) || group.status === 'in_progress';
+          const GroupIcon = group.status === 'completed' ? CheckCircle2 : group.status === 'in_progress' ? Spinner : CircleDashed;
+
+          return (
+            <Card key={group.key}>
+              <button
+                type="button"
+                className="flex w-full items-center justify-between gap-3 p-4 text-left"
+                onClick={() => toggleGroup(group.key)}
+              >
+                <div className="flex items-center gap-3">
+                  <GroupIcon className={cn(
+                    'size-5 shrink-0',
+                    group.status === 'completed' ? 'text-emerald-600' : group.status === 'in_progress' ? 'text-primary' : 'text-muted-foreground',
+                  )} />
+                  <div>
+                    <div className="font-medium">{group.label}</div>
+                    <div className="text-xs text-muted-foreground">{group.description}</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-muted-foreground">
+                    {group.completedCount}/{group.totalCount}
+                  </span>
+                  {isExpanded ? <ChevronDown className="size-4 text-muted-foreground" /> : <ChevronRight className="size-4 text-muted-foreground" />}
+                </div>
+              </button>
+
+              {isExpanded ? (
+                <ol className="space-y-2 border-t px-4 pb-4 pt-3">
+                  {group.steps.map((step, index) => (
+                    <StepRow
+                      key={step.key}
+                      index={index}
+                      step={step}
+                      canManage={canManage}
+                      running={runStep.isPending}
+                      onRun={() => runStep.mutate(step.key)}
+                    />
+                  ))}
+                </ol>
+              ) : null}
+            </Card>
+          );
+        })}
+      </div>
     </div>
   );
 }

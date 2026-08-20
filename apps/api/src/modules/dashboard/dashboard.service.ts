@@ -11,6 +11,7 @@ import {
   CrawledPage,
   GscProperty,
   GscSiteDailyMetric,
+  GoogleAdsIntegration,
   Issue,
   Keyword,
   KeywordMetric,
@@ -45,7 +46,6 @@ import type { AuthPrincipal } from '../../common/auth.types';
 const CLOSED = new Set(['RESOLVED', 'IGNORED']);
 const IN_PROGRESS = new Set(['IN_PROGRESS', 'FIXED', 'VERIFYING']);
 const SEVERITY_ORDER = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'];
-const TODAY = new Date();
 
 /**
  * Aggregated operational dashboards. All metrics are computed here in grouped
@@ -77,6 +77,7 @@ export class DashboardService {
     @InjectRepository(ActivityLog) private readonly activityLogs: Repository<ActivityLog>,
     @InjectRepository(AiProviderConfig) private readonly aiConfigs: Repository<AiProviderConfig>,
     @InjectRepository(Organization) private readonly orgs: Repository<Organization>,
+    @InjectRepository(GoogleAdsIntegration) private readonly googleAds: Repository<GoogleAdsIntegration>,
   ) {}
 
   // -------------------------------------------------------------------------
@@ -217,7 +218,7 @@ export class DashboardService {
     if (!site) throw new NotFoundException('Site not found');
 
     const windows = windows28d();
-    const [baselineRows, issues, recommendations, tasks, packages, publications, crawled, analysis, gscProp, wp, gscCurrent, gscPrevious, keywords, wfJobs, activities, aiConfigured] = await Promise.all([
+    const [baselineRows, issues, recommendations, tasks, packages, publications, crawled, analysis, gscProp, wp, gscCurrent, gscPrevious, keywords, wfJobs, activities, aiConfigured, googleAds] = await Promise.all([
       this.baselines.find({ where: { siteId }, order: { createdAt: 'ASC' } }),
       this.issues.find({ where: { siteId } }),
       this.recommendations.find({ where: { siteId } }),
@@ -234,6 +235,7 @@ export class DashboardService {
       this.workflowJobs.find({ where: { siteId } }),
       this.activityLogs.find({ where: { siteId }, order: { createdAt: 'DESC' }, take: 20 }),
       this.aiConfigured(siteId),
+      this.googleAds.findOne({ where: { siteId } }),
     ]);
 
     const current = gscCurrent[0] as GscAggRow | undefined;
@@ -258,12 +260,56 @@ export class DashboardService {
     const top = keywords.slice(0, 10);
     const next = keywords.slice(10, 20);
 
+    const hasCrawl = crawled > 0;
+    const hasAudit = Boolean(analysis);
+    const hasGsc = Boolean(gscProp);
+    const hasBaseline = baselineRows.length > 0;
+    const hasWp = Boolean(wp?.status === 'CONNECTED');
+
     const needsAi = !aiConfigured;
-    const needsGsc = !gscProp;
-    const needsBaseline = baselineRows.length === 0;
-    const needsCrawl = crawled === 0;
+    const needsGsc = !hasGsc;
+    const needsBaseline = !hasBaseline;
+    const needsCrawl = !hasCrawl;
     const needsKeywords = (await this.keywords.count({ where: { siteId } })) === 0;
     const noContent = packages.length === 0;
+
+    const nextBestAction = computeNextBestAction({
+      needsCrawl, needsAi, needsGsc, hasCrawl, hasAudit, hasBaseline, criticalOpen,
+      siteId,
+    });
+
+    const siteReadiness: Array<{ label: string; status: 'ready' | 'needs_setup' | 'optional' | 'not_available'; detail: string | null; deepLink: string | null }> = [
+      {
+        label: 'Technical Analysis',
+        status: hasCrawl && hasAudit ? 'ready' : hasCrawl ? 'needs_setup' : 'needs_setup',
+        detail: hasCrawl && hasAudit ? 'Crawl and audit completed' : hasCrawl ? 'Crawl completed, run an audit' : 'Run a crawl to analyze your site',
+        deepLink: `/sites/${siteId}?tab=crawler`,
+      },
+      {
+        label: 'Search Performance',
+        status: hasGsc ? 'ready' : 'needs_setup',
+        detail: hasGsc ? `Connected to ${gscProp?.siteUrl ?? 'Search Console'}` : 'Connect Google Search Console for real search data',
+        deepLink: `/sites/${siteId}?tab=settings`,
+      },
+      {
+        label: 'AI Analysis',
+        status: aiConfigured ? 'ready' : 'needs_setup',
+        detail: aiConfigured ? 'AI provider configured' : 'Configure an AI provider to enable AI-powered features',
+        deepLink: `/sites/${siteId}?tab=settings`,
+      },
+      {
+        label: 'WordPress Publishing',
+        status: hasWp ? 'ready' : 'optional',
+        detail: hasWp ? `Connected${wp?.rankMathDetected ? ' · Rank Math detected' : ''}` : 'Optional — required only for direct publishing',
+        deepLink: `/sites/${siteId}?tab=settings`,
+      },
+      {
+        label: 'Performance Baseline',
+        status: hasBaseline ? 'ready' : 'needs_setup',
+        detail: hasBaseline ? 'Baseline created' : 'Create a baseline to track improvements over time',
+        deepLink: `/sites/${siteId}?tab=overview`,
+      },
+    ];
 
     return {
       site: {
@@ -282,6 +328,8 @@ export class DashboardService {
         lastSync: wp?.lastSyncAt?.toISOString() ?? gscProp?.lastSyncAt?.toISOString() ?? null,
         lastCrawl: analysis?.createdAt?.toISOString() ?? null,
       },
+      nextBestAction,
+      siteReadiness,
       main: {
         seoHealth: baselineLatest ? baselineLatest.seoHealth : null,
         aeoReadiness: baselineLatest ? baselineLatest.aeoReadiness : null,
@@ -305,7 +353,7 @@ export class DashboardService {
         baseline: baselineTotals,
         currentVsPrevious: deltas(currentTotals, previousTotals),
         currentVsBaseline: baselineTotals ? deltas(currentTotals, baselineTotals) : { clicksPct: null, impressionsPct: null, ctrDelta: null, positionDelta: null },
-        hasGsc: Boolean(gscProp),
+        hasGsc,
       },
       baselineProgress: baselineRows.length > 0 ? baselineProgress(baselineRows[0]!, baselineRows[baselineRows.length - 1]!) : { exists: false },
       issueSummary: summarizeIssues(issues),
@@ -314,7 +362,7 @@ export class DashboardService {
         .slice(0, 10)
         .map((r) => ({ id: r.id, issueId: r.issueId, title: r.title, priority: r.priority as SiteRecommendationDto['priority'], impact: r.impact, confidence: r.confidence, effort: r.effort })),
       contentPipeline: contentStages(packages, publications),
-      integrationHealth: await this.integrationHealth(siteId, wp, gscProp, wfJobs, aiConfigured),
+      integrationHealth: await this.integrationHealth(siteId, wp, gscProp, googleAds, wfJobs, aiConfigured),
       recentActivity: activities.map((activity) => ({ action: activity.action, entityType: activity.entityType, entityId: activity.entityId, createdAt: activity.createdAt.toISOString() })),
       emptyStates: { needsCrawl, needsBaseline, needsGsc, needsKeywords, noContent, needsAi },
     };
@@ -446,19 +494,26 @@ export class DashboardService {
     return items;
   }
 
-  private async integrationHealth(siteId: string, wp: WordPressIntegration | null, gscProp: GscProperty | null, wfJobs: WorkflowJob[], aiConfigured: boolean): Promise<SiteIntegrationHealthDto[]> {
+  private async integrationHealth(siteId: string, wp: WordPressIntegration | null, gscProp: GscProperty | null, googleAds: GoogleAdsIntegration | null, wfJobs: WorkflowJob[], aiConfigured: boolean): Promise<SiteIntegrationHealthDto[]> {
     const crawlerFailed = wfJobs.some((job) => job.workflow === 'crawl-audit' && (job.status === 'FAILED' || job.status === 'TIMEOUT'));
-    return [
-      { component: 'WordPress', status: wpStatus(wp), detail: wp ? `${wp.status}${wp.rankMathDetected ? ' · Rank Math detected' : ''}` : 'No WordPress secret configured', deepLink: wp ? link(siteId, 'settings') : null },
-      { component: 'Search Visibility Connector', status: wp ? (wp.status === 'CONNECTED' ? 'healthy' : wp.status === 'PENDING' ? 'warning' : 'error') : 'not_configured', detail: wp ? wp.wpUrl ?? null : 'Not connected', deepLink: wp ? link(siteId, 'settings') : null },
-      { component: 'Rank Math', status: wp ? (wp.rankMathDetected ? 'healthy' : 'warning') : 'not_configured', detail: wp ? (wp.rankMathDetected ? `v${wp.rankMathVersion ?? ''}`.replace('v', 'v') : 'Not detected') : 'Not configured', deepLink: wp ? link(siteId, 'settings') : null },
-      { component: 'Google Search Console', status: gscProp ? (gscProp.status === 'DISCONNECTED' ? 'disconnected' : gscProp.status === 'EXPIRED' ? 'error' : 'healthy') : 'not_configured', detail: gscProp ? gscProp.siteUrl : 'Connect Google Search Console', deepLink: gscProp ? link(siteId, 'settings') : null },
-      { component: 'Google Ads', status: 'not_configured', detail: 'Not configured', deepLink: link(siteId, 'settings') },
-      { component: 'AI Providers', status: aiConfigured ? 'healthy' : 'not_configured', detail: aiConfigured ? 'Configured' : 'Configure at least one AI provider', deepLink: link(siteId, 'settings') },
-      { component: 'Automation', status: wfJobs.length > 0 ? 'healthy' : 'not_configured', detail: wfJobs.length > 0 ? `${wfJobs.length} job(s)` : 'Not configured', deepLink: null },
-      { component: 'Redis', status: 'healthy', detail: 'Operational', deepLink: null },
+    const items: SiteIntegrationHealthDto[] = [
+      { component: 'WordPress', status: wpStatus(wp), detail: wp ? `${wp.status}${wp.rankMathDetected ? ' · Rank Math detected' : ''}` : 'Not connected', deepLink: `/sites/${siteId}?tab=settings` },
+      { component: 'Search Visibility Connector', status: wp ? (wp.status === 'CONNECTED' ? 'healthy' : wp.status === 'PENDING' ? 'warning' : 'error') : 'not_configured', detail: wp ? wp.wpUrl ?? null : 'Requires WordPress connection', deepLink: `/sites/${siteId}?tab=settings` },
+      { component: 'Rank Math', status: wp ? (wp.rankMathDetected ? 'healthy' : 'warning') : 'not_configured', detail: wp ? (wp.rankMathDetected ? `v${wp.rankMathVersion ?? ''}`.replace('v', 'v') : 'Not detected') : 'Requires WordPress connection', deepLink: `/sites/${siteId}?tab=settings` },
+      { component: 'Google Search Console', status: gscProp ? (gscProp.status === 'DISCONNECTED' ? 'disconnected' : gscProp.status === 'EXPIRED' ? 'error' : 'healthy') : 'not_configured', detail: gscProp ? gscProp.siteUrl : 'Connect for real search data', deepLink: `/sites/${siteId}?tab=settings` },
+      { component: 'AI Providers', status: aiConfigured ? 'healthy' : 'not_configured', detail: aiConfigured ? 'Ready' : 'Configure to enable AI features', deepLink: `/sites/${siteId}?tab=settings` },
+      { component: 'Automation', status: wfJobs.length > 0 ? 'healthy' : 'not_configured', detail: wfJobs.length > 0 ? `${wfJobs.length} job(s) this month` : 'Not configured', deepLink: null },
       { component: 'Queue Worker', status: crawlerFailed ? 'warning' : 'healthy', detail: crawlerFailed ? 'Recent crawl failures' : 'Operational', deepLink: null },
     ];
+    if (googleAds) {
+      items.splice(4, 0, {
+        component: 'Google Ads',
+        status: googleAds.status === 'CONNECTED' ? 'healthy' : googleAds.status === 'ERROR' ? 'error' : 'warning',
+        detail: googleAds.customerId ? `Customer ${googleAds.customerId}` : googleAds.status,
+        deepLink: `/sites/${siteId}?tab=settings`,
+      });
+    }
+    return items;
   }
 
   private async aiConfigured(siteId: string): Promise<boolean> {
@@ -514,7 +569,7 @@ export class DashboardService {
       .addSelect('COUNT(*)', 'count')
       .where('t.site_id IN (:...ids)', { ids })
       .andWhere('t.deadline IS NOT NULL')
-      .andWhere('t.deadline < :now', { now: TODAY })
+      .andWhere('t.deadline < :now', { now: new Date() })
       .andWhere('t.status != :done', { done: 'DONE' })
       .groupBy('t.site_id')
       .getRawMany();
@@ -788,22 +843,19 @@ function summarizeIssues(issues: Issue[]): SiteIssueSummaryDto {
 }
 
 function isThisMonth(date: Date): boolean {
-  return date.getUTCFullYear() === TODAY.getUTCFullYear() && date.getUTCMonth() === TODAY.getUTCMonth();
+  const now = new Date();
+  return date.getUTCFullYear() === now.getUTCFullYear() && date.getUTCMonth() === now.getUTCMonth();
 }
 
 function contentStages(packages: ContentPackage[], publications: ContentPublication[]): ContentStageDto[] {
   const stage = (name: string, count: number, latestAt: string | null): ContentStageDto => ({ stage: name, count, latestAt });
-  const complete = (p: ContentPackage) => p.status === 'COMPLETE';
   const latestPkg = packages[0]?.createdAt?.toISOString() ?? null;
   const latestPub = publications[0]?.createdAt?.toISOString() ?? null;
   return [
-    stage('Idea', 0, null),
-    stage('Research', packages.filter((p) => p.status === 'QUEUED').length, latestPkg),
-    stage('Brief', packages.filter((p) => p.status === 'RUNNING').length, latestPkg),
-    stage('Draft', packages.filter(complete).length, latestPkg),
-    stage('QA', packages.filter(complete).length, latestPkg),
-    stage('Review', packages.filter((p) => p.status === 'AWAITING_APPROVAL').length, latestPkg),
-    stage('Approved', packages.filter(complete).length, latestPkg),
+    stage('Queued', packages.filter((p) => p.status === 'QUEUED').length, latestPkg),
+    stage('In Progress', packages.filter((p) => p.status === 'RUNNING').length, latestPkg),
+    stage('Awaiting Review', packages.filter((p) => p.status === 'AWAITING_APPROVAL').length, latestPkg),
+    stage('Complete', packages.filter((p) => p.status === 'COMPLETE').length, latestPkg),
     stage('WordPress Draft', publications.filter((p) => p.status === 'DRAFT' || p.status === 'APPROVED').length, latestPub),
     stage('Published', publications.filter((p) => p.status === 'PUBLISHED' || p.status === 'VERIFIED').length, publications[0]?.publishedAt?.toISOString() ?? latestPub),
   ];
@@ -853,14 +905,79 @@ function addDays(date: Date, days: number): Date {
 }
 
 function firstOfMonth(): Date {
-  return new Date(Date.UTC(TODAY.getUTCFullYear(), TODAY.getUTCMonth(), 1));
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
 }
 
 function monthEndLabel(): string {
-  const last = new Date(Date.UTC(TODAY.getUTCFullYear(), TODAY.getUTCMonth() + 1, 0));
+  const now = new Date();
+  const last = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0));
   return `${last.getUTCFullYear()}-${String(last.getUTCMonth() + 1).padStart(2, '0')}-${String(last.getUTCDate()).padStart(2, '0')}`;
 }
 
 function sum(rows: Array<{ count: string }>): number {
   return rows.reduce((sumVal, row) => sumVal + Number(row.count), 0);
+}
+
+function computeNextBestAction(args: {
+  needsCrawl: boolean;
+  needsAi: boolean;
+  needsGsc: boolean;
+  hasCrawl: boolean;
+  hasAudit: boolean;
+  hasBaseline: boolean;
+  criticalOpen: number;
+  siteId: string;
+}): SiteDashboardDto['nextBestAction'] {
+  const { needsCrawl, needsAi, needsGsc, hasCrawl, hasAudit, hasBaseline, criticalOpen, siteId } = args;
+
+  if (needsCrawl) {
+    return {
+      message: 'Run your first crawl',
+      detail: 'A crawl analyzes your website structure, pages, links and technical signals.',
+      actionLabel: 'Start Crawl',
+      actionUrl: `/sites/${siteId}?tab=crawler`,
+    };
+  }
+  if (needsAi) {
+    return {
+      message: 'Configure an AI provider',
+      detail: 'An AI provider (such as OpenAI) enables AI-powered analysis, recommendations and content generation.',
+      actionLabel: 'Configure AI',
+      actionUrl: `/sites/${siteId}?tab=settings`,
+    };
+  }
+  if (needsGsc) {
+    return {
+      message: 'Connect Google Search Console',
+      detail: 'Search Console provides real data about clicks, impressions, search queries and positions.',
+      actionLabel: 'Connect Search Console',
+      actionUrl: `/sites/${siteId}?tab=settings`,
+    };
+  }
+  if (hasCrawl && !hasAudit) {
+    return {
+      message: 'Run your first SEO audit',
+      detail: 'Your crawl is complete. Run an audit to discover technical and SEO issues.',
+      actionLabel: 'Run Audit',
+      actionUrl: `/sites/${siteId}?tab=audit`,
+    };
+  }
+  if (criticalOpen > 0) {
+    return {
+      message: `Review ${criticalOpen} critical issue${criticalOpen === 1 ? '' : 's'}`,
+      detail: 'Critical issues can significantly impact your search visibility.',
+      actionLabel: 'View Issues',
+      actionUrl: `/sites/${siteId}?tab=overview`,
+    };
+  }
+  if (!hasBaseline) {
+    return {
+      message: 'Create your first baseline',
+      detail: 'A baseline captures your current metrics so you can measure improvement over time.',
+      actionLabel: 'Create Baseline',
+      actionUrl: `/sites/${siteId}?tab=overview`,
+    };
+  }
+  return null;
 }

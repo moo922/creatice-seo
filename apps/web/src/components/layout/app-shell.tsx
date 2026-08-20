@@ -29,23 +29,67 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-const NAV_ITEMS = [
-  { to: '/', label: 'nav.portfolio', icon: FolderKanban, end: true, permission: 'sites:read' },
-  { to: '/sites', label: 'nav.sites', icon: Globe, end: false, permission: 'sites:read' },
-  { to: '/clients', label: 'nav.clients', icon: Building2, end: false, permission: 'organizations:read' },
-  { to: '/knowledge', label: 'nav.knowledge', icon: BookOpen, end: false, permission: 'knowledge:read' },
-  { to: '/wordpress', label: 'nav.wordpress', icon: Globe, end: false, permission: 'wordpress:read' },
-  { to: '/issues', label: 'nav.issues', icon: BarChart3, end: false, permission: 'operations:read' },
-  { to: '/tasks', label: 'nav.tasks', icon: Users, end: false, permission: 'operations:read' },
-  { to: '/monitoring', label: 'nav.monitoring', icon: BarChart3, end: false, permission: 'operations:read' },
-  { to: '/work', label: 'nav.work', icon: ListChecks, end: false, permission: 'workqueue:read' },
-  { to: '/content-studio', label: 'nav.contentStudio', icon: FileText, end: false, permission: 'content:read' },
-  { to: '/visibility', label: 'nav.visibility', icon: Sparkles, end: false, permission: 'visibility:read' },
-  { to: '/reports', label: 'nav.reports', icon: BarChart3, end: false, permission: 'reports:read' },
-  { to: '/automation', label: 'nav.automation', icon: Bot, end: false, permission: 'orchestration:read' },
-  { to: '/settings', label: 'nav.settings', icon: Settings, end: false, permission: 'ai:read' },
-  { to: '/client', label: 'nav.client', icon: Users, end: false, clientOnly: true },
-] as const;
+type NavItem = {
+  to: string;
+  label: string;
+  icon: typeof Settings;
+  end?: boolean;
+  permission?: string;
+  clientOnly?: boolean;
+};
+
+type NavSection = {
+  labelKey: string;
+  items: NavItem[];
+};
+
+const NAV_SECTIONS: NavSection[] = [
+  {
+    labelKey: 'nav.section.overview',
+    items: [
+      { to: '/', label: 'nav.portfolio', icon: FolderKanban, end: true, permission: 'sites:read' },
+      { to: '/sites', label: 'nav.sites', icon: Globe, end: false, permission: 'sites:read' },
+      { to: '/clients', label: 'nav.clients', icon: Building2, end: false, permission: 'organizations:read' },
+    ],
+  },
+  {
+    labelKey: 'nav.section.content',
+    items: [
+      { to: '/knowledge', label: 'nav.knowledge', icon: BookOpen, end: false, permission: 'knowledge:read' },
+      { to: '/content-studio', label: 'nav.contentStudio', icon: FileText, end: false, permission: 'content:read' },
+      { to: '/visibility', label: 'nav.visibility', icon: Sparkles, end: false, permission: 'visibility:read' },
+    ],
+  },
+  {
+    labelKey: 'nav.section.operations',
+    items: [
+      { to: '/issues', label: 'nav.issues', icon: BarChart3, end: false, permission: 'operations:read' },
+      { to: '/tasks', label: 'nav.tasks', icon: Users, end: false, permission: 'operations:read' },
+      { to: '/monitoring', label: 'nav.monitoring', icon: BarChart3, end: false, permission: 'operations:read' },
+      { to: '/work', label: 'nav.work', icon: ListChecks, end: false, permission: 'workqueue:read' },
+    ],
+  },
+  {
+    labelKey: 'nav.section.integrations',
+    items: [
+      { to: '/wordpress', label: 'nav.wordpress', icon: Globe, end: false, permission: 'wordpress:read' },
+      { to: '/automation', label: 'nav.automation', icon: Bot, end: false, permission: 'orchestration:read' },
+    ],
+  },
+  {
+    labelKey: 'nav.section.reporting',
+    items: [
+      { to: '/reports', label: 'nav.reports', icon: BarChart3, end: false, permission: 'reports:read' },
+    ],
+  },
+  {
+    labelKey: 'nav.section.system',
+    items: [
+      { to: '/settings', label: 'nav.settings', icon: Settings, end: false, permission: 'ai:read' },
+      { to: '/client', label: 'nav.client', icon: Users, end: false, clientOnly: true },
+    ],
+  },
+];
 
 export function AppShell() {
   const { t } = useTranslation();
@@ -53,32 +97,42 @@ export function AppShell() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const isClient = user?.roles.includes('CLIENT') ?? false;
-  const visibleNavItems = NAV_ITEMS.filter((item) => {
-    if ('clientOnly' in item && item.clientOnly) return isClient;
-    return !('permission' in item) || hasPermission(item.permission);
-  });
 
   const sidebar = (
-    <nav className="flex h-full flex-col gap-1 p-3">
-      {visibleNavItems.map((item) => (
-        <NavLink
-          key={item.to}
-          to={item.to}
-          end={item.end}
-          onClick={() => setMobileOpen(false)}
-          className={({ isActive }) =>
-            cn(
-              'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
-              isActive
-                ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
-            )
-          }
-        >
-          <item.icon className="size-4" />
-          {t(item.label)}
-        </NavLink>
-      ))}
+    <nav className="flex h-full flex-col gap-1 overflow-y-auto p-3">
+      {NAV_SECTIONS.map((section) => {
+        const visibleItems = section.items.filter((item) => {
+          if ('clientOnly' in item && item.clientOnly) return isClient;
+          return !('permission' in item) || !item.permission || hasPermission(item.permission);
+        });
+        if (visibleItems.length === 0) return null;
+        return (
+          <div key={section.labelKey} className="mb-2">
+            <div className="mb-1 px-3 pt-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              {t(section.labelKey)}
+            </div>
+            {visibleItems.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.end}
+                onClick={() => setMobileOpen(false)}
+                className={({ isActive }) =>
+                  cn(
+                    'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                    isActive
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+                  )
+                }
+              >
+                <item.icon className="size-4" />
+                {t(item.label)}
+              </NavLink>
+            ))}
+          </div>
+        );
+      })}
     </nav>
   );
 
