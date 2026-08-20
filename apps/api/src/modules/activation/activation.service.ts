@@ -65,7 +65,7 @@ interface SiteData {
 
 const STEPS: ActivationStepDef[] = [
   { key: 'add-site', label: 'Add Site', group: 'setup' },
-  { key: 'verify-domain', label: 'Verify Domain', group: 'setup' },
+  { key: 'verify-domain', label: 'Check Website', group: 'setup' },
   { key: 'connect-wordpress', label: 'Connect WordPress', group: 'connect' },
   { key: 'verify-connector', label: 'Verify Search Visibility Connector', group: 'connect' },
   { key: 'verify-rank-math', label: 'Verify Rank Math', group: 'connect' },
@@ -142,9 +142,8 @@ export class ActivationService {
     const steps: ActivationStepDto[] = [];
     for (const [index, def] of STEPS.entries()) {
       const row = byKey.get(def.key);
-      const previous = index === 0 ? null : (steps[index - 1] ?? null);
       const reality = this.deriveStatus(def.key, data);
-      steps.push(this.toStepDto(def, row, reality, previous));
+      steps.push(this.toStepDto(def, row, reality));
     }
 
     const completed = steps.filter((step) => step.status === 'COMPLETED').length;
@@ -176,25 +175,16 @@ export class ActivationService {
     const row = await this.stepRepo.findOne({ where: { siteId, stepKey } });
     if (!row) throw new NotFoundException('Activation step not found');
 
-    // Resumability: an expensive/destructive step that already completed is a
-    // no-op — we never repeat it automatically.
+    // Expensive/destructive steps that already completed are a no-op.
     const realityBefore = this.deriveStatus(def.key, data);
     if (def.expensive && row.status === 'COMPLETED') {
-      return this.toStepDto(def, row, 'COMPLETED', null);
+      return this.toStepDto(def, row, 'COMPLETED');
     }
     if (def.expensive && realityBefore === 'COMPLETED') {
       row.status = 'COMPLETED';
       row.message = this.expensiveAlreadyDoneMessage(def.key, data);
       await this.stepRepo.save(row);
-      return this.toStepDto(def, row, 'COMPLETED', null);
-    }
-
-    if (defIndex > 0) {
-      const previousDef = STEPS[defIndex - 1]!;
-      const previousReality = this.deriveStatus(previousDef.key, data);
-      if (previousReality !== 'COMPLETED' && row.status !== 'FAILED' && row.status !== 'WARNING') {
-        throw new BadRequestException(`Previous step (${previousDef.key}) must complete first`);
-      }
+      return this.toStepDto(def, row, 'COMPLETED');
     }
 
     row.status = 'RUNNING';
@@ -228,7 +218,7 @@ export class ActivationService {
       meta: { step: stepKey, status: row.status, message: row.message ?? undefined },
     });
 
-    return this.toStepDto(def, row, this.deriveStatus(def.key, await this.collect(siteId, actor)), null);
+    return this.toStepDto(def, row, this.deriveStatus(def.key, await this.collect(siteId, actor)));
   }
 
   // -------------------------------------------------------------------------
@@ -556,6 +546,8 @@ export class ActivationService {
     switch (key) {
       case 'add-site':
         return 'COMPLETED';
+      case 'verify-domain':
+        return 'COMPLETED';
       case 'connect-wordpress':
         return data.integrationStatus === 'CONNECTED' ? 'COMPLETED' : 'NOT_STARTED';
       case 'verify-connector':
@@ -831,7 +823,6 @@ export class ActivationService {
     def: ActivationStepDef,
     row: SiteActivationStep | undefined,
     reality: ActivationStepStatus,
-    previous: ActivationStepDto | null,
   ): ActivationStepDto {
     let status = reality;
     let message = row?.message ?? null;
@@ -860,7 +851,9 @@ export class ActivationService {
       message = message ?? 'GSC property unavailable';
     }
 
-    const runnable = status === 'FAILED' || status === 'WARNING' || (previous?.status === 'COMPLETED');
+    // Steps are independently runnable — no sequential dependency.
+    // A step is runnable unless it's already COMPLETED or currently RUNNING.
+    const runnable = status !== 'COMPLETED' && status !== 'RUNNING';
 
     return {
       key: def.key,
@@ -934,7 +927,7 @@ function hasCompletedAudit(data: SiteData, types: string[]): boolean {
 function defaultCompletedMessage(key: ActivationStepKey): string {
   const messages: Partial<Record<ActivationStepKey, string>> = {
     'add-site': 'Site created',
-    'verify-domain': 'Domain verified',
+    'verify-domain': 'Website check complete',
     'connect-wordpress': 'WordPress connected',
     'verify-connector': 'Search Visibility Connector verified',
     'verify-rank-math': 'Rank Math verified',

@@ -311,7 +311,7 @@ function IssueSummaryTable({ summary, siteId }: { summary: SiteDashboardDto['iss
           {rows.map((row) => (
             <tr key={row.key} className="border-t">
               <td className="py-2 font-medium">{row.label}</td>
-              <td><Link to={`/sites/${siteId}?tab=issues&status=${row.label.toUpperCase()}`} className="underline-offset-2 hover:underline">{summary[row.key].open}</Link></td>
+              <td><Link to={`/sites/${siteId}?tab=audit`} className="underline-offset-2 hover:underline">{summary[row.key].open}</Link></td>
               <td>{summary[row.key].inProgress}</td>
               <td>{summary[row.key].resolvedThisMonth}</td>
             </tr>

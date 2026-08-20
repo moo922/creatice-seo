@@ -59,7 +59,7 @@ export function AddSitePage() {
     mutationFn: (body: CreateSiteRequest) => api.post<SiteDto>('/sites', body),
     onSuccess: (site) => {
       queryClient.invalidateQueries({ queryKey: ['sites'] });
-      navigate(`/sites/${site.id}?tab=activation`, { replace: true });
+      navigate(`/sites/${site.id}`, { replace: true });
     },
     onError: () => setError(t('addSite.error')),
   });

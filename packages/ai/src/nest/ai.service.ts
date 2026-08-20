@@ -268,16 +268,9 @@ export class AiService {
 
   private async siteConfigFor(siteId: string | null): Promise<SiteAiConfig | null> {
     if (!siteId) return null;
-    const row = await this.configs.findOne({ where: { siteId } });
-    if (!row) return { enabled: true, workflowOverrides: {}, apiKeyOverrides: {} };
-    if (!row.enabled) {
-      throw new ForbiddenException('AI generation is disabled for this site');
-    }
 
-    // Resolution order: site override → global DB credential → env (fallback in router)
+    // Always load global DB credentials first (they are the base resolution layer).
     const apiKeyOverrides: Partial<Record<AiProviderKind, string>> = {};
-
-    // 1. Load global DB credentials first (lower priority than site override)
     const globalCredRows = await this.globalCreds.find({ where: { enabled: true } });
     for (const gRow of globalCredRows) {
       if (!(AI_PROVIDER_KINDS as readonly string[]).includes(gRow.provider)) continue;
@@ -290,7 +283,17 @@ export class AiService {
       }
     }
 
-    // 2. Site overrides beat global DB credentials
+    // Load site-specific config (if it exists).
+    const row = await this.configs.findOne({ where: { siteId } });
+    if (!row) {
+      // No site config — inherit global credentials directly.
+      return { enabled: true, workflowOverrides: {}, apiKeyOverrides };
+    }
+    if (!row.enabled) {
+      throw new ForbiddenException('AI generation is disabled for this site');
+    }
+
+    // Site overrides beat global DB credentials.
     for (const [kind, encrypted] of Object.entries(row.apiKeyOverrides)) {
       if (!(AI_PROVIDER_KINDS as readonly string[]).includes(kind)) continue;
       try {

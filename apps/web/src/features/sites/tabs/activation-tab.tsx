@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import type { ActivationStepDto, SiteActivationDto } from '@creative-seo/types';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
@@ -9,29 +10,15 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
 import { KpiCard } from '@/components/shared/kpi-card';
-import { AlertTriangle, CheckCircle2, ChevronDown, ChevronRight, CircleDashed, ExternalLink, Play, RefreshCw, Rocket } from 'lucide-react';
-import { cn } from '@/lib/utils';
-
-type StepStatus = ActivationStepDto['status'];
-
-const STATUS_META: Record<StepStatus, { label: string; className: string }> = {
-  NOT_STARTED: { label: 'Not started', className: 'bg-muted text-muted-foreground' },
-  READY: { label: 'Ready', className: 'bg-primary/10 text-primary' },
-  RUNNING: { label: 'Running', className: 'bg-primary/10 text-primary' },
-  COMPLETED: { label: 'Completed', className: 'bg-emerald-100 text-emerald-700' },
-  WARNING: { label: 'Warning', className: 'bg-amber-100 text-amber-700' },
-  FAILED: { label: 'Failed', className: 'bg-destructive/10 text-destructive' },
-  NOT_IMPLEMENTED: { label: 'Not implemented', className: 'bg-muted text-muted-foreground' },
-};
+import { AlertTriangle, CheckCircle2, Play, Rocket, Settings } from 'lucide-react';
 
 export function ActivationTab({ siteId }: { siteId: string }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { hasPermission } = useAuth();
   const [actionError, setActionError] = useState<string | null>(null);
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
-  const { data, isLoading, refetch, isRefetching } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ['activation', siteId],
     queryFn: () => api.get<SiteActivationDto>(`/sites/${siteId}/activation`),
     refetchInterval: (query) => (query.state.data?.steps.some((step) => step.status === 'RUNNING') ? 2000 : false),
@@ -52,20 +39,7 @@ export function ActivationTab({ siteId }: { siteId: string }) {
     onError: (error: Error) => setActionError(error.message),
   });
 
-  const canManage = hasPermission('operations:manage');
   const canReport = hasPermission('reporting:manage');
-
-  const toggleGroup = (key: string) => {
-    setExpandedGroups((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) {
-        next.delete(key);
-      } else {
-        next.add(key);
-      }
-      return next;
-    });
-  };
 
   if (isLoading) {
     return (
@@ -77,44 +51,18 @@ export function ActivationTab({ siteId }: { siteId: string }) {
 
   if (!data) return null;
 
-  const running = data.steps.find((step) => step.status === 'RUNNING');
+  const stepMap = new Map(data.steps.map((s) => [s.key, s]));
+
+  const websiteCheck = stepMap.get('verify-domain');
+  const crawlStep = stepMap.get('crawl-website');
+  const gscStep = stepMap.get('connect-gsc');
+  const wpStep = stepMap.get('connect-wordpress');
+  const gaStep = stepMap.get('build-keyword-url-mapping');
+
+  const hasCrawl = crawlStep?.status === 'COMPLETED';
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader className="space-y-3">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Rocket className="size-4 text-primary" />
-                {t('activation.title')}
-              </CardTitle>
-              <CardDescription className="mt-1">
-                {t('activation.subtitle', { domain: data.siteDomain })}
-              </CardDescription>
-            </div>
-            <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isRefetching}>
-              {isRefetching ? <Spinner /> : <RefreshCw />}
-              {t('common.refresh')}
-            </Button>
-          </div>
-
-          <div>
-            <div className="mb-1 flex items-center justify-between text-sm">
-              <span className="font-medium">
-                {data.ready ? t('activation.ready') : t('activation.progress')}
-              </span>
-              <span className="text-muted-foreground">
-                {data.completedSteps}/{data.totalSteps} · {data.progress}%
-              </span>
-            </div>
-            <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-              <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${data.progress}%` }} />
-            </div>
-          </div>
-        </CardHeader>
-      </Card>
-
       {actionError ? (
         <Card className="border-destructive/50">
           <CardContent className="flex items-center gap-2 text-sm text-destructive">
@@ -144,12 +92,7 @@ export function ActivationTab({ siteId }: { siteId: string }) {
               <KpiCard label={t('activation.kpis.geoReadiness')} value={formatScore(data.summary.geoReadiness)} />
               <KpiCard label={t('activation.kpis.searchQueries')} value={data.summary.searchQueriesImported} />
               <KpiCard label={t('activation.kpis.keywords')} value={data.summary.keywordOpportunities} />
-              <KpiCard label={t('activation.kpis.cannibalization')} value={data.summary.cannibalizationCases} />
               <KpiCard label={t('activation.kpis.recommendations')} value={data.summary.recommendations} />
-              <KpiCard
-                label={t('activation.kpis.baselineDate')}
-                value={data.summary.baselineDate ? new Date(data.summary.baselineDate).toLocaleDateString() : '—'}
-              />
             </div>
             {canReport ? (
               <div className="flex flex-wrap gap-3">
@@ -157,136 +100,136 @@ export function ActivationTab({ siteId }: { siteId: string }) {
                   {generateReport.isPending ? <Spinner /> : <Rocket />}
                   {data.summary.initialReportExists ? t('activation.regenerateInitial') : t('activation.generateInitial')}
                 </Button>
-                <Button variant="outline" onClick={() => generateReport.mutate()} disabled={generateReport.isPending}>
-                  {t('activation.createActionPlan')}
-                </Button>
               </div>
             ) : null}
           </CardContent>
         </Card>
       ) : null}
 
-      <div className="space-y-3">
-        {running ? (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Spinner />
-            {t('activation.runningHint', { step: running.label })}
-          </div>
-        ) : null}
-
-        {data.stepGroups.map((group) => {
-          const isExpanded = expandedGroups.has(group.key) || group.status === 'in_progress';
-          const GroupIcon = group.status === 'completed' ? CheckCircle2 : group.status === 'in_progress' ? Spinner : CircleDashed;
-
-          return (
-            <Card key={group.key}>
-              <button
-                type="button"
-                className="flex w-full items-center justify-between gap-3 p-4 text-left"
-                onClick={() => toggleGroup(group.key)}
-              >
-                <div className="flex items-center gap-3">
-                  <GroupIcon className={cn(
-                    'size-5 shrink-0',
-                    group.status === 'completed' ? 'text-emerald-600' : group.status === 'in_progress' ? 'text-primary' : 'text-muted-foreground',
-                  )} />
-                  <div>
-                    <div className="font-medium">{group.label}</div>
-                    <div className="text-xs text-muted-foreground">{group.description}</div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-xs text-muted-foreground">
-                    {group.completedCount}/{group.totalCount}
-                  </span>
-                  {isExpanded ? <ChevronDown className="size-4 text-muted-foreground" /> : <ChevronRight className="size-4 text-muted-foreground" />}
-                </div>
-              </button>
-
-              {isExpanded ? (
-                <ol className="space-y-2 border-t px-4 pb-4 pt-3">
-                  {group.steps.map((step, index) => (
-                    <StepRow
-                      key={step.key}
-                      index={index}
-                      step={step}
-                      canManage={canManage}
-                      running={runStep.isPending}
-                      onRun={() => runStep.mutate(step.key)}
-                    />
-                  ))}
-                </ol>
-              ) : null}
-            </Card>
-          );
-        })}
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('activation.stages')}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <CapabilityRow
+            label={t('setupCap.website')}
+            status={websiteCheck?.status === 'COMPLETED' ? 'ready' : 'needs_setup'}
+            detail={websiteCheck?.message ?? t('setupCap.websiteDetail')}
+            actionUrl={`/sites/${siteId}?tab=crawler`}
+            actionLabel={t('setupCap.viewCrawler')}
+          />
+          <CapabilityRow
+            label={t('setupCap.crawlAndAudit')}
+            status={hasCrawl ? 'ready' : 'available'}
+            detail={hasCrawl
+              ? t('setupCap.crawlComplete', { count: data.summary.pagesCrawled })
+              : t('setupCap.crawlDetail')
+            }
+            actionUrl={`/sites/${siteId}?tab=crawler`}
+            actionLabel={hasCrawl ? t('setupCap.viewCrawl') : t('setupCap.runCrawl')}
+            onRun={hasCrawl ? undefined : () => runStep.mutate('crawl-website')}
+            isRunning={runStep.isPending}
+          />
+          <CapabilityRow
+            label={t('setupCap.ai')}
+            status={data.summary.recommendations > 0 ? 'ready' : 'needs_setup'}
+            detail={t('setupCap.aiDetail')}
+            actionUrl={`/sites/${siteId}?tab=settings`}
+            actionLabel={t('setupCap.configureAi')}
+          />
+          <CapabilityRow
+            label={t('setupCap.searchConsole')}
+            status={gscStep?.status === 'COMPLETED' ? 'ready' : 'optional'}
+            detail={t('setupCap.searchConsoleDetail')}
+            actionUrl={`/sites/${siteId}?tab=settings`}
+            actionLabel={gscStep?.status === 'COMPLETED' ? t('setupCap.viewSearchConsole') : t('setupCap.connectSearchConsole')}
+          />
+          <CapabilityRow
+            label={t('setupCap.wordpress')}
+            status={wpStep?.status === 'COMPLETED' ? 'ready' : 'optional'}
+            detail={t('setupCap.wordpressDetail')}
+            actionUrl={`/sites/${siteId}?tab=settings`}
+            actionLabel={wpStep?.status === 'COMPLETED' ? t('setupCap.viewWordPress') : t('setupCap.connectWordPress')}
+          />
+          <CapabilityRow
+            label={t('setupCap.googleAds')}
+            status={gaStep?.status === 'COMPLETED' ? 'ready' : 'optional'}
+            detail={t('setupCap.googleAdsDetail')}
+            actionUrl={`/sites/${siteId}?tab=settings`}
+            actionLabel={gaStep?.status === 'COMPLETED' ? t('setupCap.viewGoogleAds') : t('setupCap.connectGoogleAds')}
+          />
+        </CardContent>
+      </Card>
     </div>
   );
 }
 
-function StepRow({
-  index,
-  step,
-  canManage,
-  running,
+function CapabilityRow({
+  label,
+  status,
+  detail,
+  actionUrl,
+  actionLabel,
   onRun,
+  isRunning,
 }: {
-  index: number;
-  step: ActivationStepDto;
-  canManage: boolean;
-  running: boolean;
-  onRun: () => void;
+  label: string;
+  status: 'ready' | 'available' | 'needs_setup' | 'optional';
+  detail: string;
+  actionUrl?: string;
+  actionLabel?: string;
+  onRun?: () => void;
+  isRunning?: boolean;
 }) {
-  const { t } = useTranslation();
-  const meta = STATUS_META[step.status];
-  const Icon =
-    step.status === 'COMPLETED' ? CheckCircle2 : step.status === 'FAILED' ? AlertTriangle : step.status === 'RUNNING' ? Spinner : CircleDashed;
+  const statusColors = {
+    ready: 'bg-emerald-100 text-emerald-700',
+    available: 'bg-primary/10 text-primary',
+    needs_setup: 'bg-amber-100 text-amber-700',
+    optional: 'bg-muted text-muted-foreground',
+  };
 
-  const oauthUrl =
-    step.detail && typeof step.detail === 'object' && 'authorizationUrl' in step.detail
-      ? String(step.detail.authorizationUrl)
-      : null;
+  const statusLabels = {
+    ready: 'Ready',
+    available: 'Available',
+    needs_setup: 'Needs setup',
+    optional: 'Optional',
+  };
 
   return (
-    <li className="flex items-start gap-3 rounded-lg border p-3">
-      <div className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground">
-        {index + 1}
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="font-medium">{step.label}</span>
-          <Badge variant="outline" className={meta.className}>
-            {step.status === 'RUNNING' ? <Spinner className="size-3" /> : <Icon className="size-3" />}
-            {t(`activation.status.${step.status}`)}
-          </Badge>
-          {step.expensive ? <span className="text-xs text-muted-foreground">{t('activation.notAutoRepeated')}</span> : null}
-          {step.requiresManualAction ? <span className="text-xs text-primary">{t('activation.manualStep')}</span> : null}
+    <div className="flex items-center justify-between gap-4 rounded-lg border p-3">
+      <div className="flex items-center gap-3">
+        {status === 'ready' ? (
+          <CheckCircle2 className="size-5 shrink-0 text-emerald-600" />
+        ) : status === 'available' ? (
+          <Play className="size-5 shrink-0 text-primary" />
+        ) : status === 'needs_setup' ? (
+          <Settings className="size-5 shrink-0 text-amber-600" />
+        ) : (
+          <Settings className="size-5 shrink-0 text-muted-foreground" />
+        )}
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="font-medium">{label}</span>
+            <Badge variant="outline" className={statusColors[status]}>
+              {statusLabels[status]}
+            </Badge>
+          </div>
+          <p className="text-xs text-muted-foreground">{detail}</p>
         </div>
-        {step.message ? <p className="mt-1 text-sm text-muted-foreground">{step.message}</p> : null}
-        {step.status === 'FAILED' && step.detail ? (
-          <pre className="mt-2 max-h-40 overflow-auto rounded bg-muted/50 p-2 text-xs text-muted-foreground">
-            {JSON.stringify(step.detail, null, 2)}
-          </pre>
-        ) : null}
       </div>
-      <div className="flex shrink-0 items-center gap-2">
-        {oauthUrl && step.status !== 'COMPLETED' ? (
+      <div className="shrink-0">
+        {onRun ? (
+          <Button size="sm" onClick={onRun} disabled={isRunning}>
+            {isRunning ? <Spinner /> : <Play />}
+            {actionLabel}
+          </Button>
+        ) : actionUrl && actionLabel ? (
           <Button size="sm" variant="outline" asChild>
-            <a href={oauthUrl} target="_blank" rel="noreferrer">
-              <ExternalLink />
-              {t('activation.connect')}
-            </a>
-          </Button>
-        ) : null}
-        {step.status === 'COMPLETED' ? null : canManage ? (
-          <Button size="sm" onClick={onRun} disabled={running || !step.runnable}>
-            {running ? <Spinner /> : <Play />}
-            {t('activation.run')}
+            <Link to={actionUrl}>{actionLabel}</Link>
           </Button>
         ) : null}
       </div>
-    </li>
+    </div>
   );
 }
 
